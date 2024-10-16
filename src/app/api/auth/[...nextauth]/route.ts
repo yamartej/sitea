@@ -26,6 +26,26 @@ export const authOptions = {
   pages: {
     signIn: '/login', // Aquí defines la ruta que quieres usar
   },
+  callbacks: {
+    async signIn(user ="yamartej", account="yamarteja", profile="yamartejp") {
+      // Aquí puedes realizar una consulta a tu API de Laravel para verificar el usuario
+      const res = await fetch('https://tuapi.com/verificarUsuario', {
+        method: 'POST',
+        body: JSON.stringify({ email: user.email }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+  
+      if (data.exists) {
+        // Si el usuario existe en tu base de datos, permitir el login
+        return true;
+      } else {
+        // Si el usuario no existe, redirigir o bloquear
+        return false;
+      }
+    }
+  }
+  
 };
 
 export const handler = NextAuth(authOptions);

@@ -6,6 +6,7 @@ import SessionProvider from "@/components/SessionProvider";
 import NavMenu from "@/components/NavMenu";
 
 
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -35,9 +36,8 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider session={session}>
-        <NavMenu/>
-        
-        {children}
+          <NavMenu/>
+          {children}
         </SessionProvider>
       </body>
     </html>
