@@ -14,7 +14,11 @@ function AuthButton() {
     return (
       <>
         {session?.user?.name} <br />
-        <img src={session.user.image}alt="User Avatar" />
+        <img 
+          src={session.user.image || '/default-avatar.png'} 
+          alt="User Avatar" 
+          className="h-10 w-10 rounded-full"
+        />
         <button onClick={() => signOut()}>Sign out</button>
       </>
     );
