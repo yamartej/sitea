@@ -5,9 +5,18 @@ import Link from "next/link";
 
 const ACTIVE_LINK = "text-white bg-blue-600 p-2 rounded";
 const INACTIVE_LINK = "text-gray-500 p-2 rounded hover:bg-blue-600 hover:text-white";
+interface User {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
 
-export default function Dashboard() {
-  const { data: session } = useSession();
+interface DashboardProps {
+  user: User | undefined;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+  const { data: session} = useSession();
 
   return (
     <div className="p-5 bg-gray-100 min-h-screen">
@@ -67,4 +76,7 @@ export default function Dashboard() {
       </nav>
     </div>
   );
-}
+};
+
+export default Dashboard;
+

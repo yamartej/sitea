@@ -1,14 +1,13 @@
 "use client";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
 
 function AuthButton() {
   const { data: session } = useSession();
 
-  if (session) {
+  if (session && session.user) {  // Verifica que session y session.user estén definidos
     return (
       <>
-        {session?.user?.name} <br />
+        {session.user.name} <br />
         <img 
           src={session.user.image || '/default-avatar.png'} 
           alt="User Avatar" 
@@ -16,10 +15,11 @@ function AuthButton() {
         />
         <button onClick={() => signOut({
           callbackUrl: "/login",  
-          })}>Sign outt</button>
+          })}>Sign out</button>
       </>
     );
   }
+  
   return (
     <>
       Not signed in <br />
@@ -53,4 +53,3 @@ export default function NavMenu() {
     </div>
   );
 }
-
