@@ -1,15 +1,9 @@
-import Image from "next/image";
-import NavMenu from "@/components/NavMenu";
+import LoginPage from "@/components/LoginPage"
 
 export default function Home() {
   return (
     <div>
-      <NavMenu/>
-          
-      <div className="container">
-          jhskajdh
-      </div>
-      <footer>footer</footer>
+      <LoginPage/>  
     </div>
   );
 }

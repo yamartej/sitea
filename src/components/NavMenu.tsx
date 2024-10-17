@@ -4,7 +4,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 function AuthButton() {
   const { data: session } = useSession();
 
-  if (session && session.user) {  // Verifica que session y session.user estén definidos
+  /*if (session && session.user) {  // Verifica que session y session.user estén definidos
     return (
       <>
         {session.user.name} <br />
@@ -15,10 +15,10 @@ function AuthButton() {
         />
         <button onClick={() => signOut({
           callbackUrl: "/login",  
-          })}>Sign out</button>
+          })}>Sign outtttt</button>
       </>
     );
-  }
+  }*/
   
   return (
     <>
