@@ -11,7 +11,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/auth/signin"); // Redirige al login si no está autenticado
+      router.push("/"); // Redirige al login si no está autenticado
     }
   }, [status, router]);
 
