@@ -1,87 +1,55 @@
 "use client";
-import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
-
-const ACTIVE_ROUTE = "py-1 px-2 text-gray-300 bg-gray-700";
-const INACTIVE_ROUTE =
-  "py-1 px-2 text-gray-500 hover:text-gray-300 hover:bg-gray-700";
 
 function AuthButton() {
   const { data: session } = useSession();
 
-  if (session) {
+  /*if (session && session.user) {  // Verifica que session y session.user estén definidos
     return (
       <>
-        {session?.user?.name} <br />
-        <img src={session.user.image}alt="User Avatar" />
-        <button onClick={() => signOut()}>Sign out</button>
+        {session.user.name} <br />
+        <img 
+          src={session.user.image || '/default-avatar.png'} 
+          alt="User Avatar" 
+          className="h-10 w-10 rounded-full"
+        />
+        <button onClick={() => signOut({
+          callbackUrl: "/login",  
+          })}>Sign outtttt</button>
       </>
     );
-  }
+  }*/
+  
   return (
     <>
       Not signed in <br />
-      <button onClick={() => signIn('github')}>Login with GitHub</button>
-      <hr />
-      <button onClick={() => signIn('google')}>Login with google</button>
-      <hr />
-      <button onClick={() => signIn('facebook')}>Login with facebook</button>
+      <div className="space-y-2">
+        <button onClick={() => signIn('github', {
+            callbackUrl: "/dashboard",
+          })} className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            Login with GitHub
+        </button>
+        <hr />
+        <button onClick={() => signIn('google', {
+            callbackUrl: "/dashboard",
+          })} className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+          Login with Google
+        </button>
+        <hr />
+        <button onClick={() => signIn('facebook', {
+            callbackUrl: "/dashboard",
+          })} className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+          Login with Facebook
+        </button>
+      </div>
     </>
   );
 }
 
 export default function NavMenu() {
-  const pathname = usePathname();
   return (
     <div>
-        
       <AuthButton />
-      <hr className="my-4" />
-      <ul>
-        <Link href="/">
-          <li className={pathname === "/" ? ACTIVE_ROUTE : INACTIVE_ROUTE}>
-            Home
-          </li>
-        </Link>
-        <Link href="/protected">
-          <li
-            className={
-              pathname === "/protected" ? ACTIVE_ROUTE : INACTIVE_ROUTE
-            }
-          >
-            Protected Route
-          </li>
-        </Link>
-        <Link href="/serverAction">
-          <li
-            className={
-              pathname === "/serverAction" ? ACTIVE_ROUTE : INACTIVE_ROUTE
-            }
-          >
-            Server Action
-          </li>
-        </Link>
-        <Link href="/apiFromClient">
-          <li
-            className={
-              pathname === "/apiFromClient" ? ACTIVE_ROUTE : INACTIVE_ROUTE
-            }
-          >
-            API From Client
-          </li>
-        </Link>
-        <Link href="/apiFromServer">
-          <li
-            className={
-              pathname === "/apiFromServer" ? ACTIVE_ROUTE : INACTIVE_ROUTE
-            }
-          >
-            API From Server
-          </li>
-        </Link>
-      </ul>
     </div>
   );
 }
-
