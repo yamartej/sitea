@@ -2,11 +2,10 @@ import NextAuth, { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
-import axios from "axios";
+import { validateEmail } from "./api";
 
 interface User {
   email?: string | null;
-  // Puedes añadir más propiedades según tu esquema de usuario
 }
 
 export const authOptions: NextAuthOptions = {
@@ -33,30 +32,22 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user }: { user: User }) {
       try {
         if (!user.email) throw new Error("No email provided");
-
-        const response = await axios.post(
-          "http://127.0.0.1:8000/api/check-email",
-          { email: user.email },
-          {
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        if (!response.data.exists) {
+        const emailExists = await validateEmail(user.email);
+        if (emailExists) {
+          return true; 
+        } else {
           console.warn("Correo no registrado:", user.email);
-          return false; // Rechaza el inicio de sesión si el correo no existe
+          return `/?message=Correo no registrado o incorrecto`; 
         }
-
-        return true; // Permite el inicio de sesión si el correo existe
       } catch (error) {
-        console.error("Error al verificar el correo en la API:", error);
-        return false; // Rechaza el inicio de sesión en caso de error
+        console.error("Correo no registrado o incorrecto:", error);
+        return `/?message=Correo no registrado o incorrecto`; 
       }
-    },
+    }
   },
   pages: {
     signIn: "/", // Define la ruta para el inicio de sesión
-    error: "/error", // Opcional: ruta para manejar errores de acceso
+    error: "/", // Define la ruta para cuando exista un error
     newUser: "/dashboard", // Redirige al Dashboard después del registro
   },
 };
