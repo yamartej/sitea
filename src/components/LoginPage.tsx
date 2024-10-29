@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import Notification from "./Notification";
 import { useRouter , useSearchParams } from "next/navigation";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
+import Router from "next/router";
 
 const Login = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -25,7 +27,22 @@ const Login = () => {
     try {
       const emailExists = await validateEmail(email);
       if (emailExists) {
-        signIn("credentials", { email, password, callbackUrl: "/dashboard" });
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false, // Evita redirección automática
+          callbackUrl: "/dashboard"
+        });
+  
+        // Verifica si `result` es `undefined` y gestiona la respuesta
+        if (result && result.ok) {
+          // Redirige manualmente al dashboard
+          router.push("/dashboard");
+        } else {
+          // Manejo de error en caso de fallo de autenticación
+          setErrorMessage("Correos o contraseña incorrectos");
+          setShowNotification(true);
+        }
       } else {
         setErrorMessage("Correo no registrado o incorrecto");
         setShowNotification(true);
