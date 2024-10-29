@@ -17,6 +17,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { data: session} = useSession();
+  const userImage = session?.user.image || '/default-avatar.png'; // Ruta a tu imagen de avatar predeterminada
 
   return (
     <div className="p-5 bg-gray-100 min-h-screen">
@@ -25,7 +26,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         {session ? (
           <div>
             <div className="flex items-center mb-4">
-              <img src={session.user?.image || ""} alt="User Avatar" className="w-12 h-12 rounded-full mr-4" />
+              <img src={userImage} alt="User Avatar" className="w-12 h-12 rounded-full mr-4" />
               <div>
                 <h2 className="text-xl font-semibold">{session.user?.name}</h2>
                 <p className="text-gray-500">{session.user?.email}</p>

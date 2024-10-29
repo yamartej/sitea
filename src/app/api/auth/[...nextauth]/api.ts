@@ -18,3 +18,16 @@ export const validateEmail = async (email: string): Promise<boolean> => {
     throw new Error("Error al verificar el correo");
   }
 };
+
+export const login = async (email: string, password: string) => {
+  try {
+    const response = await axios.post("http://127.0.0.1:8000/api/login", {
+      email,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al iniciar sesión:", error);
+    throw error;
+  }
+};

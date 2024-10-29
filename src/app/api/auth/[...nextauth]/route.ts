@@ -1,9 +1,46 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions, DefaultSession, DefaultUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
-import { validateEmail } from "./api";
+import { validateEmail, login } from "./api";
+import { JWT } from "next-auth/jwt";
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      token: string;
+      roles: string[];  // Agrega el tipo de roles que necesites
+      name?: string;
+    } & DefaultSession["user"];
+  }
+
+  interface User extends DefaultUser {
+    id: string;
+    token: string;
+    roles: string[]; // Define los roles en el usuario
+    name?: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    token: string;
+    roles: string[]; // Asegúrate de definir roles aquí también
+    name?: string;
+  }
+}
+
+interface CustomToken extends JWT {
+  id: string;
+  token: string;
+  roles: string[];
+  name: string;
+}
+
+
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -14,13 +51,26 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        if (!credentials || !credentials.email || !credentials.password) {
+          throw new Error("Correo y contraseña son requeridos");
+        }
+
         const emailExists = await validateEmail(credentials?.email || "");
         if (!emailExists) throw new Error("Correo no registrado o incorrecto");
-        
-        // Aquí agregarías la lógica para verificar la contraseña
-        // Ejemplo: const passwordMatches = await validatePassword(credentials.email, credentials.password);
 
-        return { id: "user-id", email: credentials?.email };
+        const result = await login(credentials.email , credentials.password);
+
+        if (result) {
+          // Retorna el token y otros datos que quieras incluir en la sesión
+          return {
+            id: result.user.id.toString(),
+            email: result.user.email,
+            token: result.token,
+            roles: result.roles,
+            name: result.user.name,
+          };
+        }
+        return null;
       }
     }),
     GitHubProvider({
@@ -36,6 +86,23 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
     }),
   ],
+  callbacks: {
+    async session({ session, token }) {
+      // Convertir token a CustomToken usando "as"
+      const customToken = token as CustomToken;
+      session.user = { ...session.user, id: customToken.id, token: customToken.token, roles: customToken.roles, name: customToken.name };
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.token = user.token;
+        token.roles = user.roles;
+        token.name = user.name;
+      }
+      return token;
+    },
+  },
   pages: {
     signIn: "/",  // Página de inicio de sesión
     error: "/",   // Página de error en caso de fallos
