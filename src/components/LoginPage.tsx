@@ -40,7 +40,7 @@ const Login = () => {
           router.push("/dashboard");
         } else {
           // Manejo de error en caso de fallo de autenticación
-          setErrorMessage("Correos o contraseña incorrectos");
+          setErrorMessage("Contraseña incorrecta");
           setShowNotification(true);
         }
       } else {

@@ -15,7 +15,7 @@ export const validateEmail = async (email: string): Promise<boolean> => {
     return response.data.exists;
   } catch (error) {
     console.error("Error al verificar el correo:", error);
-    throw new Error("Error al verificar el correo");
+    return false;
   }
 };
 
