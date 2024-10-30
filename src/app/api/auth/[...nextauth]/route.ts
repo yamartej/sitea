@@ -6,6 +6,10 @@ import FacebookProvider from "next-auth/providers/facebook";
 import { validateEmail, login } from "./api";
 import { JWT } from "next-auth/jwt";
 
+interface User {
+  email?: string | null;
+}
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -87,6 +91,21 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user }: { user: User }) {
+      try {
+        if (!user.email) throw new Error("No email provided");
+        const emailExists = await validateEmail(user.email);
+        if (emailExists) {
+          return true;
+        } else {
+          console.warn("Correo no registrado:", user.email);
+          return `/?message=Correo no registrado o incorrecto`;
+        }
+      } catch (error) {
+        console.error("Correo no registrado o incorrecto:", error);
+        return `/?message=Correo no registrado o incorrecto`;
+      }
+    },
     async session({ session, token }) {
       // Convertir token a CustomToken usando "as"
       const customToken = token as CustomToken;
