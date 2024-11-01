@@ -1,9 +1,9 @@
-
 "use client";
 import { useState, useEffect } from "react";
 import { register } from "@/app/api/auth/[...nextauth]/api";
 import { useSearchParams } from "next/navigation";
 import Notification from "@/components/Notification";
+import Link from "next/link";
 
 const RegisterPage = () => {
   const searchParams = useSearchParams();
@@ -13,11 +13,18 @@ const RegisterPage = () => {
   
   useEffect(() => {
     const message = searchParams.get("message");
+    if (showNotification) {
+      const timer = setTimeout(() => {
+          setShowNotification(false);
+      }, 10000); // 10 segundos
+
+      return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+    }
     if (message) {
       setErrorMessage(message);
       setShowNotification(true);
     }
-  }, [searchParams]);
+  }, [searchParams, showNotification]);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -62,6 +69,11 @@ const RegisterPage = () => {
     } else {
       setErrors({ ...errors, termsAccepted: null });
     }
+    if (errors.passwordMatch) {
+      setErrorMessage("Validar password");
+      setShowNotification(true);
+      return;
+    } 
 
     try {
         const response = await register(
@@ -197,7 +209,7 @@ const RegisterPage = () => {
             Create an account
           </button>
           <p className="text-sm font-light text-gray-500">
-            Already have an account? <a href="#" className="font-bold text-indigo-500 hover:underline">Login here</a>
+            Already have an account? <Link href={"/"} className="font-bold text-indigo-500 hover:underline">Login here</Link>
           </p>
         </form>
       </div>

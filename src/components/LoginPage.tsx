@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Notification from "./Notification";
 import { useRouter , useSearchParams } from "next/navigation";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
-import Router from "next/router";
+import Link from "next/link";
 
 const Login = () => {
   const router = useRouter();
@@ -149,12 +149,11 @@ const Login = () => {
 
           <p className="mt-10 text-center text-sm text-gray-500">
             Not a member?{" "}
-            <a
-              href="#"
-              className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
-            >
+            <Link 
+              href={"/register"} 
+              className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
               Start a 14 day free trial
-            </a>
+            </Link>
           </p>
         </div>
       </div>
