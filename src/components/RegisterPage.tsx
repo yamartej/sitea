@@ -43,11 +43,11 @@ const RegisterPage = () => {
     });
 
     // Validación en tiempo real de las contraseñas
-    if (name === "password" || name === "passwordConfirmation") {
+    if (name === "passwordConfirmation") {
       setErrors({
         ...errors,
         passwordMatch:
-          formData.password !== formData.passwordConfirmation
+          value !== formData.password
             ? "Las contraseñas no coinciden"
             : null,
       });
