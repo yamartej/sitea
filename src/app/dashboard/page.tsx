@@ -1,6 +1,6 @@
 "use client";
 
-import Dashboard from "@/components/dashboard";
+import Dashboard from "@/components/DashboardPage";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

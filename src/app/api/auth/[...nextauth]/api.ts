@@ -31,3 +31,29 @@ export const login = async (email: string, password: string) => {
     throw error;
   }
 };
+
+export const register = async (name: string, email: string, password: string, password_confirmation: string) => {
+  try {
+    const response = await axios.post(
+      "http://127.0.0.1:8000/api/register",
+      {
+        name,
+        email,
+        password,
+        password_confirmation,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error("Error en la respuesta de registro:", error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
