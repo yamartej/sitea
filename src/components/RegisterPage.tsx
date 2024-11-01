@@ -4,12 +4,14 @@ import { register } from "@/app/api/auth/[...nextauth]/api";
 import { useSearchParams } from "next/navigation";
 import Notification from "@/components/Notification";
 import Link from "next/link";
+import Spinner from "./Spinner/SpinnerPage";
 
 const RegisterPage = () => {
   const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [typeMessage, setTypeMessage] = useState("error");
   const [showNotification, setShowNotification] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false);
   
   useEffect(() => {
     const message = searchParams.get("message");
@@ -21,6 +23,7 @@ const RegisterPage = () => {
       return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
     }
     if (message) {
+      setShowSpinner(true);
       setErrorMessage(message);
       setShowNotification(true);
     }
@@ -64,6 +67,7 @@ const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setShowNotification(false);
+    setShowSpinner(true);
     if (!formData.termsAccepted) {
       setErrors({ ...errors, termsAccepted: "Debe aceptar los términos y condiciones" });
       return;
@@ -86,20 +90,22 @@ const RegisterPage = () => {
         setShowNotification(true);
         setTypeMessage("success");
         setErrorMessage(response.message); 
+        setShowSpinner(false);
     } catch (errors) {
         console.error("Error:", errors);
-    
         // Mostrar los errores de la API en el componente de notificación
         if (typeof errors === 'object' && errors !== null) {
           if ('password' in errors && Array.isArray(errors.password)) {
             setShowNotification(true);
             setTypeMessage("error");
             setErrorMessage(errors.password.join(" ")); 
+            setShowSpinner(false);
           }
           if ('email' in errors && Array.isArray(errors.email)) {
             setShowNotification(true);
             setTypeMessage("error");
             setErrorMessage(errors.email.join(" ")); 
+            setShowSpinner(false);
           }
         }
       }
@@ -123,6 +129,11 @@ const RegisterPage = () => {
         <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
           Create an account
         </h2>
+        {showSpinner && (
+          <div className="spinner-container">
+            <Spinner/>  
+          </div>              
+        )}
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">

@@ -5,6 +5,7 @@ import Notification from "./Notification";
 import { useRouter , useSearchParams } from "next/navigation";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
 import Link from "next/link";
+import Spinner from "./Spinner/SpinnerPage";
 
 const Login = () => {
   const router = useRouter();
@@ -13,17 +14,27 @@ const Login = () => {
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false);
   
   useEffect(() => {
     const message = searchParams.get("message");
-    if (message) {
-       setErrorMessage(message);
-       setShowNotification(true);
+    if (showNotification) {
+      const timer = setTimeout(() => {
+          setShowNotification(false);
+      }, 10000); // 10 segundos
+
+      return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
     }
-  }, [searchParams]);
+    if (message) {
+      setShowSpinner(false);
+      setErrorMessage(message);
+      setShowNotification(true);
+    }
+  }, [searchParams, showNotification]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSpinner(true);
     try {
       const emailExists = await validateEmail(email);
       if (emailExists) {
@@ -38,14 +49,17 @@ const Login = () => {
         if (result && result.ok) {
           // Redirige manualmente al dashboard
           router.push("/dashboard");
+          setShowSpinner(false);
         } else {
           // Manejo de error en caso de fallo de autenticación
           setErrorMessage("Contraseña incorrecta");
           setShowNotification(true);
+          setShowSpinner(false);
         }
       } else {
         setErrorMessage("Correo no registrado o incorrecto");
         setShowNotification(true);
+        setShowSpinner(false);
       }
     } catch {
       setErrorMessage("Ocurrió un error al verificar el correo.");
@@ -73,6 +87,11 @@ const Login = () => {
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
             Sign in to your account
           </h2>
+          {showSpinner && (
+            <div className="spinner-container">
+             <Spinner/>  
+            </div>              
+          )}
         </div>
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
