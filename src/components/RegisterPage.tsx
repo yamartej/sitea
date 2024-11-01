@@ -63,6 +63,7 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setShowNotification(false);
     if (!formData.termsAccepted) {
       setErrors({ ...errors, termsAccepted: "Debe aceptar los términos y condiciones" });
       return;
