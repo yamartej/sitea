@@ -3,9 +3,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { getServerSession } from "next-auth";
 import SessionProvider from "@/components/SessionProvider";
-import NavMenu from "@/components/NavMenu";
-
-
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

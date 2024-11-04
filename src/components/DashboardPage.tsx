@@ -2,6 +2,10 @@
 "use client";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
+import { fetchMenuItems } from "@/app/api/menu/api";
+import { useState, useEffect } from "react";
+
+
 
 const ACTIVE_LINK = "text-white bg-blue-600 p-2 rounded";
 const INACTIVE_LINK = "text-gray-500 p-2 rounded hover:bg-blue-600 hover:text-white";
@@ -17,8 +21,27 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { data: session} = useSession();
-  const userImage = session?.user.image || '/default-avatar.png'; // Ruta a tu imagen de avatar predeterminada
+  const userImage = session?.user.image || '/default-avatar.png';
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const token = session?.user.token;
+  console.log("token===" + token)
+  useEffect(() => {
+    const loadMenuItems = async () => {
+      try {
+        const items = await fetchMenuItems(token as string);
+        setMenuItems(items);
+      } catch (error) {
+        console.error("Error loading menu:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    if (token) loadMenuItems();
+  }, [token]);
+
+  
   return (
     <div className="p-5 bg-gray-100 min-h-screen">
       <div className="bg-white shadow p-4 rounded">
@@ -43,6 +66,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       <nav className="mt-6">
         <ul className="space-y-2">
+          {menuItems.map((item: any) => (
+            <li key={item.id}>
+              <Link href={item.url} className={ACTIVE_LINK}>{item.name}</Link>
+            </li>
+          ))}
           <li>
             <Link href="/products" className={ACTIVE_LINK}>
               Products

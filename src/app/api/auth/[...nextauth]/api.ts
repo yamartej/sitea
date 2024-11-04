@@ -1,4 +1,3 @@
-// utils/api.ts
 import axios from "axios";
 const apiUrl = process.env.NEXT_PUBLIC_URL_API;
 export const validateEmail = async (email: string): Promise<boolean> => {
@@ -56,3 +55,18 @@ export const register = async (name: string, email: string, password: string, pa
     throw error;
   }
 };
+
+export const fetchUsersList = async (token: string) => {
+  try {
+    const response = await axios.get(`${apiUrl}/users`, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Agrega el token en el header
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching menu items:", error);
+    throw error;
+  }
+};
+
