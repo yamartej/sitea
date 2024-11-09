@@ -4,7 +4,7 @@ import { register } from "@/app/api/auth/[...nextauth]/api";
 import { useSearchParams } from "next/navigation";
 import Notification from "@/components/Notification";
 import Link from "next/link";
-import Spinner from "./Spinner/SpinnerPage";
+import Spinner from "./Common/Spinner/SpinnerPage";
 
 const RegisterPage = () => {
   const searchParams = useSearchParams();

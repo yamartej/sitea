@@ -70,3 +70,23 @@ export const fetchUsersList = async (token: string) => {
   }
 };
 
+export const verifyToken = async (token: string) => { 
+  try { 
+    const response = await axios.post(`${apiUrl}/verifyToken`, { token }); 
+    return response.data.isValid; 
+  } catch (error) { 
+    console.error('Error verifying token:', error); 
+    return false; 
+  } 
+}; 
+  
+export const refreshToken = async (token: string) => { 
+  try { 
+    const response = await axios.post(`${apiUrl}/refreshToken`, { token }); 
+    return response.data.newToken; 
+  } catch (error) { 
+    console.error('Error refreshing token:', error); 
+    return null; 
+  } 
+};
+

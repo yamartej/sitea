@@ -5,7 +5,7 @@ import Notification from "./Notification";
 import { useRouter , useSearchParams } from "next/navigation";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
 import Link from "next/link";
-import Spinner from "./Spinner/SpinnerPage";
+import Spinner from "./Common/Spinner/SpinnerPage";
 
 const Login = () => {
   const router = useRouter();
