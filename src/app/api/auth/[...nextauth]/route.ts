@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
-import { validateEmail, login } from "./api";
+import { validateEmail, login, verifyToken, refreshToken} from "./api";
 import { JWT } from "next-auth/jwt";
 
 interface User {
@@ -17,6 +17,7 @@ declare module "next-auth" {
       token: string;
       roles: string[];  // Agrega el tipo de roles que necesites
       name?: string;
+      expires?: string;
     } & DefaultSession["user"];
   }
 
@@ -25,6 +26,7 @@ declare module "next-auth" {
     token: string;
     roles: string[]; // Define los roles en el usuario
     name?: string;
+    expires?: string;
   }
 }
 
@@ -42,6 +44,7 @@ interface CustomToken extends JWT {
   token: string;
   roles: string[];
   name: string;
+  expires: string;
 }
 
 
@@ -72,6 +75,7 @@ export const authOptions: NextAuthOptions = {
             token: result.token,
             roles: result.roles,
             name: result.user.name,
+            expires: result.expiration,
           };
         }
         return null;
@@ -109,7 +113,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // Convertir token a CustomToken usando "as"
       const customToken = token as CustomToken;
-      session.user = { ...session.user, id: customToken.id, token: customToken.token, roles: customToken.roles, name: customToken.name };
+      session.user = { ...session.user, id: customToken.id, token: customToken.token, roles: customToken.roles, name: customToken.name, expires: customToken.expires};
       return session;
     },
     async jwt({ token, user }) {
@@ -118,6 +122,25 @@ export const authOptions: NextAuthOptions = {
         token.token = user.token;
         token.roles = user.roles;
         token.name = user.name;
+        token.expires = user.expires;
+      }
+      console.log("token==" + token.token)
+      const isValid = await verifyToken(token.token);
+      console.log("isValid==" + isValid)
+      if (isValid) {
+        const expirationTimestamp = new Date(token.expires as string).getTime() / 1000; 
+        const currentTime = Math.floor(Date.now() / 1000); 
+        if (expirationTimestamp - currentTime < 120) { 
+          const newToken = await refreshToken(token.token);
+          console.log("newToken==" + newToken)
+          if (newToken) { 
+            token.token = newToken.token;
+            token.expires = newToken.expiration; 
+          } 
+          else { 
+            throw new Error("Unable to refresh token"); 
+          } 
+        }
       }
       return token;
     },
@@ -126,6 +149,9 @@ export const authOptions: NextAuthOptions = {
     signIn: "/",  // Página de inicio de sesión
     error: "/",   // Página de error en caso de fallos
     newUser: "/dashboard",  // Redirección tras registro exitoso
+  },
+  session: { 
+    maxAge: 15 * 60, // 15 minutos en segundos 
   },
 };
 

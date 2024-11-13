@@ -72,8 +72,12 @@ export const fetchUsersList = async (token: string) => {
 
 export const verifyToken = async (token: string) => { 
   try { 
-    const response = await axios.post(`${apiUrl}/verifyToken`, { token }); 
-    return response.data.isValid; 
+    const response = await axios.get(`${apiUrl}/verify-token`, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Agrega el token en el header
+      },
+  }); 
+    return response.data.valid; 
   } catch (error) { 
     console.error('Error verifying token:', error); 
     return false; 
@@ -82,8 +86,13 @@ export const verifyToken = async (token: string) => {
   
 export const refreshToken = async (token: string) => { 
   try { 
-    const response = await axios.post(`${apiUrl}/refreshToken`, { token }); 
-    return response.data.newToken; 
+    const response = await axios.get(`${apiUrl}/refresh-token`, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Agrega el token en el header
+      },
+    }); 
+    console.log("Response Refresh==" + response.data)
+    return response.data; 
   } catch (error) { 
     console.error('Error refreshing token:', error); 
     return null; 
