@@ -25,3 +25,39 @@ body {
     text-wrap: balance;
   }
 }
+
+.content-container {
+  position: relative; /* Necesario para que el spinner esté posicionado respecto a este contenedor */
+  width: 100%;
+  height: 300px; /* Ajusta el alto como necesites */
+  background-color: #f8f8f8;
+}
+
+.spinner-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%; /* Asegura que cubra todo el contenedor si se necesita */
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6); /* Fondo semitransparente */
+  z-index: 10; /* Asegura que el spinner esté sobre el contenido */
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
