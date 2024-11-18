@@ -1,7 +1,7 @@
 "use client";
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
-import Notification from "./Notification";
+import Notification from "./Common/Notification/NotificationPage";
 import { useRouter , useSearchParams } from "next/navigation";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
 import Link from "next/link";

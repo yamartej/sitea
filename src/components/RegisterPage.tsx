@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { register } from "@/app/api/auth/[...nextauth]/api";
 import { useSearchParams } from "next/navigation";
-import Notification from "@/components/Notification";
+import Notification from "./Common/Notification/NotificationPage";
 import Link from "next/link";
 import Spinner from "./Common/Spinner/SpinnerPage";
 

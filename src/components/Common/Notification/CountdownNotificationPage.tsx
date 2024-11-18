@@ -1,6 +1,6 @@
 // CountdownNotification.tsx
 import React, { useEffect, useState } from "react";
-import Notification from "@/components/Notification";
+import Notification from "./NotificationPage";
 
 interface CountdownNotificationProps {
   initialSeconds: number;
