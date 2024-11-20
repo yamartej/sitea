@@ -46,7 +46,7 @@ const Userpage = () =>{
                     </thead>
                     <tbody>
                     {users?.map((user : User) => (
-                        <tr className="bg-white hover:bg-gray-100 transition">
+                        <tr  key={user.id} className="bg-white hover:bg-gray-100 transition">
                             <td className="px-4 py-2 border border-gray-300">{user.name}</td>
                             <td className="px-4 py-2 border border-gray-300">{user.email}</td>
                             <td className="px-4 py-2 border border-gray-300">
@@ -73,14 +73,14 @@ const Userpage = () =>{
                             <span className="font-semibold">Nombre:</span> {user.name}</p> 
                         <p>
                             <span className="font-semibold">Email:</span> {user.email}</p> 
-                        <p>
+                        <div>
                             <span className="font-semibold">Roles:</span> 
                             <ul className="list-disc pl-5">
                                 {user.roles.map((role) => (
                                     <li key={role.id}>{role.name}</li>
                                  ))}
                             </ul>
-                        </p> 
+                        </div> 
                         <div className="mt-2 flex justify-end space-x-2"> 
                             <button className="text-blue-600 hover:underline">Editar</button> 
                             <button className="text-red-600 hover:underline">Eliminar</button> 
