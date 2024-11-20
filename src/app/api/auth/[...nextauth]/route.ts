@@ -113,7 +113,12 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // Convertir token a CustomToken usando "as"
       const customToken = token as CustomToken;
-      session.user = { ...session.user, id: customToken.id, token: customToken.token, roles: customToken.roles, name: customToken.name, expires: customToken.expires};
+      session.user = { ...session.user, 
+        id: customToken.id, 
+        token: customToken.token, 
+        roles: customToken.roles, 
+        name: customToken.name, 
+        expires: customToken.expires};
       return session;
     },
     async jwt({ token, user }) {
@@ -130,6 +135,7 @@ export const authOptions: NextAuthOptions = {
       if (isValid) {
         const expirationTimestamp = new Date(token.expires as string).getTime() / 1000; 
         const currentTime = Math.floor(Date.now() / 1000); 
+        console.log("REsta=" + (expirationTimestamp - currentTime))
         if (expirationTimestamp - currentTime < 120) { 
           const newToken = await refreshToken(token.token);
           console.log("newToken==" + newToken)

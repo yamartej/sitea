@@ -58,6 +58,7 @@ export const register = async (name: string, email: string, password: string, pa
 
 export const fetchUsersList = async (token: string) => {
   try {
+    console.log("Entroooooooooo")
     const response = await axios.get(`${apiUrl}/users`, {
       headers: {
         Authorization: `Bearer ${token}`, // Agrega el token en el header

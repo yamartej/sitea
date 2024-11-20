@@ -21,3 +21,24 @@ export type MenuMap ={
 export type DropdownState = {
     [key: string]: boolean; 
   }  
+
+export type Token = {
+  token: string | null;
+}  
+
+interface Role {
+  id: number;
+  name: string;
+  description: string;
+  pivot: {
+    user_id: number;
+    roles_id: number;
+  };
+}
+
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  roles: Role[];
+}
