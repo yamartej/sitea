@@ -26,7 +26,7 @@ export type Token = {
   token: string | null;
 }  
 
-interface Role {
+export type Role = {
   id: number;
   name: string;
   description: string;

@@ -129,16 +129,12 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;
         token.expires = user.expires;
       }
-      console.log("token==" + token.token)
       const isValid = await verifyToken(token.token);
-      console.log("isValid==" + isValid)
       if (isValid) {
         const expirationTimestamp = new Date(token.expires as string).getTime() / 1000; 
         const currentTime = Math.floor(Date.now() / 1000); 
-        console.log("REsta=" + (expirationTimestamp - currentTime))
         if (expirationTimestamp - currentTime < 120) { 
           const newToken = await refreshToken(token.token);
-          console.log("newToken==" + newToken)
           if (newToken) { 
             token.token = newToken.token;
             token.expires = newToken.expiration; 

@@ -16,14 +16,11 @@ const MenuPage =()=>{
     const [isSidebarVisible, setIsSidebarVisible] = useState(false);
     const [dropdownStates, setDropdownStates] = useState({});
     const organizeMenu = (menuItems: MenuItem[]): MenuItem[] => {
-      // Create a map for efficient lookup and avoid nested loops
-      
       const menuMap: MenuMap = menuItems.reduce((acc, item) => {
         acc[item.id] = { ...item, children: [] };
         return acc;
       }, {} as MenuMap);
   
-      // Iterate through menu items and populate children in the map
       menuItems.forEach((item) => {
         if (item.parent_id) {
           menuMap[item.parent_id].children?.push(menuMap[item.id]);
@@ -82,11 +79,7 @@ const MenuPage =()=>{
     };
 
     const organizedItems = organizeMenu(menuItems as any);
-    //console.log("menu=" + JSON.stringify(organizedItems))
-
     
-    //console.log("dropdownStates==" + JSON.stringify(dropdownStates[4]))
-
     if (status === "unauthenticated") { 
       signOut({ 
         callbackUrl: "/", 

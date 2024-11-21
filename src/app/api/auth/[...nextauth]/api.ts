@@ -31,7 +31,7 @@ export const login = async (email: string, password: string) => {
   }
 };
 
-export const register = async (name: string, email: string, password: string, password_confirmation: string) => {
+export const register = async (name: string, email: string, password: string, password_confirmation: string, company: string) => {
   try {
     const response = await axios.post(`${apiUrl}/register`,
       {
@@ -39,6 +39,8 @@ export const register = async (name: string, email: string, password: string, pa
         email,
         password,
         password_confirmation,
+        company,
+
       },
       {
         headers: {
@@ -58,7 +60,6 @@ export const register = async (name: string, email: string, password: string, pa
 
 export const fetchUsersList = async (token: string) => {
   try {
-    console.log("Entroooooooooo")
     const response = await axios.get(`${apiUrl}/users`, {
       headers: {
         Authorization: `Bearer ${token}`, // Agrega el token en el header
@@ -92,7 +93,6 @@ export const refreshToken = async (token: string) => {
         Authorization: `Bearer ${token}`, // Agrega el token en el header
       },
     }); 
-    console.log("Response Refresh==" + response.data)
     return response.data; 
   } catch (error) { 
     console.error('Error refreshing token:', error); 
