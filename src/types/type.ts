@@ -1,14 +1,3 @@
-export type MenuItem = {
-    id: number;
-    name: string;
-    url: string;
-    parent_id: number | null;
-    order: number;
-    children?: MenuItem[];
-    isTopLevel: boolean;
-  }
-
-
 export type Item = {
     id: string;
 
@@ -26,6 +15,14 @@ export type Token = {
   token: string | null;
 }  
 
+
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  roles: Role[];
+}
+
 export type Role = {
   id: number;
   name: string;
@@ -36,9 +33,19 @@ export type Role = {
   };
 }
 
-export type User = {
+export type Permission = {
+  id: number;
+  role_id: number;
+  menu_id : number;
+  can_access: boolean;
+}
+
+export type MenuItem = {
   id: number;
   name: string;
-  email: string;
-  roles: Role[];
+  url: string;
+  parent_id: number | null;
+  order: number;
+  children?: MenuItem[];
+  isTopLevel: boolean;
 }
