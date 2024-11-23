@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { getSession } from 'next-auth/react';
-import { fetchMenus, fetchRoles, fetchPermissions, saveDataPermissions } from "@/app/api/admin/api";
+import { fetchPermissions, saveDataPermissions } from "@/app/api/admin/api";
 import { Role, MenuItem, Permission } from "@/types/type";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import Notification from "../Common/Notification/NotificationPage";
@@ -16,7 +16,6 @@ const PermissionPage = () => {
   const [typeMessage, setTypeMessage] = useState("error");
 
   useEffect(() => {
-    
     const getData = async () => {
       const session = await getSession();
       try {
@@ -32,7 +31,13 @@ const PermissionPage = () => {
           permissionsMap[permission.role_id][permission.menu_id] = !!permission.can_access;
         });
 
-        setMenus(menusData);
+        // Organizar el menú
+        const organizedMenus = menusData.filter(menu => menu.parent_id === null).map(parentMenu => ({
+          ...parentMenu,
+          children: menusData.filter(menu => menu.parent_id === parentMenu.id)
+        }));
+
+        setMenus(organizedMenus);
         setRoles(rolesData);
         setPermissions(permissionsMap);
       } catch (error) {
@@ -41,19 +46,40 @@ const PermissionPage = () => {
         setShowNotification(true);
       } finally {
         setShowSpinner(false);
+        if (showNotification) {
+          const timer = setTimeout(() => {
+              setShowNotification(false);
+          }, 10000); // 10 segundos
+    
+          return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+        }
       }
     };
     getData();
   }, []);
 
-  const handlePermissionChange = (roleId: number, menuId: number) => {
-    setPermissions((prevPermissions) => ({
-      ...prevPermissions,
-      [roleId]: {
-        ...prevPermissions[roleId],
-        [menuId]: prevPermissions[roleId] ? !prevPermissions[roleId][menuId] : true,
-      },
-    }));
+  const handlePermissionChange = (roleId: number, menuId: number, isParent: boolean) => {
+    setPermissions((prevPermissions) => {
+      const updatedPermissions = {
+        ...prevPermissions,
+        [roleId]: {
+          ...prevPermissions[roleId],
+          [menuId]: prevPermissions[roleId] ? !prevPermissions[roleId][menuId] : true,
+        },
+      };
+
+      if (isParent) {
+        menus.forEach((menu) => {
+          if (menu.children) {
+            menu.children.forEach((child) => {
+              updatedPermissions[roleId][child.id] = updatedPermissions[roleId][menuId];
+            });
+          }
+        });
+      }
+
+      return updatedPermissions;
+    });
   };
 
   const savePermissions = async () => {
@@ -118,20 +144,44 @@ const PermissionPage = () => {
               </tr>
             </thead>
             <tbody>
-              {menus.map((menu) => (
-                <tr key={menu.id} className="bg-white hover:bg-gray-100 transition">
-                  <td className="px-4 py-2 border border-gray-300">{menu.name}</td>
-                  {roles.map((role) => (
-                    <td key={role.id} className="px-4 py-2 border border-gray-300 text-center">
-                      <input
-                        type="checkbox"
-                        checked={permissions[role.id]?.[menu.id] || false}
-                        onChange={() => handlePermissionChange(role.id, menu.id)}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {menus.map((menu) => {
+                const isParent = menu.children && menu.children.length > 0;
+                const isUnique = !isParent && menu.parent_id === null;
+                return (
+                  <React.Fragment key={menu.id}>
+                    <tr className={`bg-white hover:bg-gray-100 transition ${isUnique || isParent ? 'font-bold text-blue-600' : ''}`}>
+                      <td className={`px-4 py-2 border border-gray-300 ${menu.parent_id !== null ? 'pl-8' : ''}`}>{menu.name}</td>
+                      {roles.map((role) => (
+                        <td key={role.id} className="px-4 py-2 border border-gray-300 text-center">
+                          {(isUnique || menu.parent_id !== null) ? (
+                            <input
+                              type="checkbox"
+                              checked={permissions[role.id]?.[menu.id] || false}
+                              onChange={() => handlePermissionChange(role.id, menu.id, isParent)}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                    {isParent && menu.children.map((submenu) => (
+                      <tr key={submenu.id} className="bg-white hover:bg-gray-100 transition">
+                        <td className="px-4 py-2 border border-gray-300 pl-8">{submenu.name}</td>
+                        {roles.map((role) => (
+                          <td key={role.id} className="px-4 py-2 border border-gray-300 text-center">
+                            <input
+                              type="checkbox"
+                              checked={permissions[role.id]?.[submenu.id] || false}
+                              onChange={() => handlePermissionChange(role.id, submenu.id, false)}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         )}
