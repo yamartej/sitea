@@ -24,7 +24,7 @@ const PermissionPage = () => {
 
         // Transformar los datos de permisos en un formato más fácil de usar
         const permissionsMap: { [roleId: number]: { [menuId: number]: boolean } } = {};
-        permissionsData.forEach(permission => {
+        permissionsData.forEach((permission: Permission) => {
           if (!permissionsMap[permission.role_id]) {
             permissionsMap[permission.role_id] = {};
           }
@@ -32,9 +32,9 @@ const PermissionPage = () => {
         });
 
         // Organizar el menú
-        const organizedMenus = menusData.filter(menu => menu.parent_id === null).map(parentMenu => ({
+        const organizedMenus = menusData.filter((menu: MenuItem) => menu.parent_id === null).map((parentMenu: MenuItem) => ({
           ...parentMenu,
-          children: menusData.filter(menu => menu.parent_id === parentMenu.id)
+          children: menusData.filter((menu: MenuItem) => menu.parent_id === parentMenu.id)
         }));
 
         setMenus(organizedMenus);
@@ -69,9 +69,9 @@ const PermissionPage = () => {
       };
 
       if (isParent) {
-        menus.forEach((menu) => {
+        menus.forEach((menu: MenuItem) => {
           if (menu.children) {
-            menu.children.forEach((child) => {
+            menu.children.forEach((child: MenuItem) => {
               updatedPermissions[roleId][child.id] = updatedPermissions[roleId][menuId];
             });
           }
@@ -88,10 +88,9 @@ const PermissionPage = () => {
 
     for (const roleId in permissions) {
       for (const menuId in permissions[roleId]) {
-        // Asegúrate de que can_access sea un booleano
         if (typeof permissions[roleId][menuId] === 'boolean') {
           permissionsArray.push({
-            id: 0, // Asigna un valor temporal si es necesario
+            id: 0, 
             role_id: parseInt(roleId),
             menu_id: parseInt(menuId),
             can_access: permissions[roleId][menuId],
@@ -108,12 +107,14 @@ const PermissionPage = () => {
 
       await saveDataPermissions(session.user.token, permissionsArray);
       setShowNotification(true);
-        setTypeMessage("success");
-        setErrorMessage("Permisos actualizados correctamente"); 
-        setShowSpinner(false);
+      setTypeMessage("success");
+      setErrorMessage("Permisos actualizados correctamente"); 
+      setShowSpinner(false);
     } catch (error) {
       console.error("Error al guardar permisos:", error);
-      alert("Hubo un error al actualizar los permisos. Por favor, inténtalo de nuevo.");
+      setTypeMessage("error");
+      setErrorMessage("Hubo un error al actualizar los permisos. Por favor, inténtalo de nuevo."); 
+      setShowSpinner(false);
     }
   };
 
@@ -144,7 +145,7 @@ const PermissionPage = () => {
               </tr>
             </thead>
             <tbody>
-              {menus.map((menu) => {
+              {menus.map((menu: MenuItem) => {
                 const isParent = menu.children && menu.children.length > 0;
                 const isUnique = !isParent && menu.parent_id === null;
                 return (
@@ -156,7 +157,7 @@ const PermissionPage = () => {
                           {(isUnique || menu.parent_id !== null) ? (
                             <input
                               type="checkbox"
-                              checked={permissions[role.id]?.[menu.id] || false}
+                              checked={permissions[role.id]?.[menu.id] ?? false}
                               onChange={() => handlePermissionChange(role.id, menu.id, isParent)}
                             />
                           ) : (
@@ -165,14 +166,14 @@ const PermissionPage = () => {
                         </td>
                       ))}
                     </tr>
-                    {isParent && menu.children.map((submenu) => (
+                    {isParent && menu.children?.map((submenu: MenuItem) => (
                       <tr key={submenu.id} className="bg-white hover:bg-gray-100 transition">
                         <td className="px-4 py-2 border border-gray-300 pl-8">{submenu.name}</td>
                         {roles.map((role) => (
                           <td key={role.id} className="px-4 py-2 border border-gray-300 text-center">
                             <input
                               type="checkbox"
-                              checked={permissions[role.id]?.[submenu.id] || false}
+                              checked={permissions[role.id]?.[submenu.id] ?? false}
                               onChange={() => handlePermissionChange(role.id, submenu.id, false)}
                             />
                           </td>
