@@ -5,6 +5,7 @@ import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import { validateEmail, login, verifyToken, refreshToken} from "./api";
 import { JWT } from "next-auth/jwt";
+import { redirect } from "next/navigation";
 
 interface User {
   email?: string | null;
@@ -144,6 +145,10 @@ export const authOptions: NextAuthOptions = {
           } 
         }
       }
+      else{
+        redirect("/");
+      }
+
       return token;
     },
   },

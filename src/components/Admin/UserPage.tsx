@@ -4,24 +4,37 @@ import { fetchUsersList } from "@/app/api/admin/api";
 import { getSession } from 'next-auth/react';
 import { User } from "@/types/type";
 import { Spinner } from "react-bootstrap";
+import Notification from "../Common/Notification/NotificationPage";
 
 const Userpage = () =>{ 
     const [users, setUsers] = useState<User[]>([]);
     const [showSpinner, setShowSpinner] = useState(false);
+    const [showNotification, setShowNotification] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [typeMessage, setTypeMessage] = useState("error");
     
     useEffect(() => { 
         setShowSpinner(true);
         const fetchUsers  = async () => { 
+            setShowSpinner(true);
             const session = await getSession(); 
             try {
-                
                 const data = await fetchUsersList(session?.user.token as string);
                 setUsers(data); 
               } catch (error) {
                 console.error("Error fetching users:", error);
+                setErrorMessage("Error fetching users");
+                setShowNotification(true);
               }
               finally{
                 setShowSpinner(false);
+                if (showNotification) {
+                const timer = setTimeout(() => {
+                    setShowNotification(false);
+                }, 10000); // 10 segundos
+            
+                return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+                }
               }
         }; 
         fetchUsers (); 
@@ -29,12 +42,25 @@ const Userpage = () =>{
     
      return (
         <>
-            {showSpinner && (
+        <div>
+        {showSpinner && (
             <div className="spinner-container">
                 <Spinner/>  
             </div>              
             )}
+
+        </div>
+        <div>
+        {showNotification && errorMessage && (
+        <Notification
+          message={errorMessage}
+          type={typeMessage}
+          onClose={() => setShowNotification(false)}
+        />
+      )} 
+        </div>
             <div className="overflow-x-auto hidden md:block">
+                
                 <table className="min-w-full border-collapse border border-gray-300 text-left">
                     <thead>
                     <tr className="bg-gray-200">
