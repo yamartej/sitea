@@ -49,3 +49,8 @@ export type MenuItem = {
   children?: MenuItem[];
   isTopLevel: boolean;
 }
+
+export type MenuContextType = {
+  menuItems: MenuItem[];
+  loading: boolean;
+}

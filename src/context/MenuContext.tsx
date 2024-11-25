@@ -2,19 +2,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { fetchMenuItems } from "@/app/api/menu/api";
 import { useSession } from "next-auth/react";
-import { verifyToken } from "@/app/api/auth/[...nextauth]/api";
-
-interface MenuItem {
-  id: number;
-  name: string;
-  url: string;
-  iconPath: string;
-}
-
-interface MenuContextType {
-  menuItems: MenuItem[];
-  loading: boolean;
-}
+import { MenuItem, MenuContextType, Role} from "@/types/type";
 
 const MenuContext = createContext<MenuContextType | undefined>(undefined);
 
@@ -23,12 +11,12 @@ export const MenuProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { data: session} = useSession();
   const token = session?.user.token;
-  
+  const roles: Role[] = session?.user.roles || [];
   useEffect(() => {
     const loadMenuItems = async () => {
       try {
         if (token) {
-          const items = await fetchMenuItems(token);
+          const items = await fetchMenuItems(token as string, roles);
           setMenuItems(items);
           localStorage.setItem("menuItems", JSON.stringify(items)); // Guardar en localStorage
         }
