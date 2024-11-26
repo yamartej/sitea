@@ -100,3 +100,16 @@ export const refreshToken = async (token: string) => {
   } 
 };
 
+export const loginWithProvider = async (email: string) => {
+  try {
+    const response = await axios.post(`${apiUrl}/login-provider`, {
+      email
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al iniciar sesión:", error);
+    throw error;
+  }
+};
+
+

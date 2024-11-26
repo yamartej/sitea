@@ -1,7 +1,7 @@
 "use client"
 import { createContext, useContext, useState, useEffect } from "react";
 import { fetchMenuItems } from "@/app/api/menu/api";
-import { useSession } from "next-auth/react";
+import { getSession } from 'next-auth/react';
 import { MenuItem, MenuContextType, Role} from "@/types/type";
 
 const MenuContext = createContext<MenuContextType | undefined>(undefined);
@@ -9,12 +9,16 @@ const MenuContext = createContext<MenuContextType | undefined>(undefined);
 export const MenuProvider = ({ children }: { children: React.ReactNode }) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { data: session} = useSession();
-  const token = session?.user.token;
-  const roles: Role[] = session?.user.roles || [];
+  //const { data: session} = getSession();
+  //const token = session?.user.token;
+  //const roles: Role[] = session?.user.roles || [];
+  
   useEffect(() => {
     const loadMenuItems = async () => {
       try {
+        const session = await getSession();
+        const token = session?.user.token;
+        const roles: Role[] = session?.user.roles || [];
         if (token) {
           const items = await fetchMenuItems(token as string, roles);
           setMenuItems(items);

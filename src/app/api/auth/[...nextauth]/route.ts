@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
-import { validateEmail, login, verifyToken, refreshToken} from "./api";
+import { validateEmail, login, verifyToken, refreshToken, loginWithProvider} from "./api";
 import { JWT } from "next-auth/jwt";
 import { redirect } from "next/navigation";
 
@@ -16,7 +16,8 @@ declare module "next-auth" {
     user: {
       id: string;
       token: string;
-      roles: string[];  // Agrega el tipo de roles que necesites
+      roles: string[];
+      company_id: string;
       name?: string;
       expires?: string;
     } & DefaultSession["user"];
@@ -25,7 +26,8 @@ declare module "next-auth" {
   interface User extends DefaultUser {
     id: string;
     token: string;
-    roles: string[]; // Define los roles en el usuario
+    roles: string[];
+    company_id: string;
     name?: string;
     expires?: string;
   }
@@ -35,7 +37,8 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     token: string;
-    roles: string[]; // Asegúrate de definir roles aquí también
+    roles: string[];
+    company_id: string;
     name?: string;
   }
 }
@@ -44,11 +47,10 @@ interface CustomToken extends JWT {
   id: string;
   token: string;
   roles: string[];
+  company_id: string;
   name: string;
   expires: string;
 }
-
-
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -69,12 +71,12 @@ export const authOptions: NextAuthOptions = {
         const result = await login(credentials.email , credentials.password);
 
         if (result) {
-          // Retorna el token y otros datos que quieras incluir en la sesión
           return {
             id: result.user.id.toString(),
             email: result.user.email,
             token: result.token,
             roles: result.roles,
+            company_id: result.user.company_id,
             name: result.user.name,
             expires: result.expiration,
           };
@@ -112,24 +114,36 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async session({ session, token }) {
-      // Convertir token a CustomToken usando "as"
       const customToken = token as CustomToken;
       session.user = { ...session.user, 
         id: customToken.id, 
         token: customToken.token, 
         roles: customToken.roles, 
+        company_id: customToken.company_id, 
         name: customToken.name, 
         expires: customToken.expires};
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.token = user.token;
-        token.roles = user.roles;
         token.name = user.name;
-        token.expires = user.expires;
-      }
+        //aquí validamos si el rol viene vacío es pq el usuario uso el provider github, google o facebook
+        if(!user.roles){
+          const result = await loginWithProvider(user.email as any);
+          token.id = result.user.id;
+          token.token = result.token;
+          token.roles = result.roles;
+          token.company_id = result.user.company_id;
+          token.expires = result.expiration;
+        }
+        else{
+          token.id = user.id;
+          token.token = user.token;
+          token.roles = user.roles;
+          token.company_id = user.company_id;
+          token.expires = user.expires;
+        }
+      } 
       const isValid = await verifyToken(token.token);
       if (isValid) {
         const expirationTimestamp = new Date(token.expires as string).getTime() / 1000; 
