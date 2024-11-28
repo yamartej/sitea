@@ -8,6 +8,7 @@ import Notification from "../Common/Notification/NotificationPage";
 
 const Userpage = () =>{ 
     const [users, setUsers] = useState<User[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [showSpinner, setShowSpinner] = useState(false);
     const [showNotification, setShowNotification] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -21,6 +22,7 @@ const Userpage = () =>{
             try {
                 const data = await fetchUsersList(session?.user.token as string);
                 setUsers(data); 
+                filterUsers(data, session?.user);
               } catch (error) {
                 console.error("Error fetching users:", error);
                 setErrorMessage("Error fetching users");
@@ -40,6 +42,14 @@ const Userpage = () =>{
         fetchUsers (); 
     }, []);
     
+    const filterUsers = (users: User[], user: any) => {
+        if (user.roles.some((role: any) => role.name === "Soporte Técnico")) {
+            setFilteredUsers(users);
+        } else if (user.roles.some((role: any) => role.name === "Administrador")) {
+            setFilteredUsers(users.filter(u => u.company_id === user.company_id));
+        }
+    };
+
      return (
         <>
         <div>
@@ -71,7 +81,7 @@ const Userpage = () =>{
                     </tr>
                     </thead>
                     <tbody>
-                    {users?.map((user : User) => (
+                    {filteredUsers?.map((user : User) => (
                         <tr  key={user.id} className="bg-white hover:bg-gray-100 transition">
                             <td className="px-4 py-2 border border-gray-300">{user.name}</td>
                             <td className="px-4 py-2 border border-gray-300">{user.email}</td>
@@ -93,7 +103,7 @@ const Userpage = () =>{
             </div>
             
             <div className="block md:hidden mt-2 space-y-4">
-                {users?.map((user) => ( 
+                {filteredUsers?.map((user) => ( 
                     <div key={user.id} className="p-4 bg-white rounded-lg shadow border border-gray-300"> 
                         <p>
                             <span className="font-semibold">Nombre:</span> {user.name}</p> 
