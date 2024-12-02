@@ -20,8 +20,7 @@ const MenuPage =()=>{
         acc[item.id] = { ...item, children: [] };
         return acc;
       }, {} as MenuMap);
-  
-      menuItems.forEach((item) => {
+       menuItems.forEach((item) => {
         if (item.parent_id) {
           menuMap[item.parent_id].children?.push(menuMap[item.id]);
         } else {
