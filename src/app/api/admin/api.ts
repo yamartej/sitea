@@ -94,7 +94,7 @@ export const saveDataPermissions = async (token: string, data: Permission[]) => 
   }
 };
 
-export const registerUser = async (token: string, name: string, email: string, company: string, rol: string) => {
+export const registerUser = async (token: string, name: string, email: string, company: string, rol: string, companyName: string, password: string) => {
   try {
     const response = await axios.post(`${apiUrl}/users`,
       {
@@ -102,6 +102,8 @@ export const registerUser = async (token: string, name: string, email: string, c
         email,
         company,
         rol,
+        companyName,
+        password,
       },
       {
         headers: {
@@ -141,4 +143,66 @@ export const deleteUser = async (token: string, id: number) => {
   }
 };
 
+export const updateUser = async (
+  token: string,
+  id: number,
+  name: string,
+  email: string,
+  company: string,
+  rol: string,
+  companyName: string
+) => {
+  try {
+    const response = await axios.put(
+      `${apiUrl}/users/${id}`,
+      {
+        name,
+        email,
+        company,
+        rol,
+        companyName,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    console.log('response api===', response.status);
+    return response.status; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error('Error en la respuesta de registro:', error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
+
+
+
+
+export const fetchCompaniesList = async (token: string) => {
+  try {
+      const response = await axios.get(`${apiUrl}/companies`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
 

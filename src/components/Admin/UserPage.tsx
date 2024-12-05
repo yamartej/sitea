@@ -1,14 +1,15 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { fetchUsersList, fetchRoleList, registerUser, deleteUser} from "@/app/api/admin/api";
+import { fetchUsersList, fetchRoleList, registerUser, deleteUser, updateUser, fetchCompaniesList} from "@/app/api/admin/api";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
 import { getSession } from 'next-auth/react';
-import { Role, User } from "@/types/type";
+import { Role, User, Company } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
 
 const Userpage = () =>{ 
     const [users, setUsers] = useState<User[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [showSpinner, setShowSpinner] = useState(false);
     const [showNotification, setShowNotification] = useState(true);
@@ -16,15 +17,17 @@ const Userpage = () =>{
     const [typeMessage, setTypeMessage] = useState("error");
     const [showUserRegister, setShowUserRegister] = useState(false);
     const [roles, setRoles] = useState<Role[]>([]);
+    const [typeRequest, setTypeRequest] = useState("create");
     const [formData, setFormData] = useState({
+        id: "",
         name: "",
         email: "",
         password: "123456789",
         passwordConfirmation: "123456789",
         company: "",
         rol: "",
-      });
-      
+        companyName: "",
+      });      
     
     useEffect(() => { 
         setShowSpinner(true);
@@ -34,8 +37,10 @@ const Userpage = () =>{
             try {
                 const data = await fetchUsersList(session?.user.token as string);
                 const roles = await fetchRoleList(session?.user.token as string);
+                const companies = await fetchCompaniesList(session?.user.token as string);
                 setRoles(roles);
                 setUsers(data); 
+                setCompanies(companies); 
                 filterUsers(data, session?.user);
               } catch (error) {
                 console.error("Error fetching users:", error);
@@ -66,39 +71,70 @@ const Userpage = () =>{
 
     const handleAddUserClick = () => {
         setShowUserRegister(true);
+        setTypeRequest("create");
     };
 
     const handleBackClick = () => {
         setShowUserRegister(false);
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { 
-        const { name, value, type, checked } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value,
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { 
+        const { name, value } = e.target; 
+        setFormData({ 
+            ...formData, 
+            [name]: value 
         });
     };
 
+    const handleCompanyBlur = () => {
+        if (formData.company && !companies.some(company => company.name === formData.company)) {
+            companies.push({ id: companies.length + 1, name: formData.company });
+        }
+    };
     
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
             setShowSpinner(true);
             const session = await getSession();
-            const emailExists = await validateEmail(formData.email);
-            if (emailExists) {
-                setShowNotification(true);
-                setErrorMessage("Correo Existe");
-                setShowSpinner(false);
+            if(typeRequest === "create"){
+                const emailExists = await validateEmail(formData.email);
+                if (emailExists) {
+                    setShowNotification(true);
+                    setErrorMessage("Correo Existe");
+                    setShowSpinner(false);
+                }
+                else{
+                    if(typeRequest === "create"){
+                        const response = await registerUser(
+                            session?.user.token as any,
+                            formData.name,
+                            formData.email,
+                            formData.company,
+                            formData.rol,
+                            formData.companyName,
+                            formData.password,
+                        );
+                        if (response){
+                            setShowNotification(true);
+                            setTypeMessage("success");
+                            setErrorMessage("El usuario fue agregado exitosamente"); 
+                            setShowSpinner(false);
+                            cleanInputs();
+                        }
+                    }
+                    
+                }
             }
             else{
-                const response = await registerUser(
+                const response = await updateUser(
                     session?.user.token as any,
+                    Number(formData.id),
                     formData.name,
                     formData.email,
                     formData.company,
                     formData.rol,
+                    formData.companyName,
                 );
                 if (response){
                     setShowNotification(true);
@@ -110,6 +146,9 @@ const Userpage = () =>{
             }
         } catch (errors) {
             console.error("Error guardando usuario:", errors);
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Error guardando usuario"); 
         }
         finally{
             if (showNotification) {
@@ -125,9 +164,21 @@ const Userpage = () =>{
         formData.name = "";
         formData.email = "";
         formData.rol = "";
+        formData.companyName = "";
     }
+    const handleEditClick = (user: User) => {
+        setFormData({
+            name: user.name,
+            email: user.email,
+            companyName: user.company_id,
+            rol: user.roles.length > 0 ? user.roles[0].id : '',
+            id: user.id,
+        });
+        setShowUserRegister(true);
+        setTypeRequest("update");
+    };
 
-    const handleDelete = async (userId) => {
+    const handleDelete = async (userId: number) => {
         const session = await getSession(); 
         const response = await deleteUser(session?.user.token as string, userId);
         if(response === 204){
@@ -138,8 +189,11 @@ const Userpage = () =>{
             setErrorMessage("El usuario fue eliminado exitosamente"); 
             setShowSpinner(false);
         }
-        
     };
+    // Determinar el texto del botón basado en el estado 
+    const buttonText = typeRequest === 'create' ? 'Crear Usuario' : 'Actualizar Usuario';
+
+    
 
      return (
         <>
@@ -208,7 +262,9 @@ const Userpage = () =>{
                                     </ul>
                                 </td>
                                 <td className="px-4 py-2 border border-gray-300 text-center">
-                                <button className="text-blue-600 hover:underline">Editar</button>
+                                <button className="text-blue-600 hover:underline"
+                                onClick={() => handleEditClick(user)}
+                                >Editar</button>
                                 <button
                                 className="ml-2 text-red-600 hover:underline"
                                 onClick={() => handleDelete(user.id)}
@@ -277,14 +333,37 @@ const Userpage = () =>{
                             </div>
                             <div>
                                 <label htmlFor="company" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre Empresa</label>
+                                <select
+                                    id="companyName"
+                                    name="companyName"
+                                    value={formData.companyName}
+                                    onChange={handleInputChange}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                    required
+                                    disabled={!!formData.company}
+                                    >
+                                    <option value="">
+                                        Selecciona una Empresa
+                                    </option>
+                                    {companies?.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="company" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre Empresa</label>
                                 <input
                                     id="company"
                                     name="company"
                                     type="text"
                                     value={formData.company}
                                     onChange={handleInputChange}
+                                    onBlur={handleCompanyBlur}
                                     required
                                     className="block w-full rounded-md border py-1.5 text-gray-900"
+                                    disabled={!!formData.companyName}
                                 />
                             </div>
                             <div>
@@ -315,7 +394,7 @@ const Userpage = () =>{
                             type="submit"
                             className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white"
                         >
-                            Crear Cuenta
+                            {buttonText}
                         </button>
                         
                     </form>

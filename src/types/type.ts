@@ -15,17 +15,16 @@ export type Token = {
   token: string | null;
 }  
 
-
 export type User = {
   id: number;
   name: string;
   email: string;
   roles: Role[];
-  company_id: number;
+  company_id: string;
 }
 
 export type Role = {
-  id: number;
+  id: string;
   name: string;
   description: string;
   pivot: {
@@ -54,4 +53,9 @@ export type MenuItem = {
 export type MenuContextType = {
   menuItems: MenuItem[];
   loading: boolean;
+}
+
+export type Company = {
+  id: number;
+  name: string;
 }
