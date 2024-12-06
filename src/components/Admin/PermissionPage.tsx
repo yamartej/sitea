@@ -50,6 +50,7 @@ const PermissionPage = () => {
           const timer = setTimeout(() => {
               setShowNotification(false);
           }, 10000); // 10 segundos
+    
           return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
         }
       }
@@ -119,6 +120,7 @@ const PermissionPage = () => {
 
   return (
     <>
+    
       <div className="p-4">
       {showNotification && errorMessage && (
         <Notification

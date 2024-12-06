@@ -180,9 +180,6 @@ export const updateUser = async (
   }
 };
 
-
-
-
 export const fetchCompaniesList = async (token: string) => {
   try {
       const response = await axios.get(`${apiUrl}/companies`, {
@@ -206,3 +203,96 @@ export const fetchCompaniesList = async (token: string) => {
     }      
 };
 
+export const fetchCategoriesList = async (token: string) => {
+  try {
+      const response = await axios.get(`${apiUrl}/categories`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
+
+export const registerCategory = async (token: string, name: string) => {
+  try {
+    const response = await axios.post(`${apiUrl}/categories`,
+      {
+        name,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error("Error en la respuesta de registro:", error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
+
+export const updateCategory = async (
+  token: string,
+  id: number,
+  name: string,
+) => {
+  try {
+    const response = await axios.put(
+      `${apiUrl}/categories/${id}`,
+      {
+        name,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.status; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error('Error en la respuesta del Update:', error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
+
+export const deleteCategory = async (token: string, id: number) => {
+  try {
+    const response = await axios.delete(`${apiUrl}/categories/${id}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.status; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error("Error en la respuesta:", error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
