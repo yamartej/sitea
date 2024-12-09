@@ -326,6 +326,7 @@ export const registerProduct = async (
   description: string,
   price: number,
   category_id: number,
+  quantity: number,
   ) => {
   try {
     const response = await axios.post(`${apiUrl}/products`,
@@ -334,6 +335,7 @@ export const registerProduct = async (
         description,
         price,
         category_id,
+        quantity,
       },
       {
         headers: {
@@ -359,6 +361,7 @@ export const updateProduct = async (
   description: string,
   price: number,
   category_id: number,
+  quantity: number,
 ) => {
   try {
     const response = await axios.put(
@@ -368,6 +371,7 @@ export const updateProduct = async (
         description,
         price,
         category_id,
+        quantity,
       },
       {
         headers: {

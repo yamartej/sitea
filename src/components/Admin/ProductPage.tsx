@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"; 
 import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct} from "@/app/api/admin/api";
 import { getSession } from 'next-auth/react';
-import { Category, Product } from "@/types/type";
+import { Category, Inventory, Product } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
 
@@ -23,6 +23,8 @@ const ProductPage = () =>{
         description: "",
         price: "",
         category: "",
+        quantity: "",
+        inventory: "",
       });    
     const [errors, setErrors] = useState<{
         priceMessage: string | null;
@@ -77,18 +79,32 @@ const ProductPage = () =>{
         });
 
         // Validación en tiempo real de las contraseñas
-    if (name === "price") {
-        const regex = /^[0-9]*\.?[0-9]*$/; 
-        if (regex.test(value)) { 
-            setFormData({ ...formData, [name]: value, });
-            setBtnAction(false);
+        if (name === "price") {
+            const regex = /^[0-9]*\.?[0-9]*$/; 
+            if (regex.test(value)) { 
+                setFormData({ ...formData, [name]: value, });
+                setBtnAction(false);
+            }
+            else{
+                setErrorMessage("Validar Precio");
+                setShowNotification(true);
+                setBtnAction(true);
+            }
         }
-        else{
-            setErrorMessage("Validar Precio");
-            setShowNotification(true);
-            setBtnAction(true);
-        }}
+        if (name === "quantity") {
+            const regex = /^[0-9]*\.?[0-9]*$/; 
+            if (regex.test(value)) { 
+                setFormData({ ...formData, [name]: value, });
+                setBtnAction(false);
+            }
+            else{
+                setErrorMessage("Validar Cantidad");
+                setShowNotification(true);
+                setBtnAction(true);
+            }
+        }
     };
+    
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -111,6 +127,7 @@ const ProductPage = () =>{
                         formData.description,
                         Number(formData.price),
                         Number(formData.category),
+                        Number(formData.quantity),
                     );
                     if (response){
                         setShowNotification(true);
@@ -129,6 +146,7 @@ const ProductPage = () =>{
                     formData.description,
                     Number(formData.price),
                     Number(formData.category),
+                    Number(formData.quantity),
                 );
                 if (response){
                     setShowNotification(true);
@@ -168,7 +186,8 @@ const ProductPage = () =>{
             id: product.id,
             description: product.description,
             price: product.price,
-            category: product.category_id
+            category: product.category_id,
+            quantity: product.inventory ? product.inventory.quantity : 0
         });
         setShowRegister(true);
         setTypeRequest("update");
@@ -240,6 +259,7 @@ const ProductPage = () =>{
                             <th className="px-4 py-2 border border-gray-300">Descripción</th>
                             <th className="px-4 py-2 border border-gray-300">Precio</th>
                             <th className="px-4 py-2 border border-gray-300">Categoría</th>
+                            <th className="px-4 py-2 border border-gray-300">Cantidad</th>
                             <th className="px-4 py-2 border border-gray-300">Acciones</th>
                         </tr>
                         </thead>
@@ -250,6 +270,9 @@ const ProductPage = () =>{
                                 <td className="px-4 py-2 border border-gray-300">{product.description}</td>
                                 <td className="px-4 py-2 border border-gray-300">{product.price}</td>
                                 <td className="px-4 py-2 border border-gray-300">{product.category.name}</td>
+                                <td className="px-4 py-2 border border-gray-300">
+                                    {product.inventory ? product.inventory.quantity : 'Sin inventario'}
+                                </td>
                                 <td className="px-4 py-2 border border-gray-300 text-center">
                                 <button className="text-blue-600 hover:underline"
                                 onClick={() => handleEditClick(product)}
@@ -275,12 +298,14 @@ const ProductPage = () =>{
                             <p>
                                 <span className="font-semibold">Nombre:</span> {product.name}
                                 <hr />
-                                <span className="font-semibold">Descripción:</span> {product.name}
+                                <span className="font-semibold">Descripción:</span> {product.description}
                                 <hr />
                                 <span className="font-semibold">Precio:</span> {product.price}
                                 <hr />
                                 <span className="font-semibold">Categoría:</span> {product.category.name}
                                 <hr />
+                                <span className="font-semibold">Inventario:</span> 
+                                    {product.inventory ? product.inventory.quantity : 'Sin inventario'}
                             </p> 
                             
                             <div className="mt-2 flex justify-end space-x-2"> 
@@ -313,6 +338,18 @@ const ProductPage = () =>{
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                            <div>
+                                <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Cantidad</label>
+                                <input
+                                    id="quantity"
+                                    name="quantity"
+                                    type="text"
+                                    value={formData.quantity}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="block w-full rounded-md border py-1.5 text-gray-900"
+                                />
                             </div>
                         </div>
                         <div className="grid gap-6 mb-6 md:grid-cols-2">
