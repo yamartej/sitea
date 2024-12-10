@@ -87,3 +87,10 @@ export type Customer = {
   address: string;
   phone: string;
 }
+
+export type Warehouse = {
+  id: number;
+  name: string;
+  description: string;
+  address: string;
+}

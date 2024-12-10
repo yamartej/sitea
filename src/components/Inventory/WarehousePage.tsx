@@ -1,13 +1,14 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { fetchCustomersList, registerCustomer, updateCustomer, deleteCustomer} from "@/app/api/admin/api";
+import { deleteWarehouses, fetchWarehousesList, registerWarehouse, updateWarehouse } from "@/app/api/inventory/api";
 import { getSession } from 'next-auth/react';
-import { Customer } from "@/types/type";
+import { Customer, Warehouse } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
+import Warehouse from "@/app/warehouses/page";
 
-const CustomerPage = () =>{
-    const [customers, setCustomers] = useState<Customer[]>([]);
+const WharehousePage = () =>{
+    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
     const [showRegister, setShowRegister] = useState(false);
     const [showSpinner, setShowSpinner] = useState(false);
     const [btnAction, setBtnAction] = useState(false);
@@ -18,8 +19,8 @@ const CustomerPage = () =>{
     const [formData, setFormData] = useState({
         id: "",
         name: "",
+        description: "",
         address: "",
-        phone: "",
       });    
     const [errors, setErrors] = useState<{
         priceMessage: string | null;
@@ -29,12 +30,12 @@ const CustomerPage = () =>{
     
     useEffect(() => { 
         setShowSpinner(true);
-        const fetchCustomers  = async () => { 
+        const fetchWarehouses  = async () => { 
             setShowSpinner(true);
             const session = await getSession(); 
             try {
-                const data = await fetchCustomersList(session?.user.token as string);
-                setCustomers(data); 
+                const data = await fetchWarehousesList(session?.user.token as string);
+                setWarehouses(data); 
               } catch (error) {
                 console.error("Error fetching:", error);
                 setErrorMessage("Error fetching");
@@ -51,7 +52,7 @@ const CustomerPage = () =>{
                 }
               }
         }; 
-        fetchCustomers (); 
+        fetchWarehouses (); 
     }, [showRegister]);
     
     const handleAddCategoryClick = () => {
@@ -80,11 +81,11 @@ const CustomerPage = () =>{
             const session = await getSession();
             if(typeRequest === "create"){
                 if(typeRequest === "create"){
-                    const response = await registerCustomer(
+                    const response = await registerWarehouse(
                         session?.user.token as any,
                         formData.name,
-                        formData.address,
-                        formData.phone,
+                        formData.description,
+                        formData.address,                        
                     );
                     if (response){
                         setShowNotification(true);
@@ -96,12 +97,12 @@ const CustomerPage = () =>{
                 }
             }
             else{
-                const response = await updateCustomer(
+                const response = await updateWarehouse(
                     session?.user.token as any,
                     Number(formData.id),
                     formData.name,
+                    formData.description,
                     formData.address,
-                    formData.phone,
                 );
                 if (response){
                     setShowNotification(true);
@@ -130,14 +131,14 @@ const CustomerPage = () =>{
     const cleanInputs = () =>{
         formData.name = "";
         formData.address = "";
-        formData.phone= "";
+        formData.description= "";
     }
-    const handleEditClick = (customer: Customer) => {
+    const handleEditClick = (warehouse: Warehouse) => {
         setFormData({
-            name: customer.name,
-            id: customer.id,
-            address: customer.address,
-            phone: customer.phone,
+            name: warehouse.name,
+            id: warehouse.id,
+            address: warehouse.address,
+            description: warehouse.description,
         });
         setShowRegister(true);
         setTypeRequest("update");
@@ -145,9 +146,9 @@ const CustomerPage = () =>{
     
     const handleDelete = async (id: number) => {
         const session = await getSession(); 
-        const response = await deleteCustomer(session?.user.token as string, id);
+        const response = await deleteWarehouses(session?.user.token as string, id);
         if(response === 204){
-            setCustomers(customers.filter(customer => customer.id !== id));
+            setWarehouses(warehouses.filter(Warehouse => Warehouse.id !== id));
             setShowNotification(true);
             setTypeMessage("success");
             setErrorMessage("El registro fue eliminado exitosamente"); 
@@ -189,7 +190,7 @@ const CustomerPage = () =>{
         {!showRegister && (
             <div>
                 <div className="flex justify-between items-center">
-                    <h1 className="">Tabla Clientes</h1>
+                    <h1 className="">Tabla Almacenes</h1>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
                         <button  id="add_user" type="button" onClick={handleAddCategoryClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
@@ -206,30 +207,36 @@ const CustomerPage = () =>{
                         <thead>
                         <tr className="bg-gray-200">
                             <th className="px-4 py-2 border border-gray-300">Nombre</th>
+                            <th className="px-4 py-2 border border-gray-300">Descripcion</th>
                             <th className="px-4 py-2 border border-gray-300">Dirección</th>
-                            <th className="px-4 py-2 border border-gray-300">Teléfono</th>
                             <th className="px-4 py-2 border border-gray-300">Acciones</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {customers?.map((customer : Customer) => (
-                            <tr  key={customer.id} className="bg-white hover:bg-gray-100 transition">
-                                <td className="px-4 py-2 border border-gray-300">{customer.name}</td>
-                                <td className="px-4 py-2 border border-gray-300">{customer.address}</td>
-                                <td className="px-4 py-2 border border-gray-300">{customer.phone}</td>
+                        {warehouses.length === 0 ? (
+                            <tr>
+                                <td colSpan="3" className="text-center">Sin almacenes agregados</td>
+                            </tr>
+                            ) : (
+                                warehouses.map((warehouse) => (
+                                <tr  key={warehouse.id} className="bg-white hover:bg-gray-100 transition">
+                                <td className="px-4 py-2 border border-gray-300">{warehouse.name}</td>
+                                <td className="px-4 py-2 border border-gray-300">{warehouse.description}</td>
+                                <td className="px-4 py-2 border border-gray-300">{warehouse.address}</td>
                                 <td className="px-4 py-2 border border-gray-300 text-center">
                                 <button className="text-blue-600 hover:underline"
-                                onClick={() => handleEditClick(customer)}
+                                onClick={() => handleEditClick(warehouse)}
                                 >Editar</button>
                                 <button
                                 className="ml-2 text-red-600 hover:underline"
-                                onClick={() => handleDelete(customer.id)}
+                                onClick={() => handleDelete(warehouse.id)}
                                 >
                                     Eliminar
                                 </button>
                                 </td>
                             </tr>
-                        ))}
+                            ))
+                        )}
                         </tbody>
                     </table>
                 </div>
@@ -237,20 +244,20 @@ const CustomerPage = () =>{
             
             {!showRegister && (
                 <div className="block md:hidden mt-2 space-y-4">
-                    {customers?.map((customer) => ( 
-                        <div key={customer.id} className="p-4 bg-white rounded-lg shadow border border-gray-300"> 
+                    {warehouses?.map((warehouse) => ( 
+                        <div key={warehouse.id} className="p-4 bg-white rounded-lg shadow border border-gray-300"> 
                             <p>
-                                <span className="font-semibold">Nombre:</span> {customer.name}
+                                <span className="font-semibold">Nombre:</span> {warehouse.name}
                                 <hr />
-                                <span className="font-semibold">Descripción:</span> {customer.address}
+                                <span className="font-semibold">Descripción:</span> {warehouse.description}
                                 <hr />
-                                <span className="font-semibold">Precio:</span> {customer.phone}
+                                <span className="font-semibold">Dirección:</span> {warehouse.address}
                                 <hr />
                             </p> 
                             
                             <div className="mt-2 flex justify-end space-x-2"> 
-                                <button onClick={() => handleEditClick(customer)} className="text-blue-600 hover:underline">Editar</button> 
-                                <button onClick={() => handleDelete(customer.id)} className="text-red-600 hover:underline">Eliminar</button> 
+                                <button onClick={() => handleEditClick(warehouse)} className="text-blue-600 hover:underline">Editar</button> 
+                                <button onClick={() => handleDelete(warehouse.id)} className="text-red-600 hover:underline">Eliminar</button> 
                             </div> 
                         </div> ))}
                 </div>
@@ -260,12 +267,28 @@ const CustomerPage = () =>{
                     <form onSubmit={handleSubmit}>
                         <div className="grid gap-6 mb-6 md:grid-cols-2">
                             <div>
-                                <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre</label>
+                                <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Nombre
+                                </label>
                                 <input
                                     id="name"
                                     name="name"
                                     type="text"
                                     value={formData.name}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="block w-full rounded-md border py-1.5 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Descripcion
+                                </label>
+                                <input
+                                    id="description"
+                                    name="description"
+                                    type="text"
+                                    value={formData.description}
                                     onChange={handleInputChange}
                                     required
                                     className="block w-full rounded-md border py-1.5 text-gray-900"
@@ -281,20 +304,6 @@ const CustomerPage = () =>{
                                     type="text"
                                     value={formData.address}
                                     onChange={handleInputChange}
-                                    className="block w-full rounded-md border py-1.5 text-gray-900"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                    Teléfono 
-                                </label>
-                                <input
-                                    id="phone"
-                                    name="phone"
-                                    type="text"
-                                    value={formData.phone}
-                                    onChange={handleInputChange}
-                                    required
                                     className="block w-full rounded-md border py-1.5 text-gray-900"
                                 />
                             </div>
@@ -316,4 +325,4 @@ const CustomerPage = () =>{
     
 }
 
-export default CustomerPage;
+export default WharehousePage;
