@@ -74,8 +74,16 @@ export type Product = {
   category: Category[];
   inventory: Inventory[];
 }
+
 export type Inventory = {
   id: number;
   quantity: number;
   product_id : number;
+}
+
+export type Customer = {
+  id: number;
+  name: string;
+  address: string;
+  phone: string;
 }
