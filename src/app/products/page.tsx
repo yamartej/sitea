@@ -1,4 +1,4 @@
-import ProductPage from "@/components/Admin/ProductPage";
+import ProductPage from "@/components/Inventory/ProductPage";
 import AuthLayout from "../protected/layout";
 
 const Product = () =>{

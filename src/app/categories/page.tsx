@@ -1,4 +1,4 @@
-import CategoryPage from "@/components/Admin/CategoryPage";
+import CategoryPage from "@/components/Inventory/CategoryPage";
 import AuthLayout from "../protected/layout";
 
 const Category = () =>{
