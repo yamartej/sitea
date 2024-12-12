@@ -23,7 +23,6 @@ const ProductPage = () =>{
         description: "",
         price: "",
         category: "",
-        quantity: "",
         inventory: "",
       });    
     const [errors, setErrors] = useState<{
@@ -91,18 +90,6 @@ const ProductPage = () =>{
                 setBtnAction(true);
             }
         }
-        if (name === "quantity") {
-            const regex = /^[0-9]*\.?[0-9]*$/; 
-            if (regex.test(value)) { 
-                setFormData({ ...formData, [name]: value, });
-                setBtnAction(false);
-            }
-            else{
-                setErrorMessage("Validar Cantidad");
-                setShowNotification(true);
-                setBtnAction(true);
-            }
-        }
     };
     
 
@@ -127,7 +114,6 @@ const ProductPage = () =>{
                         formData.description,
                         Number(formData.price),
                         Number(formData.category),
-                        Number(formData.quantity),
                     );
                     if (response){
                         setShowNotification(true);
@@ -146,7 +132,6 @@ const ProductPage = () =>{
                     formData.description,
                     Number(formData.price),
                     Number(formData.category),
-                    Number(formData.quantity),
                 );
                 if (response){
                     setShowNotification(true);
@@ -187,7 +172,6 @@ const ProductPage = () =>{
             description: product.description,
             price: product.price,
             category: product.category_id,
-            quantity: product.inventory ? product.inventory.quantity : 0
         });
         setShowRegister(true);
         setTypeRequest("update");
@@ -338,18 +322,6 @@ const ProductPage = () =>{
                                         </option>
                                     ))}
                                 </select>
-                            </div>
-                            <div>
-                                <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Cantidad</label>
-                                <input
-                                    id="quantity"
-                                    name="quantity"
-                                    type="text"
-                                    value={formData.quantity}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="block w-full rounded-md border py-1.5 text-gray-900"
-                                />
                             </div>
                         </div>
                         <div className="grid gap-6 mb-6 md:grid-cols-2">

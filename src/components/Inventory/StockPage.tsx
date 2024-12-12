@@ -1,13 +1,16 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { deleteWarehouses, fetchWarehousesList, registerWarehouse, updateWarehouse } from "@/app/api/inventory/api";
+import { fetchInventoriesList, registerInventory, deleteInventory, updateInventory} from "@/app/api/inventory/api";
 import { getSession } from 'next-auth/react';
-import { Warehouse } from "@/types/type";
+import { Inventory, Product } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
+import { fetchProductsList } from "@/app/api/admin/api";
+import { format } from 'date-fns';
 
-const WharehousePage = () =>{
-    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+const StockPage = () => {
+    const [inventories, setInventories] = useState<Inventory[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [showRegister, setShowRegister] = useState(false);
     const [showSpinner, setShowSpinner] = useState(false);
     const [btnAction, setBtnAction] = useState(false);
@@ -17,24 +20,22 @@ const WharehousePage = () =>{
     const [typeRequest, setTypeRequest] = useState("create");
     const [formData, setFormData] = useState({
         id: "",
-        name: "",
-        description: "",
-        address: "",
+        productId: "",
+        productName: "",
+        quantity: "",
+        date: "",
       });    
-    const [errors, setErrors] = useState<{
-        priceMessage: string | null;
-      }>({
-        priceMessage: null,
-      });
     
-    useEffect(() => { 
+      useEffect(() => { 
         setShowSpinner(true);
-        const fetchWarehouses  = async () => { 
+        const fetchInventories  = async () => { 
             setShowSpinner(true);
             const session = await getSession(); 
             try {
-                const data = await fetchWarehousesList(session?.user.token as string);
-                setWarehouses(data); 
+                const data = await fetchInventoriesList(session?.user.token as string);
+                const dataProducts = await fetchProductsList(session?.user.token as string);
+                setInventories(data); 
+                setProducts(dataProducts);
               } catch (error) {
                 console.error("Error fetching:", error);
                 setErrorMessage("Error fetching");
@@ -51,10 +52,11 @@ const WharehousePage = () =>{
                 }
               }
         }; 
-        fetchWarehouses (); 
+        fetchInventories (); 
     }, [showRegister]);
     
-    const handleAddCategoryClick = () => {
+    
+    const handleAddRegisterClick = () => {
         setShowRegister(true);
         setTypeRequest("create");
         cleanInputs();
@@ -80,11 +82,10 @@ const WharehousePage = () =>{
             const session = await getSession();
             if(typeRequest === "create"){
                 if(typeRequest === "create"){
-                    const response = await registerWarehouse(
+                    const response = await registerInventory(
                         session?.user.token as any,
-                        formData.name,
-                        formData.description,
-                        formData.address,                        
+                        Number(formData.productId),
+                        formData.quantity,
                     );
                     if (response){
                         setShowNotification(true);
@@ -96,12 +97,11 @@ const WharehousePage = () =>{
                 }
             }
             else{
-                const response = await updateWarehouse(
+                const response = await updateInventory(
                     session?.user.token as any,
                     Number(formData.id),
-                    formData.name,
-                    formData.description,
-                    formData.address,
+                    Number(formData.productId),
+                    formData.quantity,
                 );
                 if (response){
                     setShowNotification(true);
@@ -128,16 +128,13 @@ const WharehousePage = () =>{
           }
       };
     const cleanInputs = () =>{
-        formData.name = "";
-        formData.address = "";
-        formData.description= "";
+        formData.quantity = "";
     }
-    const handleEditClick = (warehouse: Warehouse) => {
+    const handleEditClick = (inventory: Inventory) => {
         setFormData({
-            name: warehouse.name,
-            id: warehouse.id,
-            address: warehouse.address,
-            description: warehouse.description,
+            id: inventory.id,
+            productId: inventory.product_id,
+            quantity: inventory.quantity
         });
         setShowRegister(true);
         setTypeRequest("update");
@@ -145,9 +142,9 @@ const WharehousePage = () =>{
     
     const handleDelete = async (id: number) => {
         const session = await getSession(); 
-        const response = await deleteWarehouses(session?.user.token as string, id);
+        const response = await deleteInventory(session?.user.token as string, id);
         if(response === 204){
-            setWarehouses(warehouses.filter(warehouse => warehouse.id !== id));
+            setInventories(inventories.filter(inventory => inventory.id !== id));
             setShowNotification(true);
             setTypeMessage("success");
             setErrorMessage("El registro fue eliminado exitosamente"); 
@@ -191,7 +188,7 @@ const WharehousePage = () =>{
                 <div className="flex justify-between items-center">
                     <h1 className="">Tabla Almacenes</h1>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
-                        <button  id="add_user" type="button" onClick={handleAddCategoryClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
+                        <button  id="add_user" type="button" onClick={handleAddRegisterClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
@@ -205,30 +202,31 @@ const WharehousePage = () =>{
                     <table className="min-w-full border-collapse border border-gray-300 text-left">
                         <thead>
                         <tr className="bg-gray-200">
-                            <th className="px-4 py-2 border border-gray-300">Nombre</th>
-                            <th className="px-4 py-2 border border-gray-300">Descripcion</th>
-                            <th className="px-4 py-2 border border-gray-300">Dirección</th>
+                            <th className="px-4 py-2 border border-gray-300">Producto</th>
+                            <th className="px-4 py-2 border border-gray-300">Cantidad</th>
+                            <th className="px-4 py-2 border border-gray-300">Fecha de Actualización</th>
                             <th className="px-4 py-2 border border-gray-300">Acciones</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {warehouses.length === 0 ? (
+                        {inventories.length === 0 ? (
                             <tr>
-                                <td colSpan="3" className="text-center">Sin almacenes agregados</td>
+                                <td colSpan="3" className="text-center">Sin inventario agregados</td>
                             </tr>
                             ) : (
-                                warehouses.map((warehouse) => (
-                                <tr  key={warehouse.id} className="bg-white hover:bg-gray-100 transition">
-                                <td className="px-4 py-2 border border-gray-300">{warehouse.name}</td>
-                                <td className="px-4 py-2 border border-gray-300">{warehouse.description}</td>
-                                <td className="px-4 py-2 border border-gray-300">{warehouse.address}</td>
+                                inventories.map((inventory) => (
+                                <tr  key={inventory.id} className="bg-white hover:bg-gray-100 transition">
+                                <td className="px-4 py-2 border border-gray-300">{inventory.product.name}</td>
+                                <td className="px-4 py-2 border border-gray-300">{inventory.quantity}</td>
+                                <td className="px-4 py-2 border border-gray-300"> {format(new Date(inventory.updated_at), 'dd/MM/yyyy HH:mm:ss')}
+                                </td>
                                 <td className="px-4 py-2 border border-gray-300 text-center">
                                 <button className="text-blue-600 hover:underline"
-                                onClick={() => handleEditClick(warehouse)}
+                                    onClick={() => handleEditClick(inventory)}
                                 >Editar</button>
                                 <button
-                                className="ml-2 text-red-600 hover:underline"
-                                onClick={() => handleDelete(warehouse.id)}
+                                    className="ml-2 text-red-600 hover:underline"
+                                onClick={() => handleDelete(inventory.id)}
                                 >
                                     Eliminar
                                 </button>
@@ -243,20 +241,18 @@ const WharehousePage = () =>{
             
             {!showRegister && (
                 <div className="block md:hidden mt-2 space-y-4">
-                    {warehouses?.map((warehouse) => ( 
-                        <div key={warehouse.id} className="p-4 bg-white rounded-lg shadow border border-gray-300"> 
+                    {inventories?.map((inventory) => ( 
+                        <div key={inventory.id} className="p-4 bg-white rounded-lg shadow border border-gray-300"> 
                             <p>
-                                <span className="font-semibold">Nombre:</span> {warehouse.name}
+                                <span className="font-semibold">Producto:</span> {inventory.product.name}
                                 <hr />
-                                <span className="font-semibold">Descripción:</span> {warehouse.description}
-                                <hr />
-                                <span className="font-semibold">Dirección:</span> {warehouse.address}
+                                <span className="font-semibold">Cantidad:</span> {inventory.quantity}
                                 <hr />
                             </p> 
                             
                             <div className="mt-2 flex justify-end space-x-2"> 
-                                <button onClick={() => handleEditClick(warehouse)} className="text-blue-600 hover:underline">Editar</button> 
-                                <button onClick={() => handleDelete(warehouse.id)} className="text-red-600 hover:underline">Eliminar</button> 
+                                <button onClick={() => handleEditClick(inventory)} className="text-blue-600 hover:underline">Editar</button> 
+                                <button onClick={() => handleDelete(inventory.id)} className="text-red-600 hover:underline">Eliminar</button> 
                             </div> 
                         </div> ))}
                 </div>
@@ -266,43 +262,37 @@ const WharehousePage = () =>{
                     <form onSubmit={handleSubmit}>
                         <div className="grid gap-6 mb-6 md:grid-cols-2">
                             <div>
-                                <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                    Nombre
-                                </label>
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    value={formData.name}
+                                <label htmlFor="productId" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Producto</label>
+                                <select
+                                    id="productId"
+                                    name="productId"
+                                    value={formData.productId}
                                     onChange={handleInputChange}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     required
-                                    className="block w-full rounded-md border py-1.5 text-gray-900"
-                                />
+                                    disabled={!showRegister}
+                                    >
+                                    <option value="">
+                                        Seleccione un producto
+                                    </option>
+                                    {products?.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.name}
+                                    </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
-                                <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                    Descripcion
+                                <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Cantidad
                                 </label>
                                 <input
-                                    id="description"
-                                    name="description"
+                                    id="quantity"
+                                    name="quantity"
                                     type="text"
-                                    value={formData.description}
+                                    value={formData.quantity}
                                     onChange={handleInputChange}
                                     required
-                                    className="block w-full rounded-md border py-1.5 text-gray-900"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="address" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                    Dirección 
-                                </label>
-                                <input
-                                    id="address"
-                                    name="address"
-                                    type="text"
-                                    value={formData.address}
-                                    onChange={handleInputChange}
                                     className="block w-full rounded-md border py-1.5 text-gray-900"
                                 />
                             </div>
@@ -324,4 +314,4 @@ const WharehousePage = () =>{
     
 }
 
-export default WharehousePage;
+export default StockPage;

@@ -79,6 +79,7 @@ export type Inventory = {
   id: number;
   quantity: number;
   product_id : number;
+  product : Product[];
 }
 
 export type Customer = {
