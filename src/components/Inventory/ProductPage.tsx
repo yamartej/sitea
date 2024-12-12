@@ -23,7 +23,7 @@ const ProductPage = () =>{
         description: "",
         price: "",
         category: "",
-        inventory: "",
+        quantity: "",
       });    
     const [errors, setErrors] = useState<{
         priceMessage: string | null;
@@ -114,6 +114,7 @@ const ProductPage = () =>{
                         formData.description,
                         Number(formData.price),
                         Number(formData.category),
+                        Number(formData.quantity),
                     );
                     if (response){
                         setShowNotification(true);
@@ -132,6 +133,7 @@ const ProductPage = () =>{
                     formData.description,
                     Number(formData.price),
                     Number(formData.category),
+                    Number(formData.quantity),
                 );
                 if (response){
                     setShowNotification(true);
@@ -160,7 +162,8 @@ const ProductPage = () =>{
     const cleanInputs = () =>{
         formData.name = "";
         formData.description = "";
-        formData.price= "";
+        formData.price = "";
+        formData.quantity = "";
         if(!showRegister){
             formData.category="";
         }
@@ -255,7 +258,7 @@ const ProductPage = () =>{
                                 <td className="px-4 py-2 border border-gray-300">{product.price}</td>
                                 <td className="px-4 py-2 border border-gray-300">{product.category.name}</td>
                                 <td className="px-4 py-2 border border-gray-300">
-                                    {product.inventory ? product.inventory.quantity : 'Sin inventario'}
+                                    {product.quantity ? product.quantity : 'Sin inventario'}
                                 </td>
                                 <td className="px-4 py-2 border border-gray-300 text-center">
                                 <button className="text-blue-600 hover:underline"
@@ -289,7 +292,7 @@ const ProductPage = () =>{
                                 <span className="font-semibold">Categoría:</span> {product.category.name}
                                 <hr />
                                 <span className="font-semibold">Inventario:</span> 
-                                    {product.inventory ? product.inventory.quantity : 'Sin inventario'}
+                                    {product.quantity ? product.quantity : 'Sin inventario'}
                             </p> 
                             
                             <div className="mt-2 flex justify-end space-x-2"> 
@@ -361,6 +364,19 @@ const ProductPage = () =>{
                                     value={formData.price}
                                     onChange={handleInputChange}
                                     required
+                                    className="block w-full rounded-md border py-1.5 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Cantidad 
+                                </label>
+                                <input
+                                    id="quantity"
+                                    name="quantity"
+                                    type="text"
+                                    value={formData.quantity}
+                                    onChange={handleInputChange}
                                     className="block w-full rounded-md border py-1.5 text-gray-900"
                                 />
                             </div>

@@ -72,7 +72,7 @@ export type Product = {
   price: number;
   category_id: number;
   category: Category[];
-  inventory: Inventory[];
+  quantity: number;
 }
 
 export type Inventory = {
