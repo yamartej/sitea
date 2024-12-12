@@ -1,16 +1,17 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { fetchInventoriesList, registerInventory, deleteInventory, updateInventory} from "@/app/api/inventory/api";
+import { fetchWarehousesList, fetchInventoriesList, registerInventory, deleteInventory, updateInventory, fetchProductsAvailable} from "@/app/api/inventory/api";
 import { getSession } from 'next-auth/react';
-import { Inventory, Product } from "@/types/type";
+import { Inventory, Product, Warehouse } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
-import { fetchProductsList } from "@/app/api/admin/api";
 import { format } from 'date-fns';
 
 const StockPage = () => {
     const [inventories, setInventories] = useState<Inventory[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+    const [available, setAvailable] = useState(0);
     const [showRegister, setShowRegister] = useState(false);
     const [showSpinner, setShowSpinner] = useState(false);
     const [btnAction, setBtnAction] = useState(false);
@@ -23,7 +24,7 @@ const StockPage = () => {
         productId: "",
         productName: "",
         quantity: "",
-        date: "",
+        warehouseId: "",
       });    
     
       useEffect(() => { 
@@ -33,9 +34,11 @@ const StockPage = () => {
             const session = await getSession(); 
             try {
                 const data = await fetchInventoriesList(session?.user.token as string);
-                const dataProducts = await fetchProductsList(session?.user.token as string);
+                const dataProducts = await fetchProductsAvailable(session?.user.token as string);
+                const dataWarehouses = await fetchWarehousesList(session?.user.token as string);
                 setInventories(data); 
                 setProducts(dataProducts);
+                setWarehouses(dataWarehouses);
               } catch (error) {
                 console.error("Error fetching:", error);
                 setErrorMessage("Error fetching");
@@ -55,6 +58,14 @@ const StockPage = () => {
         fetchInventories (); 
     }, [showRegister]);
     
+    useEffect(() => { 
+        const timer = setTimeout(() => {
+            setShowNotification(false);
+        }, 10000); // 10 segundos
+    
+        return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+    }, [showNotification]);
+    
     
     const handleAddRegisterClick = () => {
         setShowRegister(true);
@@ -72,8 +83,24 @@ const StockPage = () => {
             ...formData, 
             [name]: value 
         });
+        if (name === 'productId'){
+            const selectedProduct = products.find(product => product.id === parseInt(e.target.value));
+            setAvailable(selectedProduct ? selectedProduct.quantity : 0);
+        }
+
+        if(name === 'quantity'){
+            if(Number(value) > available){
+                setTypeMessage("error");
+                setBtnAction(true);
+                setErrorMessage("Cantidad Ingresada es Mayor a la disponible");
+                setShowNotification(true);
+            }
+            else{
+                setBtnAction(false);
+            }
+        }
+        
     };
-    
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -260,7 +287,31 @@ const StockPage = () => {
             {showRegister && (
                 <div id="register" className="">
                     <form onSubmit={handleSubmit}>
+                        <div>
+                            <h1>Cantidad Disponible:</h1>
+                        </div>
+                        <hr />
                         <div className="grid gap-6 mb-6 md:grid-cols-2">
+                        <div>
+                                <label htmlFor="warehouseId" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Producto</label>
+                                <select
+                                    id="warehouseId"
+                                    name="warehouseId"
+                                    value={formData.warehouseId}
+                                    onChange={handleInputChange}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                    required
+                                    >
+                                    <option value="">
+                                        Seleccione un Almacen
+                                    </option>
+                                    {warehouses?.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.name}
+                                    </option>
+                                    ))}
+                                </select>
+                            </div>
                             <div>
                                 <label htmlFor="productId" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Producto</label>
                                 <select
@@ -277,7 +328,7 @@ const StockPage = () => {
                                     </option>
                                     {products?.map((item) => (
                                     <option key={item.id} value={item.id}>
-                                        {item.name}
+                                        {item.name} / Disponibilidad: {item.quantity} 
                                     </option>
                                     ))}
                                 </select>
