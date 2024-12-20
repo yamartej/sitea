@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"; 
 import { fetchWarehousesList, fetchInventoriesList, registerInventory, deleteInventory, updateInventory, fetchProductsAvailable} from "@/app/api/inventory/api";
 import { getSession } from 'next-auth/react';
-import { Inventory, Product, Warehouse } from "@/types/type";
+import { ErrorResponse, Inventory, Product, Warehouse } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
 import { format } from 'date-fns';
@@ -19,13 +19,19 @@ const StockPage = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [typeMessage, setTypeMessage] = useState("error");
     const [typeRequest, setTypeRequest] = useState("create");
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        id: number | string;
+        productId: number | string;
+        productName: string;
+        quantity: number | string;
+        warehouseId: number | string;
+    }>({
         id: "",
         productId: "",
         productName: "",
         quantity: "",
         warehouseId: "",
-      });    
+    });
     
       useEffect(() => { 
         setShowSpinner(true);
@@ -36,8 +42,8 @@ const StockPage = () => {
                 const data = await fetchInventoriesList(session?.user.token as string);
                 const dataProducts = await fetchProductsAvailable(session?.user.token as string);
                 const dataWarehouses = await fetchWarehousesList(session?.user.token as string);
-                setInventories(data); 
-                setProducts(dataProducts);
+                setInventories(data);
+                setProducts(dataProducts.filter((product: Product) => product.quantity !== 0));
                 setWarehouses(dataWarehouses);
               } catch (error) {
                 console.error("Error fetching:", error);
@@ -65,12 +71,12 @@ const StockPage = () => {
     
         return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
     }, [showNotification]);
-    
-    
+
     const handleAddRegisterClick = () => {
         setShowRegister(true);
         setTypeRequest("create");
         cleanInputs();
+        setAvailable(0);
     };
 
     const handleBackClick = () => {
@@ -85,10 +91,23 @@ const StockPage = () => {
         });
         if (name === 'productId'){
             const selectedProduct = products.find(product => product.id === parseInt(e.target.value));
-            setAvailable(selectedProduct ? selectedProduct.quantity : 0);
+            const selectedWarehouse = formData.warehouseId;
+            const existingInventory = inventories.find(inventory => 
+                inventory.product_id === parseInt(selectedProduct?.id) && 
+                inventory.warehouse.id === parseInt(selectedWarehouse)
+            );
+            if (existingInventory) {
+                setErrorMessage(`El producto ${existingInventory?.product.name} ya está incluido en el inventario del almacén ${existingInventory?.warehouse.name}`);
+                setShowNotification(true);
+                setTypeMessage("error");
+                setBtnAction(true);
+            } else {
+                setAvailable(selectedProduct ? selectedProduct.quantity : 0);
+                setBtnAction(false);
+            }
         }
 
-        if(name === 'quantity'){
+        if(name === 'quantity') {
             if(Number(value) > available){
                 setTypeMessage("error");
                 setBtnAction(true);
@@ -99,69 +118,81 @@ const StockPage = () => {
                 setBtnAction(false);
             }
         }
-        
     };
 
+    const handleError = (errors: ErrorResponse) => { 
+        console.error("Error actualizando o guardando registro:", errors.message || errors);
+        setShowNotification(true); 
+        setTypeMessage("error"); 
+        setErrorMessage(errors.status === 400 ? errors.response.data.message : "Error actualizando o guardando registro"); 
+        setShowSpinner(false); 
+    };
+    
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
             setShowSpinner(true);
             const session = await getSession();
-            if(typeRequest === "create"){
-                if(typeRequest === "create"){
-                    const response = await registerInventory(
-                        session?.user.token as any,
-                        Number(formData.productId),
-                        formData.quantity,
-                    );
-                    if (response){
-                        setShowNotification(true);
-                        setTypeMessage("success");
-                        setErrorMessage("El registro fue agregado exitosamente"); 
-                        setShowSpinner(false);
-                        cleanInputs();
-                    }
-                }
-            }
-            else{
-                const response = await updateInventory(
-                    session?.user.token as any,
-                    Number(formData.id),
+            let response;
+            if (typeRequest === "create") {
+                response = await registerInventory(
+                    session?.user.token as string,
                     Number(formData.productId),
-                    formData.quantity,
+                    formData.quantity.toString(),
+                    Number(formData.warehouseId),
                 );
-                if (response){
+                if (response) {
+                    updateProductQuantity(response.product_id, response.quantity);
                     setShowNotification(true);
                     setTypeMessage("success");
-                    setErrorMessage("El registro fue actualizado satisfactoriamente"); 
+                    setErrorMessage("El registro fue agregado exitosamente"); 
+                    setShowSpinner(false);
+                    cleanInputs();
+                }
+            } else {
+                response = await updateInventory(
+                    session?.user.token as string,
+                    Number(formData.id),
+                    Number(formData.productId),
+                    formData.quantity.toString(),
+                    Number(formData.warehouseId),
+                );
+                if (response) {
+                    updateProductQuantity(response.product_id, response.quantity);
+                    setShowNotification(true);
+                    setTypeMessage("success");
+                    setErrorMessage("El registro fue actualizado exitosamente"); 
                     setShowSpinner(false);
                     cleanInputs();
                 }
             }
-        } catch (errors) {
-            console.error("Error actualizando o guardando registro:", errors);
-            setShowNotification(true);
-            setTypeMessage("error");
-            setErrorMessage("Error actualizando o guardando registro"); 
-            setShowSpinner(false);
+        } catch (error) {
+            handleError(error as ErrorResponse);
         }
-        finally{
-            if (showNotification) {
-            const timer = setTimeout(() => {
-                setShowNotification(false);
-            }, 10000); // 10 segundos
-            return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-            }
-          }
-      };
+    };
+
     const cleanInputs = () =>{
         formData.quantity = "";
+        formData.productId = "";
+        formData.warehouseId = "";
+
     }
     const handleEditClick = (inventory: Inventory) => {
+        // Encuentra el producto correspondiente
+        const selectedProduct = products.find(product => product.id === parseInt(inventory.product_id));
+        
+        // Calcula el máximo permitido solo si el producto correspondiente existe
+        const maxQuantity = selectedProduct ? inventory.quantity + selectedProduct.quantity : inventory.quantity;
+        
+        // Establece el estado disponible con el máximo permitido
+        setAvailable(maxQuantity);
+        setShowRegister(true);
         setFormData({
-            id: inventory.id,
-            productId: inventory.product_id,
-            quantity: inventory.quantity
+            id: inventory.id.toString(),
+            productId: inventory.product_id.toString(),
+            productName: inventory.product.product_name,
+            quantity: inventory.quantity.toString(),
+            warehouseId: inventory.warehouse.id.toString(),
         });
         setShowRegister(true);
         setTypeRequest("update");
@@ -178,6 +209,18 @@ const StockPage = () => {
             setShowSpinner(false);
         }
     };
+
+    const updateProductQuantity = (productId, available) => {
+        setProducts((prevProducts) =>
+          prevProducts.map((product) =>
+            product.id === productId
+              ? { ...product, quantity: product.quantity - available }
+              : product
+          )
+        );
+      };
+
+      
     // Determinar el texto del botón basado en el estado 
     const buttonText = typeRequest === 'create' ? 'Guardar' : 'Actualizar';
 
@@ -213,7 +256,7 @@ const StockPage = () => {
         {!showRegister && (
             <div>
                 <div className="flex justify-between items-center">
-                    <h1 className="">Tabla Almacenes</h1>
+                    <h1 className="">Tabla Inventario</h1>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
                         <button  id="add_user" type="button" onClick={handleAddRegisterClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
@@ -229,6 +272,7 @@ const StockPage = () => {
                     <table className="min-w-full border-collapse border border-gray-300 text-left">
                         <thead>
                         <tr className="bg-gray-200">
+                            <th className="px-4 py-2 border border-gray-300">Almacen</th>
                             <th className="px-4 py-2 border border-gray-300">Producto</th>
                             <th className="px-4 py-2 border border-gray-300">Cantidad</th>
                             <th className="px-4 py-2 border border-gray-300">Fecha de Actualización</th>
@@ -238,27 +282,27 @@ const StockPage = () => {
                         <tbody>
                         {inventories.length === 0 ? (
                             <tr>
-                                <td colSpan="3" className="text-center">Sin inventario agregados</td>
+                                <td colSpan="4" className="text-center">Sin inventario agregados</td>
                             </tr>
                             ) : (
                                 inventories.map((inventory) => (
                                 <tr  key={inventory.id} className="bg-white hover:bg-gray-100 transition">
-                                <td className="px-4 py-2 border border-gray-300">{inventory.product.name}</td>
-                                <td className="px-4 py-2 border border-gray-300">{inventory.quantity}</td>
-                                <td className="px-4 py-2 border border-gray-300"> {format(new Date(inventory.updated_at), 'dd/MM/yyyy HH:mm:ss')}
-                                </td>
-                                <td className="px-4 py-2 border border-gray-300 text-center">
-                                <button className="text-blue-600 hover:underline"
-                                    onClick={() => handleEditClick(inventory)}
-                                >Editar</button>
-                                <button
-                                    className="ml-2 text-red-600 hover:underline"
-                                onClick={() => handleDelete(inventory.id)}
-                                >
-                                    Eliminar
-                                </button>
-                                </td>
-                            </tr>
+                                    <td className="px-4 py-2 border border-gray-300">{inventory.warehouse.name}</td>
+                                    <td className="px-4 py-2 border border-gray-300">{inventory.product.name}</td>
+                                    <td className="px-4 py-2 border border-gray-300">{inventory.quantity}</td>
+                                    <td className="px-4 py-2 border border-gray-300"> {format(new Date(inventory.updated_at), 'dd/MM/yyyy HH:mm:ss')}</td>
+                                    <td className="px-4 py-2 border border-gray-300 text-center">
+                                        <button className="text-blue-600 hover:underline"
+                                            onClick={() => handleEditClick(inventory)}
+                                        >Editar</button>
+                                        <button
+                                            className="ml-2 text-red-600 hover:underline"
+                                        onClick={() => handleDelete(inventory.id)}
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
                             ))
                         )}
                         </tbody>
@@ -271,9 +315,13 @@ const StockPage = () => {
                     {inventories?.map((inventory) => ( 
                         <div key={inventory.id} className="p-4 bg-white rounded-lg shadow border border-gray-300"> 
                             <p>
+                                <span className="font-semibold">Almacen:</span> {inventory.warehouse.name}
+                                <hr />
                                 <span className="font-semibold">Producto:</span> {inventory.product.name}
                                 <hr />
                                 <span className="font-semibold">Cantidad:</span> {inventory.quantity}
+                                <hr />
+                                <span className="font-semibold">Actualización:</span> {format(new Date(inventory.updated_at), 'dd/MM/yyyy HH:mm:ss')}
                                 <hr />
                             </p> 
                             
@@ -287,13 +335,11 @@ const StockPage = () => {
             {showRegister && (
                 <div id="register" className="">
                     <form onSubmit={handleSubmit}>
-                        <div>
-                            <h1>Cantidad Disponible:</h1>
-                        </div>
-                        <hr />
                         <div className="grid gap-6 mb-6 md:grid-cols-2">
-                        <div>
-                                <label htmlFor="warehouseId" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Producto</label>
+                            <div>
+                                <label htmlFor="warehouseId" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Almacen
+                                </label>
                                 <select
                                     id="warehouseId"
                                     name="warehouseId"

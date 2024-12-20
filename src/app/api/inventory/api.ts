@@ -135,12 +135,14 @@ export const fetchWarehousesList = async (token: string) => {
     token: string, 
     product_id: number,
     quantity: string,
+    warehouse_id: number,
     ) => {
     try {
       const response = await axios.post(`${apiUrl}/inventory`,
         {
           product_id,
           quantity,
+          warehouse_id,
         },
         {
           headers: {
@@ -164,6 +166,7 @@ export const fetchWarehousesList = async (token: string) => {
     id: number,
     product_id: number,
     quantity: string,
+    warehouse_id: number,
   ) => {
     try {
       const response = await axios.put(
@@ -171,6 +174,7 @@ export const fetchWarehousesList = async (token: string) => {
         {
           product_id,
           quantity,
+          warehouse_id,
         },
         {
           headers: {
@@ -216,7 +220,6 @@ export const fetchWarehousesList = async (token: string) => {
             Authorization: `Bearer ${token}`,
           },
         });
-        console.log("Paso por acá");
         return response.data;
       } catch (error: any) {
         if (error.response) {

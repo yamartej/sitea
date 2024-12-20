@@ -96,3 +96,15 @@ export type Warehouse = {
   description: string;
   address: string;
 }
+
+export type ErrorResponse = {
+  status: number;
+  message: string;
+  response: {
+    data: {
+      message: string;
+    };
+    product_id: number;
+    quantity: number;
+  };
+}
