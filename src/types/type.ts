@@ -108,3 +108,10 @@ export type ErrorResponse = {
     quantity: number;
   };
 }
+
+export type CartItem = {
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+}

@@ -17,6 +17,7 @@ const CustomerPage = () =>{
     const [typeRequest, setTypeRequest] = useState("create");
     const [formData, setFormData] = useState({
         id: "",
+        client_id: "",
         name: "",
         address: "",
         phone: "",
@@ -82,6 +83,7 @@ const CustomerPage = () =>{
                 if(typeRequest === "create"){
                     const response = await registerCustomer(
                         session?.user.token as any,
+                        formData.client_id,
                         formData.name,
                         formData.address,
                         formData.phone,
@@ -99,6 +101,7 @@ const CustomerPage = () =>{
                 const response = await updateCustomer(
                     session?.user.token as any,
                     Number(formData.id),
+                    formData.client_id,
                     formData.name,
                     formData.address,
                     formData.phone,
@@ -128,6 +131,7 @@ const CustomerPage = () =>{
           }
       };
     const cleanInputs = () =>{
+        formData.client_id = "";
         formData.name = "";
         formData.address = "";
         formData.phone= "";
@@ -136,6 +140,7 @@ const CustomerPage = () =>{
         setFormData({
             name: customer.name,
             id: customer.id,
+            client_id: customer.client_id,
             address: customer.address,
             phone: customer.phone,
         });
@@ -259,6 +264,18 @@ const CustomerPage = () =>{
                 <div id="register" className="">
                     <form onSubmit={handleSubmit}>
                         <div className="grid gap-6 mb-6 md:grid-cols-2">
+                        <div>
+                                <label htmlFor="client_id" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Cédula</label>
+                                <input
+                                    id="client_id"
+                                    name="client_id"
+                                    type="text"
+                                    value={formData.client_id}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="block w-full rounded-md border py-1.5 text-gray-900"
+                                />
+                            </div>
                             <div>
                                 <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre</label>
                                 <input

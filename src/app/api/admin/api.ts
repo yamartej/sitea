@@ -435,6 +435,7 @@ export const fetchCustomersList = async (token: string) => {
 
 export const registerCustomer = async (
   token: string, 
+  client_id: number,
   name: string,
   address: string,
   phone: number,
@@ -442,6 +443,7 @@ export const registerCustomer = async (
   try {
     const response = await axios.post(`${apiUrl}/customers`,
       {
+        client_id,
         name,
         address,
         phone,
@@ -466,6 +468,7 @@ export const registerCustomer = async (
 export const updateCustomer = async (
   token: string,
   id: number,
+  client_id: number,
   name: string,
   address: string,
   phone: number,
@@ -474,6 +477,7 @@ export const updateCustomer = async (
     const response = await axios.put(
       `${apiUrl}/customers/${id}`,
       {
+        client_id,
         name,
         address,
         phone,
