@@ -83,7 +83,7 @@ const CustomerPage = () =>{
                 if(typeRequest === "create"){
                     const response = await registerCustomer(
                         session?.user.token as any,
-                        formData.client_id,
+                        Number(formData.client_id),
                         formData.name,
                         formData.address,
                         formData.phone,
@@ -101,7 +101,7 @@ const CustomerPage = () =>{
                 const response = await updateCustomer(
                     session?.user.token as any,
                     Number(formData.id),
-                    formData.client_id,
+                    Number(formData.client_id),
                     formData.name,
                     formData.address,
                     formData.phone,
