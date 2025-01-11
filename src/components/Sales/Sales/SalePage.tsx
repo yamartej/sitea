@@ -229,14 +229,14 @@ const SalePage: React.FC = () => {
                 </div>
                 <ProductTable cart={cart} onEdit={handleEdit} onDelete={handleDelete} />
             </div>
-            <Modal title="Buscar Productos" isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                        <Modal title="Buscar Productos" isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
                 <div className='max-w-md mx-auto'>
                     <label htmlFor="default-search" className="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
                     <div className="relative">
                         <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                        <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                        </svg>
+                            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                            </svg>
                         </div>
                         <input 
                             type="search" 
@@ -269,26 +269,25 @@ const SalePage: React.FC = () => {
                                         <td className="px-4 py-2 border border-gray-300">{product.product.price}</td>
                                         <td className="px-4 py-2 border border-gray-300">{product.quantity}</td>
                                         <td className="px-4 py-2 border border-gray-300">
-                                        <input
-                                                    type="number"
-                                                    min="1"
-                                                    max={product.quantity}
-                                                    defaultValue="1"
-                                                    id={`quantity-${product.id}`}
-                                                />
-                                                <button 
-                                                    type="button" 
-                                                    className="p-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-                                                    onClick={() =>
-                                                        handleAddToCart(
-                                                            product.product,
-                                                            parseInt((document.getElementById(`quantity-${product.id}`) as HTMLInputElement).value)
-                                                        )
-                                                    }
-                                                    >
-                                                    Agregar 
-                                                </button>
-
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={product.quantity}
+                                                defaultValue="1"
+                                                id={`quantity-${product.id}`}
+                                            />
+                                            <button 
+                                                type="button" 
+                                                className="p-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                                                onClick={() =>
+                                                    handleAddToCart(
+                                                        product.product,
+                                                        parseInt((document.getElementById(`quantity-${product.id}`) as HTMLInputElement).value)
+                                                    )
+                                                }
+                                            >
+                                                Agregar 
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}

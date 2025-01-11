@@ -42,13 +42,13 @@ const Login = () => {
           email,
           password,
           redirect: false, // Evita redirección automática
-          callbackUrl: "/dashboard"
+          callbackUrl: "/pages/dashboard"
         });
   
         // Verifica si `result` es `undefined` y gestiona la respuesta
         if (result && result.ok) {
           // Redirige manualmente al dashboard
-          router.push("/dashboard");
+          router.push("/pages/dashboard");
           setShowSpinner(false);
         } else {
           // Manejo de error en caso de fallo de autenticación
@@ -135,7 +135,7 @@ const Login = () => {
             <button
               onClick={() =>
                 signIn("github", {
-                  callbackUrl: "/dashboard",
+                  callbackUrl: "/pages/dashboard",
                 })
               }
               className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -146,7 +146,7 @@ const Login = () => {
             <button
               onClick={() =>
                 signIn("google", {
-                  callbackUrl: "/dashboard",
+                  callbackUrl: "/pages/dashboard",
                 })
               }
               className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -157,7 +157,7 @@ const Login = () => {
             <button
               onClick={() =>
                 signIn("facebook", {
-                  callbackUrl: "/dashboard",
+                  callbackUrl: "/pages/dashboard",
                 })
               }
               className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
