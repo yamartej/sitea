@@ -115,3 +115,12 @@ export type CartItem = {
   price: number;
   quantity: number;
 }
+
+export type Pop = {
+  ubication: string;
+  identifier: string;
+  id: number;
+  name: string;
+  address: string;
+}
+

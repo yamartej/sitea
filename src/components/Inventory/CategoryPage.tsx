@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { fetchCategoriesList, registerCategory, updateCategory, deleteCategory, deleteUser, updateUser} from "@/app/api/admin/api";
+import { fetchCategoriesList, registerCategory, updateCategory, deleteCategory} from "@/app/api/admin/api";
 import { getSession } from 'next-auth/react';
 import { Category } from "@/types/type";
 import { Spinner } from "react-bootstrap";
@@ -118,7 +118,7 @@ const CategoryPage = () =>{
     const handleEditClick = (category: Category) => {
         setFormData({
             name: category.name,
-            id: category.id,
+            id: category.id.toString(),
         });
         setShowRegister(true);
         setTypeRequest("update");
