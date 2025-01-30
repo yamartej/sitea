@@ -9,7 +9,7 @@ interface ProductTableProps {
 
 const ProductTable: React.FC<ProductTableProps> = ({ cart, onEdit, onDelete }) => {
     return (
-        <div className="mt-4">
+        <div className="hidden md:block">
             <table className="min-w-full border-collapse border border-gray-300 text-left">
                 <thead>
                     <tr className="bg-gray-200">

@@ -124,3 +124,8 @@ export type Pop = {
   address: string;
 }
 
+export type ProductCardProps = {
+  product: Product;
+  onEdit: (product: Product) => void;
+  onDelete: (id: number) => void;
+}
