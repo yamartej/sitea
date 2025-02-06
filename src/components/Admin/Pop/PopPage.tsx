@@ -1,12 +1,13 @@
 "use client";
 import Modal from '@/components/Common/Modal/ModalPage';
 import { useEffect, useState } from 'react';
-import { registerPop, fetchPopsList, updatePop, deletePop } from '@/app/api/admin/api';
+import { registerPop, fetchPopsList, updatePop, deletePop, getUsersByRole, fetchPopStatus, registerPopStatus, deletePopStatus} from '@/app/api/admin/api';
 import { getSession } from 'next-auth/react';
-import { Pop} from "@/types/type";
+import { Pop, PopStatus, User } from "@/types/type";
 import Spinner from '@/components/Common/Spinner/SpinnerPage';
 import Notification from '@/components/Common/Notification/NotificationPage';
 import GenericTable from '@/components/Common/Table/GenericTable';
+import Tabs from '@/components/Common/Tabs/Tabs';
 
 
 const PopPage = () => {
@@ -17,10 +18,18 @@ const PopPage = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [typeMessage, setTypeMessage] = useState('error');
+  const [sellerData, setSellerData] = useState<{ 
+    id: number; 
+    name: string }[]>([]);
   const [formData, setFormData] = useState({
     id: '',
     identifier: '',
     ubication: ''
+  });
+  const [popStatus, setPopStatus] =useState<PopStatus[]>([]);
+  const [formDataPopStatus, setFormDataPopStatus] = useState({
+    popMachine: '',
+    popSeller: '',
   });
 
   const columns = [
@@ -28,13 +37,23 @@ const PopPage = () => {
     { header: 'Ubicación', accessor: 'ubication' },
   ];
 
+  const columnsTablePopStatus = [
+    { header: 'Caja', accessor: 'identifier' },
+    { header: 'Vendedor', accessor: 'name' },
+    { header: 'Fecha', accessor: 'opening_date' },
+  ];
+  
   useEffect(() => { 
     setShowSpinner(true);
     const fetchPopList = async () => {
      try {
        const session = await getSession();
        const data = await fetchPopsList(session?.user.token as any);
+       const sellerData = await getUsersByRole(session?.user.token as any, 10);
+       const popStatus = await fetchPopStatus(session?.user.token as any);
+       setSellerData(sellerData);
        setPops(data);
+       setPopStatus(popStatus);
        
      } catch (error) {
        console.error(error);
@@ -164,90 +183,277 @@ const PopPage = () => {
       ubication: ''
     });
   }
-  
-  return (
-      <div>
-        <div>
-        {showSpinner && (
-            <div className="spinner-container">
-                <Spinner/>  
-            </div>              
-            )}
-        </div>
-        <div>
-          {showNotification && errorMessage && (
-            <Notification
-              message={errorMessage}
-              type={typeMessage}
-              onClose={() => setShowNotification(false)}
-            />
-          )} 
-        </div>
-        <div className="flex justify-between items-center">
-          <h1 className="">Tabla Punto de Ventas</h1>
-          <div className="inline-flex rounded-md shadow-sm" role="group">
-          <button 
-            id="add_user" 
-            type="button" 
-            onClick={() => {
-              setIsModalOpen(true);
-              setTypeRequest("add");
-              clearInputs();
-            }} 
-            className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white"
-          >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <GenericTable
-        columns={columns}
-        data={pops}
-        onEdit={handleEditClick}
-        onDelete={handleDelete}
-      />
-      
-      <Modal title="Agregar Punto de Venta" isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <div className='max-w-md mx-auto'>
-            <div className="relative">
-              <div>
-                <div className="mb-6">
-                  <label htmlFor="identifier" className="mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre o Identificador</label>
-                  <input
-                    id="identifier"
-                    name="identifier"
-                    type="text"
-                    value={formData.identifier}
-                    onChange={handleChange}
-                    required
-                    className="block w-full rounded-md border py-1.5 text-gray-900"
-                  />
-                </div>
-                <div className="mb-6">
-                  <label htmlFor="ubication" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ubicación</label>
-                  <input 
-                    type="text" 
-                    id="ubication"
-                    name='ubication'
-                    value={formData.ubication}
-                    onChange={handleChange}
-                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                  />
-                </div>
-                <button 
-                  onClick={typeRequest === 'add' ? handleAddPop : handleEditPop} 
-                  className="w-full p-2 bg-blue-500 text-white rounded-lg"
-                >
-                  <span>{typeRequest === 'add' ? 'Guardar' : 'Actualizar'}</span>
-                </button>
-                
 
+  const handleInputChangeStatus = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormDataPopStatus({
+      ...formDataPopStatus,
+      [name]: value
+    });
+  }
+
+  const handleClickPopStatus = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      setShowSpinner(true);
+      const session = await getSession();
+      if (formDataPopStatus.popMachine === '' || formDataPopStatus.popSeller === '') {
+        setShowNotification(true);
+        setErrorMessage('Por favor, seleccione una caja y una vendedora');
+        setTypeMessage('error');
+        setShowSpinner(false);
+        return;
+      }
+
+      // Validar que el punto de venta no esté abierto
+      const isPopMachineOpen = popStatus.some(
+        (status) => status.point_of_sale.id === Number(formDataPopStatus.popMachine) && !status.closing_date
+      );
+
+      if (isPopMachineOpen) {
+        setShowNotification(true);
+        setErrorMessage('El punto de venta seleccionado ya está abierto');
+        setTypeMessage('error');
+        setShowSpinner(false);
+        return;
+      }
+
+      // Validar que la vendedora no esté asignada a un punto de venta abierto
+      const isSellerAssigned = popStatus.some(
+        (status) => status.user.id === Number(formDataPopStatus.popSeller) && !status.closing_date
+      );
+
+      if (isSellerAssigned) {
+        setShowNotification(true);
+        setErrorMessage('La vendedora seleccionada ya está asignada a un punto de venta abierto');
+        setTypeMessage('error');
+        setShowSpinner(false);
+        return;
+      }
+
+      const response = await registerPopStatus(
+        session?.user.token as any, 
+        formDataPopStatus.popMachine,
+        formDataPopStatus.popSeller
+      );
+
+      if (response) {
+        setShowNotification(true);
+        setErrorMessage('Caja abierta correctamente');
+        setTypeMessage('success');
+        // Actualizar el estado de popStatus después de una inserción exitosa
+        const newPopStatus: PopStatus = {
+          id: response.id,
+          point_of_sale: pops.find(pop => pop.id === Number(formDataPopStatus.popMachine)) as Pop,
+          user: sellerData.find(seller => seller.id === Number(formDataPopStatus.popSeller)) as User,
+          opening_date: new Date().toISOString(),
+          closing_date: '', // Add appropriate value or logic for closing_date
+        };
+        setPopStatus([...popStatus, newPopStatus]);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setShowSpinner(false);
+    }
+  };
+
+  const handleDeletePopStatus = async (id: number) => {
+    try {
+      setShowSpinner(true);
+      const session = await getSession();
+      const response = await deletePopStatus(session?.user.token as any, id);
+      if (response === 204) {
+        setPopStatus(popStatus.filter((status) => status.id !== id));
+        setShowNotification(true);
+        setErrorMessage('Caja Abierta eliminada correctamente');
+        setTypeMessage('success');
+        
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    finally {
+      setShowSpinner(false);
+    }
+  }
+
+  
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = [
+    {
+      label: 'Puntos de Ventas',
+      content: (
+        <div>
+          <div>
+            {showSpinner && (
+              <div className="spinner-container">
+                <Spinner />
+              </div>
+            )}
+          </div>
+          <div>
+            {showNotification && errorMessage && (
+              <Notification
+                message={errorMessage}
+                type={typeMessage}
+                onClose={() => setShowNotification(false)}
+              />
+            )}
+          </div>
+          <div className="flex justify-between items-center">
+            <h1 className="">Tabla Punto de Ventas</h1>
+            <div className="inline-flex rounded-md shadow-sm" role="group">
+              <button 
+                id="add_user" 
+                type="button" 
+                onClick={() => {
+                  setIsModalOpen(true);
+                  setTypeRequest("add");
+                  clearInputs();
+                }} 
+                className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <GenericTable
+            columns={columns}
+            data={pops}
+            onEdit={handleEditClick}
+            onDelete={handleDelete}
+          />      
+          <Modal title="Agregar Punto de Venta" isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+            <div className='max-w-md mx-auto'>
+              <div className="relative">
+                <div>
+                  <div className="mb-6">
+                    <label htmlFor="identifier" className="mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre o Identificador</label>
+                    <input
+                      id="identifier"
+                      name="identifier"
+                      type="text"
+                      value={formData.identifier}
+                      onChange={handleChange}
+                      required
+                      className="block w-full rounded-md border py-1.5 text-gray-900"
+                    />
+                  </div>
+                  <div className="mb-6">
+                    <label htmlFor="ubication" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ubicación</label>
+                    <input 
+                      type="text" 
+                      id="ubication"
+                      name='ubication'
+                      value={formData.ubication}
+                      onChange={handleChange}
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                    />
+                  </div>
+                  <button 
+                    onClick={typeRequest === 'add' ? handleAddPop : handleEditPop} 
+                    className="w-full p-2 bg-blue-500 text-white rounded-lg"
+                  >
+                    <span>{typeRequest === 'add' ? 'Guardar' : 'Actualizar'}</span>
+                  </button>
+                </div>
               </div>
             </div>
+          </Modal>
         </div>
-      </Modal>
+      ),
+    },
+    {
+      label: 'Abrir Caja',
+      content: (
+        <div>
+          <div>
+            {showSpinner && (
+              <div className="spinner-container">
+                <Spinner />
+              </div>
+            )}
+          </div>
+          <div>
+            {showNotification && errorMessage && (
+              <Notification
+                message={errorMessage}
+                type={typeMessage}
+                onClose={() => setShowNotification(false)}
+              />
+            )}
+          </div>
+          <form onSubmit={handleClickPopStatus}>
+            <div className="grid gap-6 mb-6 md:grid-cols-2">
+              <div>
+                <div>
+                  <label htmlFor="popMachine" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Caja</label>
+                  <select 
+                    id="popMachine"
+                    name="popMachine"
+                    onChange={handleInputChangeStatus}
+                    value={formDataPopStatus.popMachine}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                    <option value="">Seleccione Caja</option>
+                    {pops.map((pop) => (
+                      <option 
+                        key={pop.id} 
+                        value={pop.id}>
+                          {pop.identifier}
+                      </option> 
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="popSeller" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Vendedora</label>
+                <select 
+                  id="popSeller"
+                  name="popSeller"
+                  value={formDataPopStatus.popSeller}
+                  onChange={handleInputChangeStatus}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                  <option value="">Seleccione Vendedora</option>
+                  {sellerData.map((seller) => (
+                    <option key={seller.id} value={seller.id}>{seller.name}</option>  
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button 
+              type="submit"
+              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                Abrir Caja
+            </button>
+          </form>
+          <hr />
+          <div className='pt-10'>
+            <GenericTable
+              columns={columnsTablePopStatus}
+              data={popStatus.map(status => ({
+                id: status.id,
+                identifier: status.point_of_sale.identifier,
+                ubication: '', // Add appropriate value if available
+                name: status.user.name,
+                opening_date: status.opening_date,
+                address: '' // Add appropriate value if available
+              }))}
+              onEdit={handleEditClick}
+              onDelete={handleDeletePopStatus}
+            />
+          </div>
+
+        </div>
+      ),
+    },
+  ];
+  
+  return (
+    <div>
+      <Tabs tabs={tabs} activeTab={activeTab} onTabClick={setActiveTab} />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"; 
 import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct} from "@/app/api/admin/api";
 import { getSession } from 'next-auth/react';
-import { Category, Inventory, Product } from "@/types/type";
+import { Category, Product } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
 

@@ -129,3 +129,11 @@ export type ProductCardProps = {
   onEdit: (product: Product) => void;
   onDelete: (id: number) => void;
 }
+
+export type PopStatus = {
+  id: number;
+  point_of_sale: Pop;
+  user: User;
+  opening_date: string;
+  closing_date: string;
+}

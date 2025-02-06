@@ -36,7 +36,7 @@ const GenericTable = <T extends { id: number }>({
             <tr key={item.id} className="bg-white hover:bg-gray-100 transition">
               {columns.map((column) => (
                 <td key={column.accessor} className="px-4 py-2 border border-gray-300">
-                  {item[column.accessor as keyof T]}
+                  {String(item[column.accessor as keyof T])}
                 </td>
               ))}
               {(onEdit || onDelete) && (
