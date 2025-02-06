@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSession } from 'next-auth/react';
 import { getClientById } from '@/app/api/sale/api';
+import { getPopByUserId } from '@/app/api/admin/api';
 import { Product, CartItem } from '@/types/type';
 import { fetchInventoriesList } from '@/app/api/inventory/api';
 import Modal from '@/components/Common/Modal/ModalPage';
@@ -23,6 +24,8 @@ const SalePage: React.FC = () => {
     const [btnAction, setBtnAction] = useState(false);
     const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
     const [resetQuantities, setResetQuantities] = useState(false);
+    const [sellerName, setSellerName] = useState('');
+    const [machineName, setMachineName] = useState('');
     
     useEffect(() => {
         const fetchProducts = async () => {
@@ -58,6 +61,23 @@ const SalePage: React.FC = () => {
           setShowNotification(true);
         }
       }, [showNotification]);
+
+      useEffect(() => {
+        const fetchSellerAndMachine = async () => {
+          const session = await getSession();
+          if (session && session.user.roles.includes('Vendedor')) {
+            const response = await getPopByUserId(session.user.token, Number(session.user.id));
+            if (response) {
+              console.log(response.data[0]);
+              console.log(response.data[0].point_of_sale);
+              setSellerName(response.data[0].user.name);
+              setMachineName(response.data[0].point_of_sale.identifier);
+            }
+          }
+        };
+    
+        fetchSellerAndMachine();
+      }, []);
 
     
     const handleClientSearch = async () => {
@@ -182,7 +202,6 @@ const SalePage: React.FC = () => {
                                 onClick={handleClientSearch}
                                 className="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                                 >
-                                
                                 Buscar
                             </button>
                         </div>
@@ -228,18 +247,28 @@ const SalePage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-red-500 p-4">
+                            <div className="bg-red-500 p-4">
                 <div className="inline-flex rounded-md shadow-sm" role="group">
-                    <button  
-                        onClick={() => setIsModalOpen(true)}
-                        type="button" 
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white"
-                        disabled={!clientId || !!btnAction}>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                        </svg>
-                        Buscar Productos
-                    </button>
+                  <button  
+                    onClick={() => setIsModalOpen(true)}
+                    type="button" 
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white"
+                    disabled={!clientId || !!btnAction}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                    </svg>
+                    Buscar Productos
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <div className="mb-2">
+                    <h1 className="font-semibold">Vendedor:</h1>
+                    <span>{sellerName || 'No asignado'}</span>
+                  </div>
+                  <div>
+                    <h1 className="font-semibold">Caja:</h1>
+                    <span>{machineName || 'No asignada'}</span>
+                  </div>
                 </div>
               </div>
               <div className="bg-blue-500 p-4">

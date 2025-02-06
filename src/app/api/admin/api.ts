@@ -706,3 +706,27 @@ export const deletePopStatus = async (token: string, id: number) => {
     throw error;
   }
 };
+
+export const getPopByUserId = async (
+  token: string,
+  id: number,
+) => {
+  try {
+    const response = await axios.get(
+      `${apiUrl}/pops-status/user/${id}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response
+  } catch (error: any) {
+    console.error('Error en la respuesta del get:', error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
