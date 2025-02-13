@@ -10,6 +10,7 @@ interface GenericTableProps<T> {
   data: T[];
   onEdit?: (item: T) => void;
   onDelete?: (id: number) => void;
+  actionDescription?: string;
 }
 
 const GenericTable = <T extends { id: number }>({
@@ -17,6 +18,7 @@ const GenericTable = <T extends { id: number }>({
   data,
   onEdit,
   onDelete,
+  actionDescription,
 }: GenericTableProps<T>) => {
   return (
     <div className="overflow-x-auto">
@@ -46,7 +48,7 @@ const GenericTable = <T extends { id: number }>({
                       className="text-blue-600 hover:underline"
                       onClick={() => onEdit(item)}
                     >
-                      Editar
+                    {actionDescription || 'Editar'}
                     </button>
                   )}
                   {onDelete && (

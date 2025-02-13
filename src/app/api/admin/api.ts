@@ -641,7 +641,7 @@ export const getUsersByRole = async (token: string, id: number) => {
 
 export const fetchPopStatus = async (token: string) => {
   try {
-      const response = await axios.get(`${apiUrl}/pops-status`, {
+      const response = await axios.get(`${apiUrl}/pops-status/list`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -724,6 +724,33 @@ export const getPopByUserId = async (
     return response
   } catch (error: any) {
     console.error('Error en la respuesta del get:', error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
+
+export const closePopStatus = async (
+  token: string,
+  id: number,
+) => {
+  try {
+    const response = await axios.put(
+      `${apiUrl}/pops-status/${id}`,
+      {
+        popStatus: 'close',
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.status; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error('Error en la respuesta del Update:', error);
     if (error.response && error.response.data && error.response.data.errors) {
       throw error.response.data.errors;
     }

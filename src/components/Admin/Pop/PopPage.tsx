@@ -1,7 +1,7 @@
 "use client";
 import Modal from '@/components/Common/Modal/ModalPage';
 import { useEffect, useState } from 'react';
-import { registerPop, fetchPopsList, updatePop, deletePop, getUsersByRole, fetchPopStatus, registerPopStatus, deletePopStatus} from '@/app/api/admin/api';
+import { registerPop, fetchPopsList, updatePop, deletePop, getUsersByRole, fetchPopStatus, registerPopStatus, deletePopStatus, closePopStatus} from '@/app/api/admin/api';
 import { getSession } from 'next-auth/react';
 import { Pop, PopStatus, User } from "@/types/type";
 import Spinner from '@/components/Common/Spinner/SpinnerPage';
@@ -266,7 +266,7 @@ const PopPage = () => {
       if (response === 204) {
         setPopStatus(popStatus.filter((status) => status.id !== id));
         setShowNotification(true);
-        setErrorMessage('Caja Abierta eliminada correctamente');
+        setErrorMessage('Caja eliminada satisfactoriamente');
         setTypeMessage('success');
         
       }
@@ -277,6 +277,30 @@ const PopPage = () => {
       setShowSpinner(false);
     }
   }
+
+  const closePop = async (id: number) => {
+    const confirmClose = window.confirm('¿Desea cerrar la caja?');
+    if (confirmClose) {
+      setShowSpinner(true);
+      try {
+        const session = await getSession();
+        const response = await closePopStatus(session?.user.token as any, id);
+        if (response) {
+          setShowNotification(true);
+          setErrorMessage('Caja cerrada correctamente');
+          setTypeMessage('success');
+          setPopStatus(popStatus.filter((status) => status.id !== id));
+        }
+      } catch (error) {
+        console.error(error);
+        setShowNotification(true);
+        setErrorMessage('Error al cerrar la caja');
+        setTypeMessage('error');
+      } finally {
+        setShowSpinner(false);
+      }
+    }
+  };
 
   
   const [activeTab, setActiveTab] = useState(0);
@@ -441,8 +465,9 @@ const PopPage = () => {
                 opening_date: status.opening_date,
                 address: '' // Add appropriate value if available
               }))}
-              onEdit={handleEditClick}
+              onEdit={(item) => closePop(item.id)}
               onDelete={handleDeletePopStatus}
+              actionDescription="Cerrar Caja"
             />
           </div>
 
