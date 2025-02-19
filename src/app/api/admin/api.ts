@@ -519,12 +519,18 @@ export const deleteCustomer = async (token: string, id: number) => {
   }
 };
 
-export const registerPop = async (token: string, identifier: string, ubication: string) => {
+export const registerPop = async (
+  token: string, 
+  identifier: string, 
+  ubication: string, 
+  status: string, seller: string) => {
   try {
     const response = await axios.post(`${apiUrl}/pops`,
       {
         identifier,
         ubication,
+        status,
+        seller,
       },
       {
         headers: {
@@ -571,6 +577,8 @@ export const updatePop = async (
   id: number,
   identifier: string,
   ubication: string,
+  status: string,
+  seller: string,
 ) => {
   try {
     const response = await axios.put(
@@ -578,6 +586,8 @@ export const updatePop = async (
       {
         identifier,
         ubication,
+        status,
+        seller,
       },
       {
         headers: {
@@ -616,9 +626,9 @@ export const deletePop = async (token: string, id: number) => {
   }
 };
 
-export const getUsersByRole = async (token: string, id: number) => {
+export const getUsersByRole = async (token: string) => {
   try {
-      const response = await axios.get(`${apiUrl}/users/role/${id}`, {
+      const response = await axios.get(`${apiUrl}/users/by-role`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

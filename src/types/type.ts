@@ -119,6 +119,9 @@ export type CartItem = {
 export type Pop = {
   ubication: string;
   identifier: string;
+  status: string;
+  seller: string;
+  updated_at: string;
   id: number;
   name: string;
   address: string;
