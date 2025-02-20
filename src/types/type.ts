@@ -121,6 +121,7 @@ export type Pop = {
   identifier: string;
   status: string;
   seller: string;
+  seller_id: string;
   updated_at: string;
   id: number;
   name: string;

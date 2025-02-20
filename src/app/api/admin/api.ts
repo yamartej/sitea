@@ -523,7 +523,8 @@ export const registerPop = async (
   token: string, 
   identifier: string, 
   ubication: string, 
-  status: string, seller: string) => {
+  status: string, 
+  seller: string) => {
   try {
     const response = await axios.post(`${apiUrl}/pops`,
       {
@@ -578,7 +579,7 @@ export const updatePop = async (
   identifier: string,
   ubication: string,
   status: string,
-  seller: string,
+  seller_id: string,
 ) => {
   try {
     const response = await axios.put(
@@ -587,7 +588,7 @@ export const updatePop = async (
         identifier,
         ubication,
         status,
-        seller,
+        seller_id,
       },
       {
         headers: {
@@ -596,7 +597,7 @@ export const updatePop = async (
         },
       }
     );
-    return response.status; // Retornar solo los datos necesarios
+    return response; // Retornar solo los datos necesarios
   } catch (error: any) {
     console.error('Error en la respuesta del Update:', error);
     if (error.response && error.response.data && error.response.data.errors) {

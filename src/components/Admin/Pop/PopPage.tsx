@@ -26,6 +26,7 @@ const PopPage = () => {
     ubication: '',
     status: '',
     seller: '',
+    seller_id: '',
     date: '',
   });
 
@@ -90,7 +91,8 @@ const PopPage = () => {
           name: '', // Add appropriate value
           address: '' // Add appropriate value
           ,
-          seller: ''
+          seller: '',
+          seller_id: '',
         };
         setPops([...pops, newPop]);
         setShowNotification(true);
@@ -138,7 +140,7 @@ const PopPage = () => {
         formData.status,
         formData.seller,
       );
-      if (response === 200) {
+      if (response.status === 200) {
         setPops(pops.map((pop) => {
           if (pop.id === Number(formData.id)) {
             return {
@@ -207,6 +209,7 @@ const PopPage = () => {
       ubication: '',
       status: '',
       seller: '',
+      seller_id: '',
       date: '',
     });
   }
@@ -246,17 +249,18 @@ const PopPage = () => {
       ...formData,
       status: 'open',
       seller: '',
+      seller_id: '',
     });
 
   }
 
-  const isSellerAssigned = (seller: string) => {
-    return pops.some(pop => pop.status === 'open' && pop.seller === seller);
+  const isSellerAssigned = (seller_id: string) => {
+    return pops.some(pop => pop.status === 'open' && pop.seller_id === seller_id);
   }; 
 
   const handleOpenSavePop = async () => {
     try {
-      if (isSellerAssigned(formData.seller)) {
+      if (isSellerAssigned(formData.seller_id)) {
         setShowNotification(true);
         setErrorMessage('El vendedor ya tiene un punto de venta asignado');
         setTypeMessage('error');
@@ -271,15 +275,16 @@ const PopPage = () => {
           formData.identifier,
           formData.ubication,
           formData.status,
-          formData.seller,
+          formData.seller_id,
         );
-        if (response === 200) {
+        if (response.status === 200) {
           setPops(pops.map((pop) => {
             if (pop.id === Number(formData.id)) {
               return {
                 ...pop,
                 status: 'open',
-                seller: formData.seller
+                seller: response.data.seller,
+                seller_id: formData.seller_id,
               }
             }
             return pop;
@@ -316,14 +321,16 @@ const PopPage = () => {
             pop.identifier,
             pop.ubication,
             'closed',
-            pop.seller = '',
+            pop.seller_id = '',
           );
-          if (response === 200) {
+          if (response.status === 200) {
             setPops(pops.map((p) => {
               if (p.id === pop.id) {
                 return {
                   ...p,
                   status: 'closed',
+                  seller: '',
+                  seller_id: '',
                 }
               }
               return p;
@@ -491,11 +498,11 @@ const PopPage = () => {
                     </div>
                   {typeRequest === 'open' && (
                     <div className="mb-6">
-                      <label htmlFor="seller" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre del Vendedor</label>
+                      <label htmlFor="seller_id" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre del Vendedor</label>
                       <select
-                        id="seller"
-                        name="seller"
-                        value={formData.seller}
+                        id="seller_id"
+                        name="seller_id"
+                        value={formData.seller_id}
                         onChange={handleChange}
                         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                         required
@@ -504,7 +511,7 @@ const PopPage = () => {
                             Selecciona un Vendedor
                           </option>
                         {sellerData.map((seller) => (
-                          <option key={seller.id} value={seller.name}>{seller.name}</option>
+                          <option key={seller.id} value={seller.id}>{seller.name}</option>
                         ))}
                       </select>
                     </div>
