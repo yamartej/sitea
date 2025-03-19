@@ -724,7 +724,7 @@ export const getPopByUserId = async (
 ) => {
   try {
     const response = await axios.get(
-      `${apiUrl}/pops-status/user/${id}`,
+      `${apiUrl}/pops/seller/${id}`,
       {
         headers: {
           'Content-Type': 'application/json',
