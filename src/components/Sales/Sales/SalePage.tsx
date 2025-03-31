@@ -9,6 +9,9 @@ import Modal from '@/components/Common/Modal/ModalPage';
 import ProductTable from './ProductTablePage';
 import QuantityInput from './QuantityInput';
 import Notification from '@/components/Common/Notification/NotificationPage';
+import Spinner from '@/components/Common/Spinner/SpinnerPage';
+import { set } from 'date-fns';
+
 
 
 const SalePage: React.FC = () => {
@@ -29,7 +32,8 @@ const SalePage: React.FC = () => {
     const [machineName, setMachineName] = useState('');
     const [seller, setSeller] = useState<any>({});
     const [isModalConfirmOpen, setIsModalConfirmOpen] = useState<boolean>(false);
-    const [typeOfSale, setTypeOfSale] = useState<string>('contado'); // "contado" es el valor por defecto
+    const [typeOfSale, setTypeOfSale] = useState<string>('normal'); // "contado" es el valor por defecto
+    const [showSpinner, setShowSpinner] = useState(false);
     
     useEffect(() => {
         const fetchProducts = async () => {
@@ -137,8 +141,12 @@ const SalePage: React.FC = () => {
         
     };
 
-    const filteredProducts = products.filter(product =>
-        product.product.name && searchTerm && product.product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredProducts = products.filter(
+      product =>
+        product.product.name &&
+        searchTerm &&
+        product.product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        product.quantity >= 1 // Filtrar productos con cantidad >= 1
     );
     
     const totalAmount = cart.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -185,7 +193,7 @@ const SalePage: React.FC = () => {
     const handleConfirmSale = async () => {
         try {
             setBtnAction(true);
-            //setIsModalConfirmOpen(false);
+            setLoading(true);
             setLoading(true);
             const session = await getSession();
             if (session?.user.token) {
@@ -201,6 +209,8 @@ const SalePage: React.FC = () => {
                 )
                 if (response) {
                     //actualizar estado de inventario
+                    setLoading(false);
+                    setIsModalConfirmOpen(false);
                     updateInventory(cart);
                     setShowNotification(true);
                     setTypeMessage("success");
@@ -225,6 +235,7 @@ const SalePage: React.FC = () => {
             setTypeMessage("error");
             setError('Error al realizar la venta');
         }
+        
         setBtnAction(false);
     }
 
@@ -236,7 +247,11 @@ const SalePage: React.FC = () => {
 
 
     if (loading) {
-        return <div>Loading...</div>;
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <Spinner />
+            </div>
+        );     
     }
 
     return (
@@ -348,11 +363,14 @@ const SalePage: React.FC = () => {
                   <div className="p-4 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700">
                       <p> <strong>Subtotal:</strong>   ${totalAmount.toFixed(2)}</p>
                       <p> <strong>IVA (16%):</strong>   20 $</p>
-                      <div className='text-center'>
-                          <button onClick={handleSelectTypeSale} className="mt-2 p-2 bg-green-500 text-white rounded-lg"
-                              disabled={!!btnAction}>
-                              Confirmar Compra
-                          </button>
+                                            <div className="text-center">
+                        <button
+                          onClick={handleSelectTypeSale}
+                          className="mt-2 p-2 bg-green-500 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          disabled={!clientId || cart.length === 0 || !!btnAction} // Deshabilitar si no hay cliente, carrito vacío o acción en curso
+                        >
+                          Confirmar Compra
+                        </button>
                       </div>
                   </div>
                 </div>
@@ -535,10 +553,10 @@ const SalePage: React.FC = () => {
                     <div className="mb-4 p-4 bg-gray-100 rounded-lg shadow-md">
                       <p className="text-lg font-semibold mb-4">Seleccione el tipo de venta:</p>
                       <div className="flex flex-row space-x-4">
-                        <label htmlFor="contado" className="flex items-center">
+                        <label htmlFor="normal" className="flex items-center">
                           <input
                             type="radio"
-                            id="contado"
+                            id="normal"
                             name="typeOfSale"
                             value="normal"
                             checked={typeOfSale === 'normal'}
@@ -547,10 +565,10 @@ const SalePage: React.FC = () => {
                           />
                           <span className="ml-2 text-sm font-medium text-gray-900">De Contado</span>
                         </label>
-                        <label htmlFor="credito" className="flex items-center">
+                        <label htmlFor="credit" className="flex items-center">
                           <input
                             type="radio"
-                            id="credito"
+                            id="credit"
                             name="typeOfSale"
                             value="credit"
                             checked={typeOfSale === 'credit'}
