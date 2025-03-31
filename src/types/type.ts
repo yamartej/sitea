@@ -84,6 +84,7 @@ export type Inventory = {
 }
 
 export type Customer = {
+  client_id: string;
   id: number;
   name: string;
   address: string;

@@ -9,11 +9,11 @@ import Modal from '@/components/Common/Modal/ModalPage';
 import ProductTable from './ProductTablePage';
 import QuantityInput from './QuantityInput';
 import Notification from '@/components/Common/Notification/NotificationPage';
-import { de } from 'date-fns/locale';
+
 
 const SalePage: React.FC = () => {
     const [clientId, setClientId] = useState('');
-    const [client, setClient] = useState({ client_id: '', name: '', address: '', phone: '' });
+    const [client, setClient] = useState({ id: '', client_id: '', name: '', address: '', phone: '' });
     const [products, setProducts] = useState<any[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -28,6 +28,8 @@ const SalePage: React.FC = () => {
     const [sellerName, setSellerName] = useState('');
     const [machineName, setMachineName] = useState('');
     const [seller, setSeller] = useState<any>({});
+    const [isModalConfirmOpen, setIsModalConfirmOpen] = useState<boolean>(false);
+    const [typeOfSale, setTypeOfSale] = useState<string>('contado'); // "contado" es el valor por defecto
     
     useEffect(() => {
         const fetchProducts = async () => {
@@ -96,6 +98,7 @@ const SalePage: React.FC = () => {
                     const getClient = await getClientById(clientId, session.user.token);
                     console.log(getClient[0]);
                     setClient({
+                        id: getClient[0].id,
                         client_id: getClient[0].client_id,
                         name: getClient[0].name,
                         address: getClient[0].address,
@@ -175,19 +178,26 @@ const SalePage: React.FC = () => {
         setProducts(updatedProducts); // Actualizar el estado de los productos
       };
 
+    const handleSelectTypeSale = () => {
+        setIsModalConfirmOpen(true);
+    }
+
     const handleConfirmSale = async () => {
         try {
             setBtnAction(true);
+            //setIsModalConfirmOpen(false);
+            setLoading(true);
             const session = await getSession();
             if (session?.user.token) {
-              console.log(clientId, seller.seller_id, seller.identifier, seller.id, totalAmount, products);
+              console.log(clientId, seller.seller_id, seller.identifier, seller.id, totalAmount, products, typeOfSale);
                 const response = await registerSale(
                     session.user.token,
-                    clientId,
+                    client.id,
                     seller.seller_id,
                     seller.id,
                     totalAmount,
                     cart,
+                    typeOfSale,
                 )
                 if (response) {
                     //actualizar estado de inventario
@@ -197,7 +207,13 @@ const SalePage: React.FC = () => {
                     setError('Venta realizada con éxito');
                     setCart([]);
                     setClientId('');
-                    setClient({ client_id: '', name: '', address: '', phone: '' });
+                    setClient({ 
+                      id: '', 
+                      client_id: '', 
+                      name: '', 
+                      address: '', 
+                      phone: '' 
+                    });
                 } else {
                     setTypeMessage("error");
                     setError('Error al realizar la venta');
@@ -211,6 +227,10 @@ const SalePage: React.FC = () => {
         }
         setBtnAction(false);
     }
+
+  const handletypeOfSaleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTypeOfSale(event.target.value);
+  };
 
 
 
@@ -329,7 +349,7 @@ const SalePage: React.FC = () => {
                       <p> <strong>Subtotal:</strong>   ${totalAmount.toFixed(2)}</p>
                       <p> <strong>IVA (16%):</strong>   20 $</p>
                       <div className='text-center'>
-                          <button onClick={handleConfirmSale} className="mt-2 p-2 bg-green-500 text-white rounded-lg"
+                          <button onClick={handleSelectTypeSale} className="mt-2 p-2 bg-green-500 text-white rounded-lg"
                               disabled={!!btnAction}>
                               Confirmar Compra
                           </button>
@@ -507,6 +527,57 @@ const SalePage: React.FC = () => {
                       </div>
                     );
                   })}
+                </div>
+              </Modal>
+              <Modal title="Confirmar Venta" isOpen={isModalConfirmOpen} onClose={() => setIsModalConfirmOpen(false)}>
+                <div className="max-w-md mx-auto">
+                  <form>
+                    <div className="mb-4 p-4 bg-gray-100 rounded-lg shadow-md">
+                      <p className="text-lg font-semibold mb-4">Seleccione el tipo de venta:</p>
+                      <div className="flex flex-row space-x-4">
+                        <label htmlFor="contado" className="flex items-center">
+                          <input
+                            type="radio"
+                            id="contado"
+                            name="typeOfSale"
+                            value="normal"
+                            checked={typeOfSale === 'normal'}
+                            onChange={handletypeOfSaleChange}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm font-medium text-gray-900">De Contado</span>
+                        </label>
+                        <label htmlFor="credito" className="flex items-center">
+                          <input
+                            type="radio"
+                            id="credito"
+                            name="typeOfSale"
+                            value="credit"
+                            checked={typeOfSale === 'credit'}
+                            onChange={handletypeOfSaleChange}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm font-medium text-gray-900">Crédito</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <button
+                        type="button"
+                        onClick={handleConfirmSale}
+                        className="mt-2 p-2 bg-green-500 text-white rounded-lg"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsModalConfirmOpen(false)}
+                        className="mt-2 p-2 bg-red-500 text-white rounded-lg"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </Modal>
             </div>            

@@ -30,7 +30,8 @@ export const getClientById = async (client_id: string, token: string) => {
     seller_id: string, 
     pop_id: string, 
     total: number, 
-    carts: any[],
+    carts: any[], 
+    type_of_sale: string,
   ) => { 
     try {
       const response = await axios.post(`${apiUrl}/sales`,
@@ -40,6 +41,7 @@ export const getClientById = async (client_id: string, token: string) => {
           pop_id,
           total,
           carts,
+          type_of_sale,
         },
         {
           headers: {

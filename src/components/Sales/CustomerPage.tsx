@@ -86,7 +86,7 @@ const CustomerPage = () =>{
                         Number(formData.client_id),
                         formData.name,
                         formData.address,
-                        formData.phone,
+                        Number(formData.phone),
                     );
                     if (response){
                         setShowNotification(true);
@@ -104,7 +104,7 @@ const CustomerPage = () =>{
                     Number(formData.client_id),
                     formData.name,
                     formData.address,
-                    formData.phone,
+                    Number(formData.phone),
                 );
                 if (response){
                     setShowNotification(true);
@@ -139,7 +139,7 @@ const CustomerPage = () =>{
     const handleEditClick = (customer: Customer) => {
         setFormData({
             name: customer.name,
-            id: customer.id,
+            id: customer.id.toString(),
             client_id: customer.client_id,
             address: customer.address,
             phone: customer.phone,
@@ -325,7 +325,6 @@ const CustomerPage = () =>{
                         </button>
                         
                     </form>
-                    
                 </div>
             )}
         </>
