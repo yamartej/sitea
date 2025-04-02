@@ -96,6 +96,7 @@ export type Warehouse = {
   name: string;
   description: string;
   address: string;
+  phone: string;
 }
 
 export type ErrorResponse = {

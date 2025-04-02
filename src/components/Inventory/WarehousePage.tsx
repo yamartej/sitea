@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { deleteWarehouses, fetchWarehousesList, registerWarehouse, updateWarehouse } from "@/app/api/inventory/api";
 import { getSession } from 'next-auth/react';
 import { Warehouse } from "@/types/type";
-import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
+import Spinner from "../Common/Spinner/SpinnerPage";
+import Swal from "sweetalert2";
 
 const WharehousePage = () =>{
     const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -20,6 +21,7 @@ const WharehousePage = () =>{
         name: "",
         description: "",
         address: "",
+        phone: "",
       });    
     const [errors, setErrors] = useState<{
         priceMessage: string | null;
@@ -102,6 +104,7 @@ const WharehousePage = () =>{
                     formData.name,
                     formData.description,
                     formData.address,
+                    Number(formData.phone) // Convert phone to a number
                 );
                 if (response){
                     setShowNotification(true);
@@ -135,24 +138,55 @@ const WharehousePage = () =>{
     const handleEditClick = (warehouse: Warehouse) => {
         setFormData({
             name: warehouse.name,
-            id: warehouse.id,
+            id: warehouse.id.toString(),
             address: warehouse.address,
             description: warehouse.description,
+            phone: warehouse.phone || "", // Add phone property with a default value
         });
         setShowRegister(true);
         setTypeRequest("update");
     };
     
     const handleDelete = async (id: number) => {
-        const session = await getSession(); 
-        const response = await deleteWarehouses(session?.user.token as string, id);
-        if(response === 204){
-            setWarehouses(warehouses.filter(warehouse => warehouse.id !== id));
+        try {
+            const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                text: "No podrás revertir esto.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, eliminarlo!'
+            });
+            if (result.isConfirmed) {
+                setShowSpinner(true);
+                const session = await getSession(); 
+                const response = await deleteWarehouses(session?.user.token as string, id);
+                if(response === 204){
+                    setWarehouses(warehouses.filter(warehouse => warehouse.id !== id));
+                    setShowNotification(true);
+                    setTypeMessage("success");
+                    setErrorMessage("El registro fue eliminado exitosamente"); 
+                    setShowSpinner(false);
+                }
+            }
+        }
+        catch (error) {
+            console.error("Error al eliminar el registro:", error);
             setShowNotification(true);
-            setTypeMessage("success");
-            setErrorMessage("El registro fue eliminado exitosamente"); 
+            setTypeMessage("error");
+            setErrorMessage("Error al eliminar el registro"); 
             setShowSpinner(false);
         }
+        finally{
+            if (showNotification) {
+                const timer = setTimeout(() => {
+                    setShowNotification(false);
+                }, 10000); // 10 segundos
+                return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+            }
+        }
+        
     };
     // Determinar el texto del botón basado en el estado 
     const buttonText = typeRequest === 'create' ? 'Guardar' : 'Actualizar';
@@ -160,12 +194,11 @@ const WharehousePage = () =>{
     return(
         <>
         <div>
-        {showSpinner && (
-            <div className="spinner-container">
-                <Spinner/>  
-            </div>              
+            {showSpinner && (
+                <div className="spinner-container">
+                    <Spinner/>  
+                </div>              
             )}
-
         </div>
         <div>
         {showNotification && errorMessage && (
@@ -214,7 +247,7 @@ const WharehousePage = () =>{
                         <tbody>
                         {warehouses.length === 0 ? (
                             <tr>
-                                <td colSpan="3" className="text-center">Sin almacenes agregados</td>
+                                <td colSpan={3} className="text-center">Sin almacenes agregados</td>
                             </tr>
                             ) : (
                                 warehouses.map((warehouse) => (

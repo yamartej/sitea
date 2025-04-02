@@ -132,14 +132,12 @@ export const deleteUser = async (token: string, id: number) => {
         },
       }
     );
-    console.log("response api===" + response.status);
     return response.status; // Retornar solo los datos necesarios
   } catch (error: any) {
     console.error("Error en la respuesta de registro:", error);
     if (error.response && error.response.data && error.response.data.errors) {
-      throw error.response.data.errors;
+      return error.response.data.errors;
     }
-    throw error;
   }
 };
 

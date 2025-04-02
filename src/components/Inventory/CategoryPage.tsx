@@ -5,6 +5,7 @@ import { getSession } from 'next-auth/react';
 import { Category } from "@/types/type";
 import { Spinner } from "react-bootstrap";
 import Notification from "../Common/Notification/NotificationPage";
+import Swal from "sweetalert2";
 
 const CategoryPage = () =>{
     const [categories, setCategories] = useState<Category[]>([]);
@@ -125,15 +126,32 @@ const CategoryPage = () =>{
     };
     
     const handleDelete = async (id: number) => {
-        const session = await getSession(); 
-        const response = await deleteCategory(session?.user.token as string, id);
-        if(response === 204){
-            setCategories(categories.filter(category => category.id !== id));
-            setShowNotification(true);
-            setTypeMessage("success");
-            setErrorMessage("El registro fue eliminado exitosamente"); 
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: "No podrás revertir esto!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminarlo!'
+        });
+        if(result.isConfirmed){
+            const session = await getSession(); 
+            const response = await deleteCategory(session?.user.token as string, id);
+            if(response === 204){
+                setCategories(categories.filter(category => category.id !== id));
+                setShowNotification(true);
+                setTypeMessage("success");
+                setErrorMessage("El registro fue eliminado exitosamente"); 
+                setShowSpinner(false);
+
+            }
+        }
+        else{
             setShowSpinner(false);
         }
+
+        
     };
     // Determinar el texto del botón basado en el estado 
     const buttonText = typeRequest === 'create' ? 'Guardar' : 'Actualizar';
