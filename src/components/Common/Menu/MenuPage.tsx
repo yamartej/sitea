@@ -15,26 +15,30 @@ const MenuPage =()=>{
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
     const [isSidebarVisible, setIsSidebarVisible] = useState(false);
     const [dropdownStates, setDropdownStates] = useState<Record<number, boolean>>({});
-    const organizeMenu = (menuItems: MenuItem[]): MenuItem[] => {
+    
+        const organizeMenu = (menuItems: MenuItem[]): MenuItem[] => {
       const menuMap: MenuMap = menuItems.reduce((acc, item) => {
         acc[item.id] = { ...item, children: [] };
         return acc;
       }, {} as MenuMap);
-       menuItems.forEach((item) => {
+    
+      menuItems.forEach((item) => {
         if (item.parent_id) {
-          menuMap[item.parent_id].children?.push(menuMap[item.id]);
+          // Verificar si el parent_id existe en menuMap
+          if (menuMap[item.parent_id]) {
+            menuMap[item.parent_id].children?.push(menuMap[item.id]);
+          } else {
+            console.warn(`Parent ID ${item.parent_id} not found for item ID ${item.id}`);
+          }
         } else {
           menuMap[item.id].isTopLevel = true; // Marcar como de nivel superior para renderizar
           menuMap[item.id].children = []; // Inicializar array de hijos vacío
         }
       });
-      
-  
-      // Extract the top-level menu items from the map
-      const organizedMenu = Object.values(menuMap).filter(
-        (item) => item.isTopLevel
-      );
-      
+    
+      // Extraer los elementos de nivel superior del mapa
+      const organizedMenu = Object.values(menuMap).filter((item) => item.isTopLevel);
+    
       return organizedMenu;
     };
 
