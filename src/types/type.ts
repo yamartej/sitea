@@ -143,3 +143,11 @@ export type PopStatus = {
   opening_date: string;
   closing_date: string;
 }
+
+export type Batch = {
+  id: number;
+  name: string;
+  description: string;
+  quantity: number;
+  order_creation_date: string;
+}

@@ -21,7 +21,6 @@ const CategoryPage = () =>{
       });      
     
     useEffect(() => { 
-        setShowSpinner(true);
         const fetchCategories  = async () => { 
             setShowSpinner(true);
             const session = await getSession(); 
