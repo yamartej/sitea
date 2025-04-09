@@ -71,7 +71,7 @@ export type Product = {
   description: string;
   price: number;
   category_id: number;
-  category: Category[];
+  category: Category;
   quantity: number;
 }
 

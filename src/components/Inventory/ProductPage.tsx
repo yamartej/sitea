@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct} from "@/app/api/admin/api";
 import { getSession } from 'next-auth/react';
 import { Category, Product } from "@/types/type";
-import { Spinner } from "react-bootstrap";
+import Spinner from "../Common/Spinner/SpinnerPage";
 import Notification from "../Common/Notification/NotificationPage";
+import Swal from "sweetalert2";
 
 
 const ProductPage = () =>{
@@ -171,28 +172,55 @@ const ProductPage = () =>{
     const handleEditClick = (product: Product) => {
         setFormData({
             name: product.name,
-            id: product.id,
+            id: String(product.id),
             description: product.description,
-            price: product.price,
-            category: product.category_id,
+            price: String(product.price),
+            category: String(product.category_id),
+            quantity: String(product.quantity || ""),
         });
         setShowRegister(true);
         setTypeRequest("update");
     };
     
     const handleDelete = async (id: number) => {
-        const session = await getSession(); 
-        const response = await deleteProduct(session?.user.token as string, id);
-        if(response === 204){
-            setProducts(products.filter(product => product.id !== id));
-            setShowNotification(true);
-            setTypeMessage("success");
-            setErrorMessage("El registro fue eliminado exitosamente"); 
-            setShowSpinner(false);
+        const result = await Swal.fire({
+            title: '¿Estás seguro de eliminar este producto?',
+            text: "No podrás revertir esto",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar!'
+        });
+        if (result.isConfirmed) {
+            const session = await getSession(); 
+            const response = await deleteProduct(session?.user.token as string, id);
+            if(response === 204){
+                setProducts(products.filter(product => product.id !== id));
+                setShowNotification(true);
+                setTypeMessage("success");
+                setErrorMessage("El registro fue eliminado exitosamente"); 
+                setShowSpinner(false);
+            }
+            else{
+                setShowNotification(true);
+                setTypeMessage("error");
+                setErrorMessage("Error eliminando el registro"); 
+                setShowSpinner(false);
+            }
         }
+        
     };
     // Determinar el texto del botón basado en el estado 
     const buttonText = typeRequest === 'create' ? 'Guardar' : 'Actualizar';
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowNotification(false);
+        }, 10000); // 10 segundos
+    
+        return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+    }, [showNotification]); // Dependencia para reiniciar el temporizador
 
     return(
         <>
