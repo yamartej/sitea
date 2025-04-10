@@ -320,11 +320,12 @@ export const fetchProductsList = async (token: string) => {
 
 export const registerProduct = async (
   token: string, 
-  name: string,
-  description: string,
-  price: number,
-  category_id: number,
-  quantity: number,
+  name: string, 
+  description: string, 
+  price: number, 
+  category_id: number, 
+  quantity: number, 
+  batch_id: number,
   ) => {
   try {
     const response = await axios.post(`${apiUrl}/products`,
@@ -334,6 +335,7 @@ export const registerProduct = async (
         price,
         category_id,
         quantity,
+        batch_id,
       },
       {
         headers: {
@@ -360,6 +362,7 @@ export const updateProduct = async (
   price: number,
   category_id: number,
   quantity: number,
+  batch_id: number,
 ) => {
   try {
     const response = await axios.put(
@@ -370,6 +373,7 @@ export const updateProduct = async (
         price,
         category_id,
         quantity,
+        batch_id
       },
       {
         headers: {

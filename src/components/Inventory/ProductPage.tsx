@@ -1,11 +1,12 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct} from "@/app/api/admin/api";
+import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct, fetchBatchesList} from "@/app/api/admin/api";
 import { getSession } from 'next-auth/react';
-import { Category, Product } from "@/types/type";
+import { Batch, Category, Product } from "@/types/type";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import Notification from "../Common/Notification/NotificationPage";
 import Swal from "sweetalert2";
+import { parseJSON } from "date-fns";
 
 
 const ProductPage = () =>{
@@ -25,12 +26,14 @@ const ProductPage = () =>{
         price: "",
         category: "",
         quantity: "",
+        batch: "",
       });    
     const [errors, setErrors] = useState<{
         priceMessage: string | null;
       }>({
         priceMessage: null,
       });
+    const [batches, setBatches] = useState<Batch[]>([]);
     
     useEffect(() => { 
         setShowSpinner(true);
@@ -40,8 +43,11 @@ const ProductPage = () =>{
             try {
                 const data = await fetchProductsList(session?.user.token as string);
                 const dataCategories = await fetchCategoriesList(session?.user.token as string);
+                const dataBatches = await fetchBatchesList(session?.user.token as string);
+
                 setProducts(data); 
                 setCategories(dataCategories); 
+                setBatches(dataBatches);
               } catch (error) {
                 console.error("Error fetching:", error);
                 setErrorMessage("Error fetching");
@@ -59,7 +65,7 @@ const ProductPage = () =>{
               }
         }; 
         fetchProducts (); 
-    }, [showRegister]);
+    }, []);
     
     const handleAddCategoryClick = () => {
         setShowRegister(true);
@@ -116,8 +122,24 @@ const ProductPage = () =>{
                         Number(formData.price),
                         Number(formData.category),
                         Number(formData.quantity),
+                        Number(formData.batch),
                     );
                     if (response){
+                        // Buscar el nombre de la categoría correspondiente
+                        setProducts([
+                            ...products,
+                            {
+                                id: response.id,
+                                name: formData.name,
+                                description: formData.description,
+                                price: Number(formData.price),
+                                category_id: Number(formData.category),
+                                quantity: Number(formData.quantity),
+                                batch_id: Number(formData.batch),
+                                category: categories.find((category) => category.id === Number(formData.category)) || { id: 0, name: "" },
+                                batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, order_creation_date: "" },
+                            },
+                        ]);
                         setShowNotification(true);
                         setTypeMessage("success");
                         setErrorMessage("El registro fue agregado exitosamente"); 
@@ -135,8 +157,28 @@ const ProductPage = () =>{
                     Number(formData.price),
                     Number(formData.category),
                     Number(formData.quantity),
+                    Number(formData.batch),
                 );
                 if (response){
+                    setProducts(
+                        products.map((product) => {
+                            if (product.id === Number(formData.id)) {
+                                return {
+                                    ...product,
+                                    name: formData.name,
+                                    description: formData.description,
+                                    price: Number(formData.price),
+                                    category_id: Number(formData.category),
+                                    quantity: Number(formData.quantity),
+                                    batch_id: Number(formData.batch),
+                                    category: categories.find((category) => category.id === Number(formData.category)) || { id: 0, name: "" },
+                                    batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, order_creation_date: "" },
+                                };
+                            }
+                            return product;
+                        }
+                    ));
+                    
                     setShowNotification(true);
                     setTypeMessage("success");
                     setErrorMessage("El registro fue actualizado satisfactoriamente"); 
@@ -165,10 +207,10 @@ const ProductPage = () =>{
         formData.description = "";
         formData.price = "";
         formData.quantity = "";
-        if(!showRegister){
-            formData.category="";
-        }
+        formData.category="";
+        formData.batch="";
     }
+    
     const handleEditClick = (product: Product) => {
         setFormData({
             name: product.name,
@@ -177,6 +219,7 @@ const ProductPage = () =>{
             price: String(product.price),
             category: String(product.category_id),
             quantity: String(product.quantity || ""),
+            batch: String(product.batch_id),
         });
         setShowRegister(true);
         setTypeRequest("update");
@@ -254,7 +297,7 @@ const ProductPage = () =>{
         {!showRegister && (
             <div>
                 <div className="flex justify-between items-center">
-                    <h1 className="">Tabla Productos</h1>
+                    <h1 className="">Gestión de Compras</h1>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
                         <button  id="add_user" type="button" onClick={handleAddCategoryClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
@@ -275,6 +318,7 @@ const ProductPage = () =>{
                             <th className="px-4 py-2 border border-gray-300">Precio</th>
                             <th className="px-4 py-2 border border-gray-300">Categoría</th>
                             <th className="px-4 py-2 border border-gray-300">Cantidad</th>
+                            <th className="px-4 py-2 border border-gray-300">Lote</th>
                             <th className="px-4 py-2 border border-gray-300">Acciones</th>
                         </tr>
                         </thead>
@@ -288,6 +332,7 @@ const ProductPage = () =>{
                                 <td className="px-4 py-2 border border-gray-300">
                                     {product.quantity ? product.quantity : 'Sin inventario'}
                                 </td>
+                                <td className="px-4 py-2 border border-gray-300">{product.batches.description}</td>
                                 <td className="px-4 py-2 border border-gray-300 text-center">
                                 <button className="text-blue-600 hover:underline"
                                 onClick={() => handleEditClick(product)}
@@ -348,6 +393,26 @@ const ProductPage = () =>{
                                         Selecciona una Categoría
                                     </option>
                                     {categories?.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="batch" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Lote</label>
+                                <select
+                                    id="batch"
+                                    name="batch"
+                                    value={formData.batch}
+                                    onChange={handleInputChange}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                    required
+                                    >
+                                    <option value="">
+                                        Selecciona un Lote
+                                    </option>
+                                    {batches?.map((item) => (
                                         <option key={item.id} value={item.id}>
                                             {item.name}
                                         </option>

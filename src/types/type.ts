@@ -73,6 +73,8 @@ export type Product = {
   category_id: number;
   category: Category;
   quantity: number;
+  batch_id: number;
+  batches: Batch;
 }
 
 export type Inventory = {
