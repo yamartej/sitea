@@ -215,11 +215,6 @@ const CostPage = () => {
         setIsModalOpen(true);
         setIsEditing(true);
     }
-
-
-        
-    
-
     return (
         <div>
             <div>
@@ -243,7 +238,7 @@ const CostPage = () => {
                     </div>
                 </div>
             </div>
-            <div className="overflow-x-auto relative shadow-md sm:rounded-lg mt-4">
+            <div className="overflow-x-auto hidden md:block">
                 <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
@@ -274,6 +269,21 @@ const CostPage = () => {
                     </tbody>
                 </table>
             </div>
+            <div className="block md:hidden mt-2 space-y-4">
+                {costs?.map((cost) => (
+                    <div key={cost.id} className="p-4 bg-white rounded-lg shadow border border-gray-300">
+                        <p>
+                            <span className="font-semibold">Lote:</span> {cost.batch?.name || 'N/A'}</p>
+                        <p>
+                            <span className="font-semibold">Monto:</span> {cost.amount}</p>
+                        <p>
+                            <span className="font-semibold">Descripción:</span> {cost.description}</p>
+                        <div className="mt-2 flex justify-end space-x-2">
+                            <button onClick={() => handleEditCost(cost)} className="text-blue-600 hover:underline">Editar</button>
+                            <button onClick={() => handleRemoveCost(cost.id)} className="text-red-600 hover:underline">Eliminar</button>
+                        </div>
+                    </div>))}
+                </div>
             <Modal
                 title={isEditing ? "Editar Costo" : "Agregar Costo"}
                 isOpen={isModalOpen}
