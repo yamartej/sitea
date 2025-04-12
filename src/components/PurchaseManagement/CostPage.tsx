@@ -282,8 +282,9 @@ const CostPage = () => {
                             <button onClick={() => handleEditCost(cost)} className="text-blue-600 hover:underline">Editar</button>
                             <button onClick={() => handleRemoveCost(cost.id)} className="text-red-600 hover:underline">Eliminar</button>
                         </div>
-                    </div>))}
-                </div>
+                    </div>
+                ))}
+            </div>
             <Modal
                 title={isEditing ? "Editar Costo" : "Agregar Costo"}
                 isOpen={isModalOpen}

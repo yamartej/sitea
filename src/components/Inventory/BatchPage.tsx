@@ -272,6 +272,24 @@ const BatchPage = () => {
                 </tbody>
             </table>
         </div>
+        <div className="block md:hidden mt-2 space-y-4">
+                {batchs?.map((batch) => (
+                    <div key={batch.id} className="p-4 bg-white rounded-lg shadow border border-gray-300">
+                        <p>
+                            <span className="font-semibold">Nombre:</span> {batch.name}</p>
+                        <p>
+                            <span className="font-semibold">Descripción:</span> {batch.description}</p>
+                        <p>
+                            <span className="font-semibold">Cantidad:</span> {batch.quantity}</p>
+                        <p>
+                            <span className="font-semibold">Fecha de Orden:</span> {batch.order_creation_date}</p>
+                        <div className="mt-2 flex justify-end space-x-2">
+                            <button onClick={() => handleEditClick(batch)} className="text-blue-600 hover:underline">Editar</button>
+                            <button onClick={() => handleDelete(batch.id)} className="text-red-600 hover:underline">Eliminar</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
         <Modal 
             title={isEditing ? "Editar Lote" : "Agregar Lote"} // Cambiar el título dinámicamente
             isOpen={isModalOpen}
