@@ -153,3 +153,13 @@ export type Batch = {
   quantity: number;
   order_creation_date: string;
 }
+
+export type Cost = {
+  id: number;
+  amount: number;
+  description: string;
+  batch_id: number;
+  batch: Batch | null | undefined;
+  created_at: string;
+  updated_at: string;
+}

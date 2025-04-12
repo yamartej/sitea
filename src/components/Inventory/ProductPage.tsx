@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct, fetchBatchesList} from "@/app/api/admin/api";
+import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct} from "@/app/api/admin/api";
+import { fetchBatchesList } from "@/app/api/purchase/api";
 import { getSession } from 'next-auth/react';
 import { Batch, Category, Product } from "@/types/type";
 import Spinner from "../Common/Spinner/SpinnerPage";

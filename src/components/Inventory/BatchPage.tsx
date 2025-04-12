@@ -3,7 +3,7 @@ import Spinner from "../Common/Spinner/SpinnerPage";
 import React, { useEffect, useState } from "react";
 import { Batch } from "@/types/type";
 import { getSession } from "next-auth/react";
-import { fetchBatchesList, registerBatch, deleteBatch, updateBatch } from "@/app/api/admin/api";
+import { fetchBatchesList, registerBatch, deleteBatch, updateBatch } from "@/app/api/purchase/api"; // Asegúrate de que la ruta sea correcta
 import Modal from "../Common/Modal/ModalPage";
 import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
