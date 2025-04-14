@@ -1,4 +1,4 @@
-import BatchPage from "@/components/Inventory/BatchPage";
+import BatchPage from "@/components/PurchaseManagement/BatchPage";
 const Batch = () => {
     return (
         <div>

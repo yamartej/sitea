@@ -28,6 +28,7 @@ const CostPage = () => {
     });
 
     useEffect(() => {
+
         const fetchCosts = async () => {
             setShowSpinner(true);
             const session = await getSession(); 
@@ -116,7 +117,7 @@ const CostPage = () => {
                 const response = await updateCost(
                     session?.user.token as string, 
                     editingCostId, 
-                    parseAmount(formData.amount), 
+                    Number(formData.amount), 
                     Number(formData.batch_id), 
                     formData.description
                 ); 
@@ -139,7 +140,7 @@ const CostPage = () => {
                 setIsModalOpen(false);
                 setIsEditing(false); // Restablecer el modo edición
             } else {
-                const response = await registerCost(session?.user.token as string, parseAmount(formData.amount), formData.batch_id, formData.description); 
+                const response = await registerCost(session?.user.token as string, Number(formData.amount), formData.batch_id, formData.description); 
                 if(response){
                     // Actualizar la lista de costos después de agregar uno
                     setCosts((prevCosts) => [
@@ -217,6 +218,13 @@ const CostPage = () => {
     }
     return (
         <div>
+            <div>
+                {showSpinner && (
+                    <div className="spinner-container">
+                        <Spinner/>  
+                    </div>              
+                    )}
+                </div>
             <div>
                 {showNotification && errorMessage && (
                     <Notification

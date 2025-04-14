@@ -115,41 +115,48 @@ const ProductPage = () =>{
             setShowSpinner(true);
             const session = await getSession();
             if(typeRequest === "create"){
-                if(typeRequest === "create"){
-                    const response = await registerProduct(
-                        session?.user.token as any,
-                        formData.name,
-                        formData.description,
-                        Number(formData.price),
-                        Number(formData.category),
-                        Number(formData.quantity),
-                        Number(formData.batch),
-                    );
-                    if (response){
-                        // Buscar el nombre de la categoría correspondiente
-                        setProducts([
-                            ...products,
-                            {
-                                id: response.id,
-                                name: formData.name,
-                                description: formData.description,
-                                price: Number(formData.price),
-                                category_id: Number(formData.category),
-                                quantity: Number(formData.quantity),
-                                batch_id: Number(formData.batch),
-                                category: categories.find((category) => category.id === Number(formData.category)) || { id: 0, name: "" },
-                                batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, order_creation_date: "" },
-                            },
-                        ]);
-                        setShowNotification(true);
-                        setTypeMessage("success");
-                        setErrorMessage("El registro fue agregado exitosamente"); 
-                        setShowSpinner(false);
-                        cleanInputs();
-                    }
+                const response = await registerProduct(
+                session?.user.token as any,
+                formData.name,
+                formData.description,
+                Number(formData.price),
+                Number(formData.category),
+                Number(formData.quantity),
+                Number(formData.batch),
+                );
+                if (response && response.product.id) {
+                    // Buscar el nombre de la categoría correspondiente
+                    const category = categories.find((category) => category.id === Number(formData.category));
+                    const batch = batches.find((batch) => batch.id === Number(formData.batch));
+                                            
+                    // Agregar el nuevo producto al estado
+                    setProducts((prevProducts) => [
+                        ...prevProducts,
+                        {
+                            id: response.product.id, // Asegúrate de que este valor sea válido
+                            name: response.product.name,
+                            description: response.product.description,
+                            price: response.product.price,
+                            quantity: response.product.quantity,
+                            category_id: response.product.category_id,
+                            batch_id: response.product.batch_id,
+                            category: category || { id: 0, name: "Sin categoría" },
+                            batches: batch || { id: 0, name: "Sin lote", description: "", quantity: 0, order_creation_date: "" },
+                        },
+                    ]);
+                    setShowNotification(true);
+                    setTypeMessage("success");
+                    setErrorMessage("El registro fue agregado exitosamente");
+                    setShowSpinner(false);
+                    cleanInputs();
+                } else {
+                    console.error("El ID del producto no está definido en la respuesta:", response);
+                    setShowNotification(true);
+                    setTypeMessage("error");
+                    setErrorMessage("El ID del producto no está definido en la respuesta:");
+                    setShowSpinner(false);
                 }
-            }
-            else{
+            }else{
                 const response = await updateProduct(
                     session?.user.token as any,
                     Number(formData.id),
@@ -213,6 +220,7 @@ const ProductPage = () =>{
     }
     
     const handleEditClick = (product: Product) => {
+        alert("productos=" + JSON.stringify(product.id));
         setFormData({
             name: product.name,
             id: String(product.id),
@@ -227,6 +235,7 @@ const ProductPage = () =>{
     };
     
     const handleDelete = async (id: number) => {
+        alert("id=" + id);
         const result = await Swal.fire({
             title: '¿Estás seguro de eliminar este producto?',
             text: "No podrás revertir esto",
@@ -269,10 +278,10 @@ const ProductPage = () =>{
     return(
         <>
         <div>
-        {showSpinner && (
-            <div className="spinner-container">
-                <Spinner/>  
-            </div>              
+            {showSpinner && (
+                <div className="spinner-container">
+                    <Spinner/>  
+                </div>              
             )}
 
         </div>
@@ -297,8 +306,26 @@ const ProductPage = () =>{
         ))}
         {!showRegister && (
             <div>
+                <h1 className="text-2xl font-bold mb-4">Productos</h1>
                 <div className="flex justify-between items-center">
-                    <h1 className="">Gestión de Compras</h1>
+                                        <div className="inline-flex rounded-md shadow-sm bg-gray-100 p-4" role="group">
+                        {/* Resumen de información */}
+                        <div className="flex flex-col items-center justify-center mr-4">
+                            <p className="text-lg font-semibold text-gray-700">Total</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {products.reduce((total, product) => total + product.price * (product.quantity || 0), 0).toLocaleString('es-ES', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-center justify-center">
+                            <p className="text-lg font-semibold text-gray-700">Cantidad</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {products.reduce((total, product) => total + (product.quantity || 0), 0)}
+                            </p>
+                        </div>
+                    </div>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
                         <button  id="add_user" type="button" onClick={handleAddCategoryClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
