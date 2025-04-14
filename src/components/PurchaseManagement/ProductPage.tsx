@@ -308,7 +308,7 @@ const ProductPage = () =>{
             <div>
                 <h1 className="text-2xl font-bold mb-4">Productos</h1>
                 <div className="flex justify-between items-center">
-                                        <div className="inline-flex rounded-md shadow-sm bg-gray-100 p-4" role="group">
+                    <div className="inline-flex rounded-md shadow-sm bg-gray-100 p-4" role="group">
                         {/* Resumen de información */}
                         <div className="flex flex-col items-center justify-center mr-4">
                             <p className="text-lg font-semibold text-gray-700">Total</p>

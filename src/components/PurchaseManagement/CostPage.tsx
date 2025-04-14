@@ -126,7 +126,8 @@ const CostPage = () => {
                         prevCosts.map((cost) => 
                             cost.id === editingCostId ? {
                                 ...cost,
-                                amount: Number(formData.amount),
+                                //el monto es decimal en la base de datos. Quiero que sea igual al que se muestra en la tabla
+                                amount: parseAmount(formData.amount), // Convertir el monto a número
                                 batch_id: Number(formData.batch_id),
                                 batch: batches.find(batch => batch.id === Number(formData.batch_id)) || null, // Obtener el lote correspondiente
                                 description: formData.description,
@@ -147,7 +148,7 @@ const CostPage = () => {
                         ...prevCosts, 
                         {
                             ...response,
-                            amount: formData.amount, 
+                            amount: parseFloat(formData.amount.replace(',', '.')), // Convertir a número 
                             batch_id: formData.batch_id,
                             batch: batches.find(batch => batch.id === Number(formData.batch_id)) || null, // Obtener el lote correspondiente
                             description: formData.description,
@@ -235,8 +236,20 @@ const CostPage = () => {
                 )}
             </div>
             <div>
+                <h1 className="text-2xl font-bold mb-4">Costos</h1>
                 <div className="flex justify-between items-center">
-                    <h1 className="">Tabla Costos</h1>
+                    <div className="inline-flex rounded-md shadow-sm bg-gray-100 p-4" role="group">
+                        {/* Resumen de información */}
+                        <div className="flex flex-col items-center justify-center mr-4">
+                            <p className="text-lg font-semibold text-gray-700">Total</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {costs.reduce((total, cost) => total + (Number(cost.amount) || 0), 0).toLocaleString('es-ES', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                            </p>
+                        </div>
+                    </div>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
                         <button type="button" onClick={handleAddCost} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
