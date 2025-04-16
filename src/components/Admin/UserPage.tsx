@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"; 
+import React from "react";
 import { fetchUsersList, fetchRoleList, registerUser, deleteUser, updateUser, fetchCompaniesList} from "@/app/api/admin/api";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
 import { getSession } from 'next-auth/react';
@@ -7,6 +8,7 @@ import { Role, User, Company } from "@/types/type";
 import Notification from "../Common/Notification/NotificationPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import Swal from "sweetalert2";
+import { useTable, usePagination, Column } from 'react-table';
 
 function Userpage() {
     const [users, setUsers] = useState<User[]>([]);
@@ -227,6 +229,74 @@ function Userpage() {
 
         return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
     }, [showNotification]); // Dependencia para reiniciar el temporizador
+
+    const columns: Column<User>[] = React.useMemo(
+        () => [
+            {
+                Header: "Nombre",
+                accessor: "name",
+            },
+            {
+                Header: "Email",
+                accessor: "email",
+            },
+            {
+                Header: "Roles",
+                accessor: "roles",
+                Cell: ({ value }: { value: Role[] }) => (
+                    <ul>
+                        {value.map((role) => (
+                            <li key={role.id}>{role.name}</li>
+                        ))}
+                    </ul>
+                ),
+            },
+            {
+                Header: "Acciones",
+                Cell: ({ row }: { row: { original: User } }) => (
+                    <div className="flex gap-2">
+                        <button
+                            className="text-blue-600 hover:underline"
+                            onClick={() => handleEditClick(row.original)}
+                        >
+                            Editar
+                        </button>
+                        <button
+                            className="text-red-600 hover:underline"
+                            onClick={() => handleDelete(row.original.id)}
+                        >
+                            Eliminar
+                        </button>
+                    </div>
+                ),
+            },
+        ],
+        []
+    );
+    // Inicializar la tabla con react-table
+    const {
+        getTableProps,
+        getTableBodyProps,
+        headerGroups,
+        rows,
+        prepareRow,
+        page, // Filas de la página actual
+        canPreviousPage,
+        canNextPage,
+        pageOptions,
+        nextPage,
+        previousPage,
+        state: { pageIndex, pageSize },
+        setPageSize,
+        selectedFlatRows,
+    } = useTable(
+        { 
+            columns,
+            data: filteredUsers,
+            initialState: { pageIndex: 0, pageSize: 10 } as any, // Mostrar 10 registros por página
+        },
+        usePagination, // Agregar el plugin de paginación
+    );
     
     return (
         <>
@@ -272,44 +342,92 @@ function Userpage() {
             )}
             {!showUserRegister && (
                 <div className="overflow-x-auto hidden md:block">
-                    <table className="min-w-full border-collapse border border-gray-300 text-left">
-                        <thead>
-                            <tr className="bg-gray-200">
-                                <th className="px-4 py-2 border border-gray-300">Nombre</th>
-                                <th className="px-4 py-2 border border-gray-300">Email</th>
-                                <th className="px-4 py-2 border border-gray-300">Roles</th>
-                                <th className="px-4 py-2 border border-gray-300">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredUsers?.map((user: User) => (
-                                <tr key={user.id} className="bg-white hover:bg-gray-100 transition">
-                                    <td className="px-4 py-2 border border-gray-300">{user.name}</td>
-                                    <td className="px-4 py-2 border border-gray-300">{user.email}</td>
-                                    <td className="px-4 py-2 border border-gray-300">
-                                        <ul className="list-disc pl-5">
-                                            {user.roles.map((role) => (
-                                                <li key={role.id}>{role.name}</li>
-                                            ))}
-                                        </ul>
-                                    </td>
-                                    <td className="px-4 py-2 border border-gray-300 text-center">
-                                        <button className="text-blue-600 hover:underline"
-                                            onClick={() => handleEditClick(user)}
-                                        >Editar</button>
-                                        <button
-                                            className="ml-2 text-red-600 hover:underline"
-                                            onClick={() => handleDelete(user.id)}
+                    <table
+                    {...getTableProps()}
+                    className="min-w-full border-collapse border border-gray-300 text-left"
+                    >
+                        <thead className="bg-gray-200">
+                            {headerGroups.map((headerGroup) => (
+                                <tr {...headerGroup.getHeaderGroupProps()}>
+                                    {headerGroup.headers.map((column) => (
+                                        <th
+                                            {...column.getHeaderProps()}
+                                            className="px-4 py-2 border border-gray-300"
                                         >
-                                            Eliminar
-                                        </button>
-                                    </td>
+                                            {column.render("Header")}
+                                        </th>
+                                    ))}
                                 </tr>
                             ))}
+                        </thead>
+                        <tbody {...getTableBodyProps()}>
+                            {page.map((row) => {
+                                prepareRow(row);
+                                return (
+                                    <tr
+                                        {...row.getRowProps()}
+                                        className="bg-white hover:bg-gray-100 transition"
+                                    >
+                                        {row.cells.map((cell) => (
+                                            <td
+                                                {...cell.getCellProps()}
+                                                className="px-4 py-2 border border-gray-300"
+                                            >
+                                                {cell.render("Cell")}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
             )}
+            <div className="flex justify-between items-center mt-4">
+                    {/* Selector de filas por página */}
+                    <div className="flex items-center">
+                        <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
+                        <select
+                            id="pageSize"
+                            value={pageSize}
+                            onChange={(e) => {
+                                const value = Number(e.target.value);
+                                setPageSize(value);
+                            }}
+                            className="border rounded p-1"
+                        >
+                            {[5, 10, 20, 50].map((size) => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                
+                    {/* Controles de paginación */}
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => previousPage()}
+                            disabled={!canPreviousPage}
+                            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                        >
+                            Anterior
+                        </button>
+                        <span>
+                            Página{' '}
+                            <strong>
+                                {pageIndex + 1} de {pageOptions.length}
+                            </strong>
+                        </span>
+                        <button
+                            onClick={() => nextPage()}
+                            disabled={!canNextPage}
+                            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
 
             {!showUserRegister && (
                 <div className="block md:hidden mt-2 space-y-4">

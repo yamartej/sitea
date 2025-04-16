@@ -7,6 +7,8 @@ import { getSession } from 'next-auth/react';
 import { fetchBatchesList, fetchCostsList, registerCost, removeCost, updateCost} from '@/app/api/purchase/api'; // Asegúrate de que la ruta sea correcta
 import { Batch, Cost } from '@/types/type';
 import Swal from 'sweetalert2';
+import { useTable } from 'react-table';
+
 
 const CostPage = () => {
     
