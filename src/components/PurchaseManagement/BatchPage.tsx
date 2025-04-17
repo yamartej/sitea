@@ -15,7 +15,6 @@ import Swal from "sweetalert2";
 const BatchPage = () => {
     const [showSpinner, setShowSpinner] = useState(false);
     const [batchs, setBatchs] = useState<Batch[]>([]);
-    const [showModal, setShowModal] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [formData, setFormData] = useState({
@@ -60,7 +59,6 @@ const BatchPage = () => {
     
     const handleAddBatchClick = () => {
         setIsModalOpen(true);
-        
     };
     
     const handleEditClick = (batch: Batch) => {

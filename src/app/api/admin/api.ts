@@ -167,8 +167,7 @@ export const updateUser = async (
         },
       }
     );
-    console.log('response api===', response.status);
-    return response.status; // Retornar solo los datos necesarios
+    return response.data; // Retornar solo los datos necesarios
   } catch (error: any) {
     console.error('Error en la respuesta de registro:', error);
     if (error.response && error.response.data && error.response.data.errors) {
