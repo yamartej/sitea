@@ -8,7 +8,7 @@ import { Role, User, Company } from "@/types/type";
 import Notification from "../Common/Notification/NotificationPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import Swal from "sweetalert2";
-import { useTable, usePagination, Column } from 'react-table';
+import { useTable, usePagination, Column, useSortBy } from 'react-table';
 import Modal from "../Common/Modal/ModalPage";
 import { set } from "date-fns";
 
@@ -299,18 +299,20 @@ function Userpage() {
             {
                 Header: "Acciones",
                 Cell: ({ row }: { row: { original: User } }) => (
-                    <div className="flex gap-2">
-                        <button
-                            className="text-blue-600 hover:underline"
-                            onClick={() => handleEditClick(row.original)}
-                        >
-                            Editar
+                    <div className="flex">
+                        <button type="button" className="text-blue-700 border border-blue-700 hover:bg-blue-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:focus:ring-blue-800 dark:hover:bg-blue-500"
+                            onClick={() => handleEditClick(row.original)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
+                                <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />
+                            </svg>
                         </button>
-                        <button
-                            className="text-red-600 hover:underline"
-                            onClick={() => handleDelete(row.original.id)}
-                        >
-                            Eliminar
+                        <button type="button" className="text-red-700 border border-red-700 hover:bg-red-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:focus:ring-red-800 dark:hover:bg-red-500"
+                            onClick={() => handleDelete(row.original.id)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
+                            </svg>
+
                         </button>
                     </div>
                 ),
@@ -333,14 +335,14 @@ function Userpage() {
         previousPage,
         state: { pageIndex, pageSize },
         setPageSize,
-        selectedFlatRows,
     } = useTable(
-        { 
+        {
             columns,
             data: filteredUsers,
-            initialState: { pageIndex: 0, pageSize: 10 } as any, // Mostrar 10 registros por página
+            initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
         },
-        usePagination, // Agregar el plugin de paginación
+        useSortBy, // Agregar el plugin de ordenación
+        usePagination // Agregar el plugin de paginación
     );
     
     return (
@@ -384,14 +386,24 @@ function Userpage() {
                             return (
                                 <tr key={key} {...restHeaderGroupProps}>
                                     {headerGroup.headers.map((column) => {
-                                        const { key: columnKey, ...restColumnProps } = column.getHeaderProps();
+                                        const { key: columnKey, ...restColumnProps } = column.getHeaderProps(
+                                            column.getSortByToggleProps() // Habilitar ordenación
+                                        );
                                         return (
                                             <th
                                                 key={columnKey}
                                                 {...restColumnProps}
-                                                className="px-4 py-2 border border-gray-300"
+                                                className="px-4 py-2 border border-gray-300 cursor-pointer "
                                             >
                                                 {column.render("Header")}
+                                                {/* Indicador de ordenación */}
+                                                <span>
+                                                    {column.isSorted
+                                                        ? column.isSortedDesc
+                                                            ? " ↓" // Descendente
+                                                            : " ↑" // Ascendente
+                                                        : " "}
+                                                </span>
                                             </th>
                                         );
                                     })}
@@ -424,7 +436,7 @@ function Userpage() {
                 </table>
             </div>
            
-            <div className="flex justify-between items-center mt-4 text-xs text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <div className="flex justify-between items-center mt-4 text-xs text-gray-700 dark:text-gray-400">
                 <div className="flex items-center">
                     <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
                     <select
@@ -445,7 +457,7 @@ function Userpage() {
                 </div>
                 
                 {/* Controles de paginación */}
-                <div className="flex items-center gap-4 text-xs text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <div className="flex items-center gap-4 text-xs text-gray-700 dark:text-gray-400">
                     <button
                         onClick={() => previousPage()}
                         disabled={!canPreviousPage}

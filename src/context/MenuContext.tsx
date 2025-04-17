@@ -17,7 +17,7 @@ export const MenuProvider = ({ children }: { children: React.ReactNode }) => {
         const token = session?.user.token;
         const roles = session?.user.roles || [];
         if (token) {
-          const items = await fetchMenuItems(token as string, roles);
+          const items = await fetchMenuItems(token as string, roles as any);
           setMenuItems(items);
           localStorage.setItem("menuItems", JSON.stringify(items)); // Guardar en localStorage
         }
