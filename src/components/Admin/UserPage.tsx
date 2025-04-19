@@ -11,6 +11,7 @@ import Swal from "sweetalert2";
 import { useTable, usePagination, Column, useSortBy } from 'react-table';
 import Modal from "../Common/Modal/ModalPage";
 import { set } from "date-fns";
+import InfoCardGrid from "../Common/Card/InfoCardGrid";
 
 function Userpage() {
     const [users, setUsers] = useState<User[]>([]);
@@ -278,6 +279,13 @@ function Userpage() {
     const columns: Column<User>[] = React.useMemo(
         () => [
             {
+                Header: "Empresa",
+                accessor: "company",
+                Cell: ({ value }: { value: { name: string } | null }) => (
+                    <span>{value ? value.name : "TotalPlus"}</span>
+                ),
+            },
+            {
                 Header: "Nombre",
                 accessor: "name",
             },
@@ -300,22 +308,44 @@ function Userpage() {
                 Header: "Acciones",
                 Cell: ({ row }: { row: { original: User } }) => (
                     <div className="flex">
-                        <button type="button" className="text-blue-700 border border-blue-700 hover:bg-blue-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:focus:ring-blue-800 dark:hover:bg-blue-500"
-                            onClick={() => handleEditClick(row.original)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                        <button
+                            type="button"
+                            className="text-blue-700 border border-blue-700 hover:bg-blue-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:focus:ring-blue-800 dark:hover:bg-blue-500 shadow-xl"
+                            onClick={() => handleEditClick(row.original)}
+                        >
+                            {/* Ícono de editar */}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                className="size-4"
+                            >
                                 <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
                                 <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />
                             </svg>
                         </button>
-                        <button type="button" className="text-red-700 border border-red-700 hover:bg-red-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:focus:ring-red-800 dark:hover:bg-red-500"
-                            onClick={() => handleDelete(row.original.id)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
-                                <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
+                        <button
+                            type="button"
+                            className="text-red-700 border border-red-700 hover:bg-red-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:focus:ring-red-800 dark:hover:bg-red-500 shadow-xl"
+                            onClick={() => handleDelete(row.original.id)}
+                        >
+                            {/* Ícono de eliminar */}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                className="size-4"
+                            >
+                                <path
+                                    fillRule="evenodd"
+                                    d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z"
+                                    clipRule="evenodd"
+                                />
                             </svg>
-
                         </button>
                     </div>
                 ),
+                disableSortBy: true, // Deshabilitar ordenación para esta columna
             },
         ],
         []
@@ -344,6 +374,11 @@ function Userpage() {
         useSortBy, // Agregar el plugin de ordenación
         usePagination // Agregar el plugin de paginación
     );
+
+    const cards = [
+        { title: "Total de Usuarios", value: users.length },
+        { title: "Total de Empresas", value: companies.length },
+    ];
     
     return (
         <>
@@ -363,8 +398,28 @@ function Userpage() {
                 )}
             </div>
             <div>
-                <div className="flex justify-between items-center">
-                    <h1 className="">Tabla Usuarios</h1>
+                <InfoCardGrid cards={cards}/>
+            </div>
+            <div>
+                <div className="flex justify-between items-center mt-4 text-xs text-gray-700 dark:text-gray-400">
+                    <div className="">
+                        <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
+                        <select
+                            id="pageSize"
+                            value={pageSize}
+                            onChange={(e) => {
+                                const value = Number(e.target.value);
+                                setPageSize(value);
+                            }}
+                            className="border rounded p-1"
+                        >
+                            {[5, 10, 20, 50].map((size) => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
                         <button id="add_user" type="button" onClick={handleAddUserClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
@@ -380,30 +435,31 @@ function Userpage() {
                     {...getTableProps()}
                     className="w-full text-sm text-left text-gray-500 dark:text-gray-400"
                 >
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase border-b border-t">
                         {headerGroups.map((headerGroup) => {
                             const { key, ...restHeaderGroupProps } = headerGroup.getHeaderGroupProps();
                             return (
                                 <tr key={key} {...restHeaderGroupProps}>
                                     {headerGroup.headers.map((column) => {
                                         const { key: columnKey, ...restColumnProps } = column.getHeaderProps(
-                                            column.getSortByToggleProps() // Habilitar ordenación
+                                            column.getSortByToggleProps()
                                         );
                                         return (
                                             <th
                                                 key={columnKey}
                                                 {...restColumnProps}
-                                                className="px-4 py-2 border border-gray-300 cursor-pointer "
+                                                className="px-4 py-2 cursor-pointer border-t border-b border-gray-200"
                                             >
                                                 {column.render("Header")}
-                                                {/* Indicador de ordenación */}
-                                                <span>
-                                                    {column.isSorted
-                                                        ? column.isSortedDesc
-                                                            ? " ↓" // Descendente
-                                                            : " ↑" // Ascendente
-                                                        : " "}
-                                                </span>
+                                                {column.canSort && (
+                                                    <span>
+                                                        {column.isSorted
+                                                            ? column.isSortedDesc
+                                                                ? " ↓"
+                                                                : " ↑"
+                                                            : " ↓↑"}
+                                                    </span>
+                                                )}
                                             </th>
                                         );
                                     })}
@@ -416,14 +472,18 @@ function Userpage() {
                             prepareRow(row);
                             const { key, ...restRowProps } = row.getRowProps();
                             return (
-                                <tr key={key} {...restRowProps} className="bg-white hover:bg-gray-100 transition">
+                                <tr
+                                    key={key}
+                                    {...restRowProps}
+                                    className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition"
+                                >
                                     {row.cells.map((cell) => {
                                         const { key: cellKey, ...restCellProps } = cell.getCellProps();
                                         return (
                                             <td
                                                 key={cellKey}
                                                 {...restCellProps}
-                                                className="px-4 py-2 border border-gray-300"
+                                                className="px-4 py-2"
                                             >
                                                 {cell.render("Cell")}
                                             </td>
@@ -435,61 +495,13 @@ function Userpage() {
                     </tbody>
                 </table>
             </div>
-           
-            <div className="flex justify-between items-center mt-4 text-xs text-gray-700 dark:text-gray-400">
-                <div className="flex items-center">
-                    <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
-                    <select
-                        id="pageSize"
-                        value={pageSize}
-                        onChange={(e) => {
-                            const value = Number(e.target.value);
-                            setPageSize(value);
-                        }}
-                        className="border rounded p-1"
-                    >
-                        {[5, 10, 20, 50].map((size) => (
-                            <option key={size} value={size}>
-                                {size}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                
-                {/* Controles de paginación */}
-                <div className="flex items-center gap-4 text-xs text-gray-700 dark:text-gray-400">
-                    <button
-                        onClick={() => previousPage()}
-                        disabled={!canPreviousPage}
-                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                            <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
-                        </svg>
-                    </button>
-                    <span>
-                        Página{' '}
-                        <strong>
-                            {pageIndex + 1} de {pageOptions.length}
-                        </strong>
-                    </span>
-                    <button
-                        onClick={() => nextPage()}
-                        disabled={!canNextPage}
-                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                            <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
-                        </svg>
-
-
-                    </button>
-                </div>
-            </div>
 
             <div className="block md:hidden mt-2 space-y-4">
                 {filteredUsers?.map((user) => (
-                    <div key={user.id} className="p-4 bg-white rounded-lg shadow border border-gray-300">
+                    <div key={user.id} className="bg-white shadow-md rounded-lg p-4">
+                        <p>
+                            <span className="font-semibold">Empresa:</span> {user.company ? user.company.name : "TotalPlus"}
+                        </p>
                         <p>
                             <span className="font-semibold">Nombre:</span> {user.name}</p>
                         <p>
@@ -503,13 +515,75 @@ function Userpage() {
                             </ul>
                         </div>
                         <div className="mt-2 flex justify-end space-x-2">
-                            <button onClick={() => handleEditClick(user)} className="text-blue-600 hover:underline">Editar</button>
-                            <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:underline">Eliminar</button>
+                            <button
+                                type="button"
+                                className="text-blue-700 border border-blue-700 hover:bg-blue-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:focus:ring-blue-800 dark:hover:bg-blue-500 shadow-xl"
+                                onClick={() => handleEditClick(user)}
+                            >
+                                {/* Ícono de editar */}
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    className="size-4"
+                                >
+                                    <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
+                                    <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                className="text-red-700 border border-red-700 hover:bg-red-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:focus:ring-red-800 dark:hover:bg-red-500 shadow-xl"
+                                onClick={() => handleDelete(user.id)}
+                            >
+                                {/* Ícono de eliminar */}
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    className="size-4"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 ))}
             </div>
-            
+            <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
+                    <div className="">
+                        <button
+                            onClick={() => previousPage()}
+                            disabled={!canPreviousPage}
+                            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                        <span>
+                            Página{' '}
+                            <strong>
+                                {pageIndex + 1} de {pageOptions.length}
+                            </strong>
+                        </span>
+                        <button
+                            onClick={() => nextPage()}
+                            disabled={!canNextPage}
+                            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
+                            </svg>
+
+
+                        </button>
+                    </div>
+                </div>
             <Modal 
                 title="Crear Usuario"
                 isOpen={isModalOpen}

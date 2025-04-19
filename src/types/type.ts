@@ -164,3 +164,12 @@ export type Cost = {
   created_at: string;
   updated_at: string;
 }
+
+export type InfoCard = {
+  title: string;
+  value: string | number;
+}
+
+export type InfoCardGridProps = {
+  cards: InfoCard[];
+}
