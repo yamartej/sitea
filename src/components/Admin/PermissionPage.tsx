@@ -16,6 +16,7 @@ const PermissionPage = () => {
   const [typeMessage, setTypeMessage] = useState("error");
 
   useEffect(() => {
+    setShowSpinner(true);
     const getData = async () => {
       const session = await getSession();
       try {
@@ -120,23 +121,24 @@ const PermissionPage = () => {
 
   return (
     <>
-    
-      <div className="p-4">
-      {showNotification && errorMessage && (
-        <Notification
-          message={errorMessage}
-          type={typeMessage}
-          onClose={() => setShowNotification(false)}
-        />
-      )}  
-        <h2 className="text-2xl font-bold mb-4">Gestión de Accesos</h2>
-        {showSpinner ? (
+      <div>
+        {showSpinner && (
           <div className="spinner-container">
-            <Spinner/>  
-        </div>              
-        ) : (
-          <table className="min-w-full border-collapse border border-gray-300 text-left">
-            <thead>
+            <Spinner />
+          </div>
+        )}
+      </div>
+      <div>
+        {showNotification && errorMessage && (
+          <Notification
+            message={errorMessage}
+            type={typeMessage}
+            onClose={() => setShowNotification(false)} />
+        )}
+      </div>
+      
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase border-b border-t">
               <tr className="bg-gray-200">
                 <th className="px-4 py-2 border border-gray-300">Menú</th>
                 {roles.map((role) => (
@@ -150,15 +152,15 @@ const PermissionPage = () => {
                 const isUnique = !isParent && menu.parent_id === null;
                 return (
                   <React.Fragment key={menu.id}>
-                    <tr className={`bg-white hover:bg-gray-100 transition ${isUnique || isParent ? 'font-bold text-blue-600' : ''}`}>
+                    <tr className={`odd:bg-white bg-gray-100 hover:bg-gray-100 transition ${isUnique || isParent ? 'font-bold text-blue-600' : ''}`}>
                       <td className={`px-4 py-2 border border-gray-300 ${menu.parent_id !== null ? 'pl-8' : ''}`}>{menu.name}</td>
                       {roles.map((role) => (
                         <td key={role.id} className="px-4 py-2 border border-gray-300 text-center">
                           {(isUnique || menu.parent_id !== null) ? (
                             <input
                               type="checkbox"
-                              checked={permissions[role.id]?.[menu.id] ?? false}
-                              onChange={() => handlePermissionChange(role.id, menu.id, isParent)}
+                              checked={permissions[Number(role.id)]?.[Number(menu.id)] ?? false}
+                              onChange={() => handlePermissionChange(Number(role.id), Number(menu.id), Boolean(isParent))}
                             />
                           ) : (
                             <></>
@@ -173,8 +175,8 @@ const PermissionPage = () => {
                           <td key={role.id} className="px-4 py-2 border border-gray-300 text-center">
                             <input
                               type="checkbox"
-                              checked={permissions[role.id]?.[submenu.id] ?? false}
-                              onChange={() => handlePermissionChange(role.id, submenu.id, false)}
+                              checked={permissions[Number(role.id)]?.[Number(submenu.id)] ?? false}
+                              onChange={() => handlePermissionChange(Number(role.id), submenu.id, false)}
                             />
                           </td>
                         ))}
@@ -185,9 +187,8 @@ const PermissionPage = () => {
               })}
             </tbody>
           </table>
-        )}
         <button onClick={savePermissions} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded">Guardar Cambios</button>
-      </div>
+     
     </>
   );
 };
