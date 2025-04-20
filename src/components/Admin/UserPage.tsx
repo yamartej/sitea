@@ -105,7 +105,10 @@ function Userpage() {
 
     const handleCompanyBlur = () => {
         if (formData.company && !companies.some(company => company.name === formData.company)) {
-            companies.push({ id: companies.length + 1, name: formData.company });
+            setCompanies((prevCompanies) => [
+                ...prevCompanies,
+                { id: prevCompanies.length + 1, name: formData.company },
+            ]);
         }
     };
 
@@ -139,12 +142,17 @@ function Userpage() {
                                 id: response?.id || 0,
                                 name: response.name,
                                 email: response.email,
-                                company: formData.company,
-                                company_id: response.company_id,
+                                company: companies.find(company => Number(company.id) === Number(response.company_id)) || { id: 0, name: "Unknown Company" },
+                                company_id: companies.find(company => Number(company.id) === Number(response.company_id))?.id.toString() || "",
                                 roles: roles.filter(role => Number(role.id) === Number(formData.rol)),
                             };
+                            console.log("Usuario creado exitosamente=", newUser);
                             setUsers((prevUsers) => [...prevUsers, newUser]);
                             setFilteredUsers((prevFilteredUsers) => [...prevFilteredUsers, newUser]);
+                            console.log("Usuarios después de agregar:", users);
+                            console.log("Usuarios filtrados después de agregar:", filteredUsers);
+                            console.log("Companies:", companies);
+
                             setShowNotification(true);
                             setTypeMessage("success");
                             setErrorMessage("El usuario fue agregado exitosamente");
@@ -171,7 +179,7 @@ function Userpage() {
                         id: response.id,
                         name: response.name,
                         email: response.email,
-                        company: formData.company,
+                        company: companies.find(company => company.name === formData.company) || { id: 0, name: formData.company },
                         company_id: response.company_id,
                         roles: roles.filter(role => Number(role.id) === Number(formData.rol)),
                     };
@@ -191,6 +199,7 @@ function Userpage() {
             }
         } catch (errors) {
             console.error("Error guardando usuario:", errors);
+            setShowSpinner(false);
             setShowNotification(true);
             setTypeMessage("error");
             setErrorMessage("Error guardando usuario");
@@ -503,7 +512,7 @@ function Userpage() {
                         <div key={user.id} className="bg-white shadow-md rounded-lg p-4">
                             <p>
                                 <span className="font-semibold">Empresa:</span>{" "}
-                                {user.company ? user.company.name : "TotalPlus"}
+                                <li>{user.company?.name}</li>
                             </p>
                             <p>
                                 <span className="font-semibold">Nombre:</span> {user.name}

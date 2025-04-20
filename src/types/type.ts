@@ -21,7 +21,7 @@ export type User = {
   email: string;
   roles: Role[];
   company_id: string;
-  company: string;
+  company: Company;
 }
 
 export type Role = {

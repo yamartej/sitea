@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { getServerSession } from "next-auth";
 import SessionProvider from "@/components/SessionProvider";
+import { Roboto_Serif, Roboto} from "next/font/google";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -13,6 +14,17 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "700"], // Puedes especificar los pesos que necesitas
+  variable: "--font-roboto",
+});
+
+const robotoSerif = Roboto_Serif({
+  subsets: ["latin"],
+  variable: "--font-roboto-serif",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +41,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${roboto.variable} ${robotoSerif.variable} antialiased`}
       >
         <SessionProvider session={session}>
           {children}
