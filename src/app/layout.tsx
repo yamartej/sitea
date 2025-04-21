@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { getServerSession } from "next-auth";
 import SessionProvider from "@/components/SessionProvider";
-import { Roboto_Serif, Roboto} from "next/font/google";
+import { Albert_Sans, Cantarell, Roboto, Roboto_Serif} from "next/font/google";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -16,15 +16,29 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-const roboto = Roboto({
+const albertSans = Albert_Sans({
   subsets: ["latin"],
-  weight: ["400", "700"], // Puedes especificar los pesos que necesitas
-  variable: "--font-roboto",
+  variable: "--font-albert-sans",
+  display: "swap",
 });
 
+const cantarell = Cantarell({
+  subsets: ["latin"],
+  variable: "--font-cantarell",
+  display: "swap",
+  weight: "400"
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  variable: "--font-roboto",
+  display: "swap",
+  weight: "400"
+});
 const robotoSerif = Roboto_Serif({
   subsets: ["latin"],
   variable: "--font-roboto-serif",
+  display: "swap",
 });
 
 export const metadata: Metadata = {

@@ -320,7 +320,7 @@ function Userpage() {
                     <div className="flex">
                         <button
                             type="button"
-                            className="text-blue-700 border border-blue-700 hover:bg-blue-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:focus:ring-blue-800 dark:hover:bg-blue-500 shadow-xl"
+                            className="text-primary font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2"
                             onClick={() => handleEditClick(row.original)}
                         >
                             {/* Ícono de editar */}
@@ -336,7 +336,7 @@ function Userpage() {
                         </button>
                         <button
                             type="button"
-                            className="text-red-700 border border-red-700 hover:bg-red-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:focus:ring-red-800 dark:hover:bg-red-500 shadow-xl"
+                            className="text-primary font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2"
                             onClick={() => handleDelete(row.original.id)}
                         >
                             {/* Ícono de eliminar */}
@@ -431,7 +431,7 @@ function Userpage() {
                         </select>
                     </div>
                     <div className="inline-flex rounded-md shadow-sm" role="group">
-                        <button id="add_user" type="button" onClick={handleAddUserClick} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
+                        <button id="add_user" type="button" onClick={handleAddUserClick} className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
                             </svg>
@@ -572,14 +572,14 @@ function Userpage() {
                 <button
                     onClick={() => previousPage()}
                     disabled={!canPreviousPage}
-                    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
                         <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
                     </svg>
                 </button>
-                <span>
-                    Página{' '}
+                <span className="mx-2">
+                     Página{' '}
                     <strong>
                         {pageIndex + 1} de {pageOptions.length}
                     </strong>
@@ -587,7 +587,7 @@ function Userpage() {
                 <button
                     onClick={() => nextPage()}
                     disabled={!canNextPage}
-                    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
                         <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
