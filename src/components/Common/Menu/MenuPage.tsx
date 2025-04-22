@@ -96,7 +96,7 @@ const MenuPage =()=>{
 
     return (
       <>
-        <nav className="fixed top-0 z-50 w-full bg-gradient-primary border-b border-gray-200 dark:border-gray-700">
+        <nav className="fixed top-0 z-50 w-full bg-primary-menu border-b border-gray-200 dark:border-gray-700">
           <div className="px-3 py-3 lg:px-5 lg:pl-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center justify-start rtl:justify-end">
@@ -199,15 +199,15 @@ const MenuPage =()=>{
           id="logo-sidebar"
           className={`${
             isSidebarVisible ? "" : "transition-transform -translate-x-full"
-          } fixed top-0 left-0 z-40 w-64 h-screen pt-20 bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700`}
+          } fixed top-0 left-0 z-40 w-64 h-screen pt-20 bg-menu-primary border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700`}
           aria-label="Sidebar"
         >
-          <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
+          <div className="h-full pb-4 overflow-y-auto bg-menu-primary dark:bg-gray-800">
             <ul className="space-y-2 font-medium">
               <li>
                 <Link
                   href="/pages/dashboard"
-                  className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-[#72cb10] hover:text-white group"
+                  className="flex items-center p-2 dark:text-white hover:bg-[#72cb10] hover:text-white group"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -233,7 +233,7 @@ const MenuPage =()=>{
                       <button
                         onClick={() => toggleDropdown(item as any)}
                         type="button"
-                        className="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg group hover:bg-[#72cb10] hover:text-white dark:text-white dark:hover:bg-[#00bfa5]"
+                        className="flex items-center w-full p-2 text-base transition duration-75 group hover:bg-[#72cb10] hover:text-white dark:text-white dark:hover:bg-[#00bfa5]"
                         aria-controls={`dropdown-${item.name}`}
                         data-collapse-toggle={`dropdown-${item.name}`}
                       >
@@ -280,7 +280,7 @@ const MenuPage =()=>{
                             <li key={child.id}>
                               <Link
                                 href={child.url}
-                                className="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-[#72cb10] hover:text-white dark:text-white dark:hover:bg-[#00bfa5]"
+                                className="flex items-center w-full p-2 transition duration-75 pl-11 group hover:bg-[#72cb10] hover:text-white dark:text-white dark:hover:bg-[#00bfa5]"
                                 onClick={closeMenu} // Cerrar el menú al hacer clic
                               >
                                 {child.name}
@@ -322,7 +322,7 @@ const MenuPage =()=>{
               <li>
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-[#a9e159] hover:text-white group"
+                  className="flex btn-attr-sing-out items-center p-2 dark:text-white hover:bg-[#72cb10] hover:text-white group"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

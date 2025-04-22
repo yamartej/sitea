@@ -47,10 +47,18 @@
 .bg-gradient-primary {
   background: linear-gradient(to right, #72cb10, #a9e159);
   color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+  border-color: #72cb10;
 }
 .bg-primary {
   background-color: #72cb10;
   color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+  border-color: #72cb10; /* Asegura que el borde sea del mismo color que el fondo */
+}
+
+.bg-primary-menu {
+  background-color: #72cb10;
+  color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+  border-color: #72cb10; /* Asegura que el borde sea del mismo color que el fondo */
 }
 
 .bg-primary:hover {
@@ -64,9 +72,16 @@
 .text-primary:hover {
   color: #b9cbd4; /* Un tono más oscuro para el hover */
 }
-.text-primary-contrast {
-  color: #b9cbd4; /* Asegura que el texto sea blanco para buena legibilidad */
+
+.bg-menu-primary {
+  background-color: #434343;
+  color: #ced0d4; /* Asegura que el texto sea blanco para buena legibilidad */
 }
-.text-primary-contrast:hover {
-  color: #ffffff; /* Asegura que el texto sea blanco para buena legibilidad */
+.btn-attr-sing-out {
+  width: 100%;
+  text-align: left;
+}
+
+.text-primary-contrast {
+  color: #434343; /* Asegura que el texto sea blanco para buena legibilidad */
 }

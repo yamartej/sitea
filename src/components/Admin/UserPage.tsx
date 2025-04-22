@@ -10,7 +10,6 @@ import Spinner from "../Common/Spinner/SpinnerPage";
 import Swal from "sweetalert2";
 import { useTable, usePagination, Column, useSortBy } from 'react-table';
 import Modal from "../Common/Modal/ModalPage";
-import { set } from "date-fns";
 import InfoCardGrid from "../Common/Card/InfoCardGrid";
 
 function Userpage() {
@@ -146,13 +145,8 @@ function Userpage() {
                                 company_id: companies.find(company => Number(company.id) === Number(response.company_id))?.id.toString() || "",
                                 roles: roles.filter(role => Number(role.id) === Number(formData.rol)),
                             };
-                            console.log("Usuario creado exitosamente=", newUser);
                             setUsers((prevUsers) => [...prevUsers, newUser]);
                             setFilteredUsers((prevFilteredUsers) => [...prevFilteredUsers, newUser]);
-                            console.log("Usuarios después de agregar:", users);
-                            console.log("Usuarios filtrados después de agregar:", filteredUsers);
-                            console.log("Companies:", companies);
-
                             setShowNotification(true);
                             setTypeMessage("success");
                             setErrorMessage("El usuario fue agregado exitosamente");
@@ -242,7 +236,7 @@ function Userpage() {
             text: "No podrás revertir esto",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
+            confirmButtonColor: '#72cb10',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Sí, eliminarlo'
         });
@@ -599,12 +593,12 @@ function Userpage() {
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
             >
-                <div className="flex justify-center items-center h-full">
+                <div className="flex justify-center items-center h-full text-primary-contrast">
                     <div id="user_register" className="">
                         <form onSubmit={handleSubmit}>
                             <div className="grid gap-6 mb-6 md:grid-cols-2">
                                 <div>
-                                    <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre</label>
+                                    <label htmlFor="name" className="block mb-2 text-sm font-medium">Nombre</label>
                                     <input
                                         id="name"
                                         name="name"
@@ -612,11 +606,11 @@ function Userpage() {
                                         value={formData.name}
                                         onChange={handleInputChange}
                                         required
-                                        className="block w-full rounded-md border py-1.5 text-gray-900" />
+                                        className="block w-full rounded-md border py-1.5" />
 
                                 </div>
                                 <div>
-                                    <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Correo</label>
+                                    <label htmlFor="email" className="block mb-2 text-sm font-medium">Correo</label>
                                     <input
                                         id="email"
                                         name="email"
@@ -624,16 +618,16 @@ function Userpage() {
                                         value={formData.email}
                                         onChange={handleInputChange}
                                         required
-                                        className="block w-full rounded-md border py-1.5 text-gray-900" />
+                                        className="block w-full rounded-md border py-1.5" />
                                 </div>
                                 <div>
-                                    <label htmlFor="company" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre Empresa</label>
+                                    <label htmlFor="company" className="block mb-2 text-sm font-medium">Nombre Empresa</label>
                                     <select
                                         id="companyName"
                                         name="companyName"
                                         value={formData.companyName}
                                         onChange={handleInputChange}
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                        className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                         required
                                         disabled={!!formData.company}
                                     >
@@ -648,7 +642,7 @@ function Userpage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="company" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre Empresa</label>
+                                    <label htmlFor="company" className="block mb-2 text-sm font-medium dark:text-white">Nombre Empresa</label>
                                     <input
                                         id="company"
                                         name="company"
@@ -657,18 +651,18 @@ function Userpage() {
                                         onChange={handleInputChange}
                                         onBlur={handleCompanyBlur}
                                         required
-                                        className="block w-full rounded-md border py-1.5 text-gray-900"
+                                        className="block w-full rounded-md border py-1.5"
                                         disabled={!!formData.companyName} />
                                 </div>
                                 <div>
                                     <div>
-                                        <label htmlFor="roles" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Rol</label>
+                                        <label htmlFor="roles" className="block mb-2 text-sm font-medium dark:text-white">Rol</label>
                                         <select
                                             id="rol"
                                             name="rol"
                                             value={formData.rol}
                                             onChange={handleInputChange}
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                            className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                             required
                                         >
                                             <option value="" disabled>
@@ -686,7 +680,7 @@ function Userpage() {
                             </div>
                             <button
                                 type="submit"
-                                className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white"
+                                className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
                             >
                                 {buttonText}
                             </button>
