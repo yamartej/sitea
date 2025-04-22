@@ -189,7 +189,7 @@ const PopPage = () => {
             const session = await getSession();
             const response = await deletePop(session?.user.token as any, id);
             if (response === 200) {
-              setPops(pops.filter((pop) => pop.id !== id));
+              setPops(pops.filter((pop) => pop.id !== id));              
               setShowNotification(true);
               setErrorMessage('Punto de venta eliminado correctamente');
               setTypeMessage('success');
@@ -681,7 +681,7 @@ const PopPage = () => {
               </div>
             ))}
           </div>
-          <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
+              <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
                 <button
                     onClick={() => previousPage()}
                     disabled={!canPreviousPage}
@@ -706,7 +706,7 @@ const PopPage = () => {
                         <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
                     </svg>
                 </button>
-            </div>     
+              </div>     
           <Modal title="Agregar Punto de Venta" isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
             <div className='max-w-md mx-auto text-primary-contrast'>
               <div className="relative">
