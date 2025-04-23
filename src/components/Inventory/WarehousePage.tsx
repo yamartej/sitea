@@ -26,11 +26,7 @@ const WharehousePage = () =>{
         address: "",
         phone: "",
       });    
-    const [errors, setErrors] = useState<{
-        priceMessage: string | null;
-      }>({
-        priceMessage: null,
-      });
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     useEffect(() => { 
@@ -160,7 +156,6 @@ const WharehousePage = () =>{
                         formData.address,                        
                     );
                     if (response){
-                        
                         setWarehouses([...warehouses, response]);
                         setShowNotification(true);
                         setTypeMessage("success");
@@ -241,7 +236,7 @@ const WharehousePage = () =>{
                 text: "No podrás revertir esto.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#72cb10',
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Sí, eliminarlo!'
             });
@@ -416,6 +411,7 @@ const WharehousePage = () =>{
                 ))
             }
         </div>
+        
         <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
             <button
                 onClick={() => previousPage()}
