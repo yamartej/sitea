@@ -1,13 +1,16 @@
 "use client"
 import Spinner from '../Common/Spinner/SpinnerPage';
-import { use, useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import Notification from '../Common/Notification/NotificationPage';
 import Modal from '../Common/Modal/ModalPage';
 import { getSession } from 'next-auth/react';
 import { fetchBatchesList, fetchCostsList, registerCost, removeCost, updateCost} from '@/app/api/purchase/api'; // Asegúrate de que la ruta sea correcta
 import { Batch, Cost } from '@/types/type';
 import Swal from 'sweetalert2';
-import { useTable } from 'react-table';
+import { useTable, usePagination, Column, useSortBy } from 'react-table';
+import InfoCardGrid from "../Common/Card/InfoCardGrid";
+import Costs from '@/app/pages/costs/page';
+
 
 
 const CostPage = () => {
@@ -61,6 +64,74 @@ const CostPage = () => {
             return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
         }
     }, [showNotification]);
+
+    const columns: Column<Cost>[] = React.useMemo(
+        () => [
+            {
+                Header: 'Lote',
+                accessor: (row) => row.batch?.name || 'N/A', // Acceder al nombre del lote de forma segura
+            },
+            {
+                Header: 'Monto',
+                accessor: 'amount',
+                Cell: ({ value }) => formatCurrency(value.toString()), // Convertir el monto a cadena antes de formatear
+            },
+            {
+                Header: 'Descripción',
+                accessor: 'description',
+            },
+            {
+                Header: 'Acciones',
+                Cell: ({ row }) => (
+                    <div className="flex gap-x-2">
+                        <button
+                            className="text-primary"
+                            onClick={() => handleEditCost(row.original)}
+
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
+                                <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />
+                            </svg>
+                        </button>
+                        <button
+                            className="text-primary"
+                            onClick={() => handleRemoveCost(row.original.id)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                ),
+            },
+        ],
+        [costs]
+    );
+
+    const {
+        getTableProps,
+        getTableBodyProps,
+        headerGroups,
+        rows,
+        prepareRow,
+        page, // Filas de la página actual
+        canPreviousPage,
+        canNextPage,
+        pageOptions,
+        nextPage,
+        previousPage,
+        state: { pageIndex, pageSize },
+        setPageSize,
+    } = useTable(
+        {
+            columns,
+            data: costs,
+            initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
+        },
+        useSortBy, // Agregar el plugin de ordenación
+        usePagination // Agregar el plugin de paginación
+    );
 
     
     const handleAddCost = () => {
@@ -219,6 +290,17 @@ const CostPage = () => {
         setIsModalOpen(true);
         setIsEditing(true);
     }
+
+    const totalAmount = costs.reduce((total, cost) => total + (Number(cost.amount) || 0), 0).toLocaleString('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })
+
+    const cards = [
+        { title: "Total en $", value: totalAmount },
+      ];
+
+
     return (
         <div>
             <div>
@@ -237,58 +319,95 @@ const CostPage = () => {
                     />
                 )}
             </div>
+            
             <div>
-                <h1 className="text-2xl font-bold mb-4">Costos</h1>
-                <div className="flex justify-between items-center">
-                    <div className="inline-flex rounded-md shadow-sm bg-gray-100 p-4" role="group">
-                        {/* Resumen de información */}
-                        <div className="flex flex-col items-center justify-center mr-4">
-                            <p className="text-lg font-semibold text-gray-700">Total</p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {costs.reduce((total, cost) => total + (Number(cost.amount) || 0), 0).toLocaleString('es-ES', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })}
-                            </p>
-                        </div>
+                <InfoCardGrid cards={cards}/>
+            </div>
+
+            <div>
+                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
+                    <div className="">
+                        <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
+                        <select
+                            id="pageSize"
+                            value={pageSize}
+                            onChange={(e) => {
+                                const value = Number(e.target.value);
+                                setPageSize(value);
+                            }}
+                            className="border rounded p-1"
+                        >
+                            {[5, 10, 20, 50].map((size) => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
                     </div>
+
                     <div className="inline-flex rounded-md shadow-sm" role="group">
-                        <button type="button" onClick={handleAddCost} className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
+                        <button id="add_user" type="button" onClick={() => {
+                            handleAddCost();
+                            }}  
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                                </svg>
                         </button>
                     </div>
                 </div>
             </div>
             <div className="overflow-x-auto hidden md:block">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">Lote</th>
-                            <th scope="col" className="px-6 py-3">Monto</th>
-                            <th scope="col" className="px-6 py-3">Descripción</th>
-                            <th scope="col" className="px-6 py-3">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {!showSpinner && costs.length === 0 && (
-                            <tr>
-                                <td colSpan={4} className="text-center py-4">No hay costos registrados</td>
-                            </tr>
-                        )}
-                        {costs?.map((cost) => (
-                            <tr key={cost.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">{cost.batch?.name || 'N/A'}</td>
-                                <td className="px-6 py-4">{cost.amount}</td>
-                                <td className="px-6 py-4">{cost.description}</td>
-                                <td className="px-6 py-4 flex gap-x-2">
-                                    <button type="button" onClick={() => handleEditCost(cost)} className="font-medium text-blue-600 hover:underline">Editar</button>    
-                                    <button type="button" onClick={() => handleRemoveCost(cost.id)} className="font-medium text-red-600 hover:underline">Eliminar</button>
+                <table
+                {...getTableProps()}
+                className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase border-b border-t">
+                        {headerGroups.map((headerGroup) => {
+                            const { key, ...restHeaderGroupProps } = headerGroup.getHeaderGroupProps();
+                            return (
+                                <tr key={key} {...restHeaderGroupProps}>
+                                    {headerGroup.headers.map((column) => {
+                                        const { key: columnKey, ...restColumnProps } = column.getHeaderProps(
+                                            column.getSortByToggleProps()
+                                            );
+                                            return (
+                                                <th
+                                                    key={columnKey}
+                                                    {...restColumnProps}
+                                                    className="px-4 py-2 cursor-pointer border-t border-b border-gray-200"
+                                                >
+                                                    {column.render("Header")}
+                                                    {column.canSort && (
+                                                        <span>
 
-                                </td>
-                            </tr>
-                        ))}
+                                                            {column.isSorted
+                                                            ? column.isSortedDesc
+                                                            ? " ↓"
+                                                            : " ↑"
+                                                            : " ↓↑"
+                                                            }
+                                                        </span>
+                                                    )}
+                                                </th>
+                                            );
+                                        })}
+                                </tr>
+                            );
+                        })}
+                    </thead>
+                    <tbody {...getTableBodyProps()}>
+                        {page.map((row) => {
+                            prepareRow(row);
+                            return (
+                                <tr {...row.getRowProps()} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
+                                    {row.cells.map((cell) => (
+                                        <td {...cell.getCellProps()} className="px-4 py-2">
+                                            {cell.render('Cell')}
+                                        </td>
+                                    ))}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -308,6 +427,35 @@ const CostPage = () => {
                     </div>
                 ))}
             </div>
+
+            <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
+                <button
+                    onClick={() => previousPage()}
+                    disabled={!canPreviousPage}
+                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                        <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
+                    </svg>
+                </button>
+
+                <span className="mx-2">
+                    Página{' '}
+                    <strong>
+                        {pageIndex + 1} de {pageOptions.length}
+                    </strong>
+                </span>
+
+                <button
+                    onClick={() => nextPage()}
+                    disabled={!canNextPage}
+                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                        <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
+                    </svg>
+                </button>
+            </div>
             <Modal
                 title={isEditing ? "Editar Costo" : "Agregar Costo"}
                 isOpen={isModalOpen}
@@ -317,15 +465,15 @@ const CostPage = () => {
                 }}
             >
                 <form onSubmit={handleSubmit}>
-                    <div className="grid gap-6 mb-6 md:grid-cols-2">
+                    <div className="grid gap-6 mb-6 md:grid-cols-2 text-primary-contrast">
                         <div>
-                            <label htmlFor="batch_id" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre del Lote</label>
+                            <label htmlFor="batch_id" className="block mb-2 text-sm font-medium">Nombre del Lote</label>
                             <select
                                 id="batch_id"
                                 name="batch_id"
                                 value={formData.batch_id}
                                 onChange={handleInputChange}
-                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                 required
                             >
                                 <option value="">
@@ -339,33 +487,33 @@ const CostPage = () => {
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="amount" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Monto</label>
+                            <label htmlFor="amount" className="block mb-2 text-sm font-medium">Monto</label>
                             <input
                                 type="text"
                                 id="amount"
                                 name="amount"
                                 value={formData.amount} // Mostrar el valor sin formatear mientras el usuario escribe
                                 onChange={handleInputChange} // Usar la nueva función para manejar la entrada
-                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                 required
                             />
                         </div>
                         <div>
-                            <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Descripción</label>
+                            <label htmlFor="description" className="block mb-2 text-sm font-medium">Descripción</label>
                             <input
                                 type="text"
                                 id="description"
                                 name="description"
                                 value={formData.description}
                                 onChange={handleInputChange}
-                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                 required
                             />
                         </div>
                     </div>
                     <button 
                         type="submit"
-                        className="w-full p-2 bg-blue-500 text-white rounded-lg"
+                        className="w-full p-2 bg-primary rounded-lg"
                     >
                         <span>Guardar</span>
                     </button>
