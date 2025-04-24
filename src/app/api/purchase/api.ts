@@ -89,6 +89,9 @@ export const fetchBatchesList = async (token: string) => {
         `${apiUrl}/batches/${id}`,
         {
           name,
+          description,
+          quantity,
+          order_creation_date,
         },
         {
           headers: {

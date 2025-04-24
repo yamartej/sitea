@@ -130,11 +130,8 @@ const BatchPage = () => {
         usePagination // Agregar el plugin de paginación
     );
 
-    const handleAddBatchClick = () => {
-        setIsModalOpen(true);
-    };
-    
     const handleEditClick = (batch: Batch) => {
+        console.log("batch", batch);
         setFormData({
             name: batch.name,
             description: batch.description,
@@ -188,6 +185,8 @@ const BatchPage = () => {
         try {
             if (isEditing && editingBatchId !== null) {
                 // Actualizar lote existente
+                console.log("editingBatchId", editingBatchId);
+                console.log("formData", formData);
                 const response = await updateBatch(
                     session?.user.token as string,
                     editingBatchId,
