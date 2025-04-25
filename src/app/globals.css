@@ -85,3 +85,26 @@
 .text-primary-contrast {
   color: #434343; /* Asegura que el texto sea blanco para buena legibilidad */
 }
+
+
+
+.bg-add-options {
+  background-color: #f2e269;
+  border-color: #f2e269; /* Asegura que el borde sea del mismo color que el fondo */
+  color: #878937;
+}
+
+.bg-add-options:hover {
+  background-color: #be9e48; /* Un tono más oscuro para el hover */
+  color: white;
+}
+
+.bg-remove-list {
+  background-color: #ce2029;
+  border-color: #ce2029; /* Asegura que el borde sea del mismo color que el fondo */
+  color: white;
+}
+.bg-remove-list:hover {
+  background-color: #cd5c5c; /* Un tono más oscuro para el hover */
+  color: white;
+}

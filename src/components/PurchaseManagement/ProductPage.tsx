@@ -40,13 +40,50 @@ const ProductPage = () =>{
     const [batches, setBatches] = useState<Batch[]>([]);
     
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpenBatch, setIsModalOpenBatch] = useState(false);
+    
+    const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+    
+    const handleSelectProduct = (id: number) => {
+      setSelectedProducts((prevSelected) =>
+        prevSelected.includes(id)
+          ? prevSelected.filter((productId) => productId !== id)
+          : [...prevSelected, id]
+      );
+    };
+    
+    const handleSelectAll = () => {
+      if (selectedProducts.length === products.length) {
+        setSelectedProducts([]); // Deseleccionar todos
+      } else {
+        setSelectedProducts(products.map((product) => product.id)); // Seleccionar todos
+      }
+    };
 
     const columns: Column<Product>[] = React.useMemo(
         () => [
+            
+            {
+                id: "selection",
+                Header: ({ getToggleAllRowsSelectedProps }) => (
+                    <input
+                    type="checkbox"
+                    checked={selectedProducts.length === products.length}
+                    onChange={handleSelectAll}
+                    />
+                ),
+                Cell: ({ row }) => (
+                    <input
+                    type="checkbox"
+                    checked={selectedProducts.includes(row.original.id)}
+                    onChange={() => handleSelectProduct(row.original.id)}
+                    />
+                ),
+            },
             {
                 Header: 'Nombre',
                 accessor: 'name',
-            },
+            },            
             {
                 Header: 'Descripción',
                 accessor: 'description',
@@ -64,21 +101,32 @@ const ProductPage = () =>{
                 accessor: 'quantity',
             },
             {
-                Header: 'Lote',
-                accessor: (row) => row.batches?.description || 'Sin lote',
+              Header: 'Lote',
+              accessor: (row) => (
+                <span
+                  className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    row.batches?.name
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800' 
+                  }`}
+                >
+                  {row.batches?.name || 'Sin lote'}
+                </span>
+              ),
             },
             {
                 Header: 'Acciones',
                 Cell: ({ row }) => (
                     <div className="flex justify-center space-x-2">
-                        <button onClick={() => handleEditClick(row.original)} 
+                        <button title="Editar Producto" onClick={() => handleEditClick(row.original)} 
                             className="text-primary">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                     <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
                                     <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />
                                 </svg>
                         </button>
-                        <button onClick={() => handleDelete(row.original.id)} 
+                        
+                        <button title="Eliminar Producto" onClick={() => handleDelete(row.original.id)} 
                             className="text-primary">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                     <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
@@ -88,7 +136,7 @@ const ProductPage = () =>{
                 ),
             },
         ],
-        []
+        [selectedProducts, products]
     );
 
     const {
@@ -198,7 +246,7 @@ const ProductPage = () =>{
                 Number(formData.price),
                 Number(formData.category),
                 Number(formData.quantity),
-                Number(formData.batch),
+                formData.batch,
                 );
                 if (response && response.product.id) {
                     // Buscar el nombre de la categoría correspondiente
@@ -217,7 +265,7 @@ const ProductPage = () =>{
                             category_id: response.product.category_id,
                             batch_id: response.product.batch_id,
                             category: category || { id: 0, name: "Sin categoría" },
-                            batches: batch || { id: 0, name: "Sin lote", description: "", quantity: 0, order_creation_date: "" },
+                            batches: batch || { id: 0, name: "Sin lote", description: "", quantity: 0, status: "unknown", order_creation_date: "" },
                         },
                     ]);
                     setShowNotification(true);
@@ -256,7 +304,7 @@ const ProductPage = () =>{
                                     quantity: Number(formData.quantity),
                                     batch_id: Number(formData.batch),
                                     category: categories.find((category) => category.id === Number(formData.category)) || { id: 0, name: "" },
-                                    batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, order_creation_date: "" },
+                                    batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, status: "unknown", order_creation_date: "" },
                                 };
                             }
                             return product;
@@ -375,6 +423,64 @@ const ProductPage = () =>{
       { title: "Total en productos", value: totalProducts },
     ];
 
+    const handleAssingBatch = () => {
+        
+        setIsModalOpenBatch(true);
+    };
+
+    const handleSubmitBatch = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        try {
+            setShowSpinner(true);
+            setIsModalOpenBatch(false);
+            const session = await getSession();
+            const response = await updateProduct(
+                session?.user.token as any,
+                Number(formData.id),
+                formData.name,
+                formData.description,
+                Number(formData.price),
+                Number(formData.category),
+                Number(formData.quantity),
+                Number(formData.batch),
+            );
+            if (response){
+                setProducts(
+                    products.map((product) => {
+                        if (product.id === Number(formData.id)) {
+                            return {
+                                ...product,
+                                batch_id: Number(formData.batch),
+                                batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, status: "unknown", order_creation_date: "" },
+                            };
+                        }
+                        return product;
+                    })
+                );
+                
+                setShowNotification(true);
+                setTypeMessage("success");
+                setErrorMessage("El lote fue asignado satisfactoriamente"); 
+                setShowSpinner(false);
+            }
+        } catch (errors) {
+            console.error("Error actualizando o guardando registro:", errors);
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Error actualizando o guardando registro"); 
+            setShowSpinner(false);
+        }
+        finally{
+            if (showNotification) {
+            const timer = setTimeout(() => {
+                setShowNotification(false);
+            }, 10000); // 10 segundos
+            return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+            }
+          }
+      };
+
+
     return(
         <>
             <div>
@@ -400,7 +506,7 @@ const ProductPage = () =>{
             </div>
 
             <div>
-                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
+                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast pb-5">
                     <div className="">
                         <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
                         <select
@@ -420,15 +526,33 @@ const ProductPage = () =>{
                         </select>
                     </div>
 
-                    <div className="inline-flex rounded-md shadow-sm" role="group">
-                        <button id="add_user" type="button" onClick={() => {
+                    <div className="inline-flex rounded-md shadow-sm text-primary-contrast" role="group">
+                        <button type="button" onClick={() => {
                             handleAddProduct();
-                            }}  
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-                                </svg>
+                            }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z" clipRule="evenodd" />
+                            </svg>
+                            Agregar Producto
                         </button>
+                        <button type="button" onClick={() => {
+                            handleAssingBatch();
+                            }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-add-options rounded">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                    <path fillRule="evenodd" d="M11.986 3H12a2 2 0 0 1 2 2v6a2 2 0 0 1-1.5 1.937V7A2.5 2.5 0 0 0 10 4.5H4.063A2 2 0 0 1 6 3h.014A2.25 2.25 0 0 1 8.25 1h1.5a2.25 2.25 0 0 1 2.236 2ZM10.5 4v-.75a.75.75 0 0 0-.75-.75h-1.5a.75.75 0 0 0-.75.75V4h3Z" clipRule="evenodd" />
+                                    <path fillRule="evenodd" d="M2 7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7Zm6.585 1.08a.75.75 0 0 1 .336 1.005l-1.75 3.5a.75.75 0 0 1-1.16.234l-1.75-1.5a.75.75 0 0 1 .977-1.139l1.02.875 1.321-2.64a.75.75 0 0 1 1.006-.336Z" clipRule="evenodd" />
+                                </svg>
+                            Asignar Lote
+                        </button>
+                        <button type="button" onClick={() => {
+                            handleAddProduct();
+                            }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-remove-list rounded">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                    <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
+                                </svg>
+                            Eliminar Productos
+                        </button>
+                        
                     </div>
                 </div>
             </div>
@@ -543,7 +667,7 @@ const ProductPage = () =>{
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)} title={typeRequest === "create" ? "Agregar Producto" : "Actualizar Producto"}>
                 <form onSubmit={handleSubmit} className="text-primary-contrast">
-                    <div className="grid gap-6 mb-6 md:grid-cols-2">
+                    <div className="grid gap-6 mb-6 md:grid-cols-1">
                         <div>
                             <label htmlFor="company" className="block mb-2 text-sm font-medium">Nombre de la Categoría</label>
                             <select
@@ -565,28 +689,9 @@ const ProductPage = () =>{
                             </select>
                         </div>
 
-                        <div>
-                            <label htmlFor="batch" className="block mb-2 text-sm font-medium">Lote</label>
-                            <select
-                            id="batch"
-                            name="batch"
-                            value={formData.batch}
-                            onChange={handleInputChange}
-                            className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            required
-                            >
-                                <option value="">
-                                    Selecciona un Lote
-                                </option>
-                                {batches?.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                        {item.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        
                     </div>
-                    <div className="grid gap-6 mb-6 md:grid-cols-2">
+                    <div className="grid gap-6 mb-6 md:grid-cols-1">
                         <div>
                             <label htmlFor="name" className="block mb-2 text-sm font-medium dark:text-white">Nombre</label>
                             <input
@@ -649,6 +754,41 @@ const ProductPage = () =>{
                     </button>
                 </form>
             </Modal>
+            <Modal
+            //* Modal para asignarel lote a un producto
+            isOpen={isModalOpenBatch}
+            onClose={() => setIsModalOpenBatch(false)} title="Asignar Lote">
+                <form onSubmit={handleSubmitBatch} className="text-primary-contrast">
+                    <div className="grid gap-6 mb-6 md:grid-cols-1">
+                        <div>
+                            <label htmlFor="batch" className="block mb-2 text-sm font-medium">Lote</label>
+                            <select
+                            id="batch"
+                            name="batch"
+                            value={formData.batch}
+                            onChange={handleInputChange}
+                            className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            >
+                                <option value="">
+                                    Selecciona un Lote
+                                </option>
+                                {batches?.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.name} - {item.description}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
+                        >
+                            Asignar Lote
+                        </button>
+                    </div>
+                </form>
+
+                </Modal>
         </>
     )
     

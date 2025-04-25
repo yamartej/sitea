@@ -29,6 +29,7 @@ export const fetchBatchesList = async (token: string) => {
     name: string, 
     description: string,
     quantity: number,
+    status: string,
     order_creation_date: string,
     ) => {
     try {
@@ -37,6 +38,7 @@ export const fetchBatchesList = async (token: string) => {
           name,
           description,
           quantity,
+          status,
           order_creation_date,
         },
         {
@@ -82,6 +84,7 @@ export const fetchBatchesList = async (token: string) => {
     name: string,
     description: string,
     quantity: number,
+    status: string,
     order_creation_date: string,
   ) => {
     try {
@@ -91,6 +94,7 @@ export const fetchBatchesList = async (token: string) => {
           name,
           description,
           quantity,
+          status,
           order_creation_date,
         },
         {

@@ -82,8 +82,10 @@ export type Inventory = {
   id: number;
   quantity: number;
   product_id : number;
-  product : Product[];
+  product : Product;
   updated_at : Date;
+  warehouse_id : number;
+  warehouse : Warehouse;
 }
 
 export type Customer = {
@@ -152,6 +154,7 @@ export type Batch = {
   name: string;
   description: string;
   quantity: number;
+  status: string;
   order_creation_date: string;
 }
 

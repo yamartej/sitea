@@ -23,6 +23,7 @@ const BatchPage = () => {
         name: "",
         description: "",
         quantity: "",
+        status: "created",
         order_creation_date: new Date(),
     });
     const [showNotification, setShowNotification] = useState(false);
@@ -72,6 +73,15 @@ const BatchPage = () => {
             {
                 Header: "Cantidad",
                 accessor: "quantity",
+            },
+            {
+                Header: "Estatus",
+                accessor: "status",
+                Cell: ({ value }) => (
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${value === "received" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                        {value.charAt(0).toUpperCase() + value.slice(1)}
+                    </span>
+                ),
             },
             {
                 Header: "Fecha de Orden",
@@ -131,11 +141,11 @@ const BatchPage = () => {
     );
 
     const handleEditClick = (batch: Batch) => {
-        console.log("batch", batch);
         setFormData({
             name: batch.name,
             description: batch.description,
             quantity: String(batch.quantity),
+            status: batch.status,
             order_creation_date: new Date(batch.order_creation_date),
         });
         setEditingBatchId(batch.id); // Guardar el ID del lote en edición
@@ -149,7 +159,7 @@ const BatchPage = () => {
             text: "No podrás revertir esto.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
+            confirmButtonColor: '#72cb10',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Sí, eliminarlo!'
         }).then(async (result) => {
@@ -170,7 +180,7 @@ const BatchPage = () => {
         })
     };
     
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prevData) => ({
             ...prevData,
@@ -185,14 +195,13 @@ const BatchPage = () => {
         try {
             if (isEditing && editingBatchId !== null) {
                 // Actualizar lote existente
-                console.log("editingBatchId", editingBatchId);
-                console.log("formData", formData);
                 const response = await updateBatch(
                     session?.user.token as string,
                     editingBatchId,
                     formData.name,
                     formData.description,
                     parseInt(formData.quantity, 10),
+                    formData.status,
                     format(formData.order_creation_date, "yyyy-MM-dd"),
                     
                 );
@@ -201,11 +210,13 @@ const BatchPage = () => {
                         prevBatch.map((batch) =>
                             batch.id === editingBatchId
                                 ? {
-                                      ...batch,
-                                      name: formData.name,
-                                      description: formData.description,
-                                      quantity: parseInt(formData.quantity, 10),
-                                      order_creation_date: format(formData.order_creation_date, "yyyy-MM-dd"),
+                                    ...batch,
+                                    name: formData.name,
+                                    description: formData.description,
+                                    quantity: parseInt(formData.quantity, 10),
+                                    status: formData.status,
+                                    order_creation_date: format(formData.order_creation_date, "yyyy-MM-dd"),
+
                                   }
                                 : batch
                         )
@@ -221,6 +232,7 @@ const BatchPage = () => {
                     formData.name,
                     formData.description,
                     parseInt(formData.quantity, 10),
+                    formData.status,
                     format(formData.order_creation_date, "yyyy-MM-dd")
                 );
                 if (response) {
@@ -231,6 +243,7 @@ const BatchPage = () => {
                             name: formData.name,
                             description: formData.description,
                             quantity: parseInt(formData.quantity, 10),
+                            status: formData.status,
                             order_creation_date: format(formData.order_creation_date, "yyyy-MM-dd"),
                         },
                     ]);
@@ -269,12 +282,20 @@ const BatchPage = () => {
                 name: "",
                 description: "",
                 quantity: "",
+                status: "created",
                 order_creation_date: new Date(),
             });
         }
     };
 
     const handleAddBatch = () => {
+        setFormData({
+            name: "",
+            description: "",
+            quantity: "",
+            status: "created",
+            order_creation_date: new Date(),
+        });
         setIsModalOpen(true);
         handleSetInputs(false); // Limpiar los campos del formulario
     };
@@ -390,22 +411,23 @@ const BatchPage = () => {
         </div>
         <div className="block md:hidden mt-2 space-y-4">
             {batchs?.map((batch) => (
-                    <div key={batch.id} className="p-4 bg-white rounded-lg shadow border border-gray-300">
-                        <p>
-                            <span className="font-semibold">Nombre:</span> {batch.name}</p>
-                        <p>
-                            <span className="font-semibold">Descripción:</span> {batch.description}</p>
-                        <p>
-                            <span className="font-semibold">Cantidad:</span> {batch.quantity}</p>
-                        <p>
-                            <span className="font-semibold">Fecha de Orden:</span> {batch.order_creation_date}</p>
-                        <div className="mt-2 flex justify-end space-x-2">
-                            <button onClick={() => handleEditClick(batch)} className="text-blue-600 hover:underline">Editar</button>
-                            <button onClick={() => handleDelete(batch.id)} className="text-red-600 hover:underline">Eliminar</button>
-                        </div>
+                <div key={batch.id} className="p-4 bg-white rounded-lg shadow border border-gray-300">
+                    <p>
+                        <span className="font-semibold">Nombre:</span> {batch.name}</p>
+                    <p>
+                        <span className="font-semibold">Descripción:</span> {batch.description}</p>
+                    <p>
+                        <span className="font-semibold">Cantidad:</span> {batch.quantity}</p>
+                    <p>
+                        <span className="font-semibold">Fecha de Orden:</span> {batch.order_creation_date}</p>
+                    <div className="mt-2 flex justify-end space-x-2">
+                        <button onClick={() => handleEditClick(batch)} className="text-blue-600 hover:underline">
+                            Editar</button>
+                        <button onClick={() => handleDelete(batch.id)} className="text-red-600 hover:underline">Eliminar</button>
                     </div>
-                ))}
-            </div>
+                </div>
+            ))}
+        </div>
         <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
             <button
                 onClick={() => previousPage()}
@@ -479,6 +501,19 @@ const BatchPage = () => {
                             onChange={handleChange}
                             className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
                         />
+                    </div>
+                    <div className='mb-6'>
+                        <label htmlFor="status" className="block mb-2 text-sm font-medium">Estatus</label>
+                        <select
+                            id="status"
+                            name='status'
+                            value={formData.status}
+                            onChange={handleChange}
+                            className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        >
+                            <option value="created">Creado</option>
+                            <option value="received">Recibido</option>
+                        </select>
                     </div>
                     <div className='mb-6'>
                         <label htmlFor="order_creation_date" className="block mb-2 text-sm font-medium">Fecha de Orden</label>

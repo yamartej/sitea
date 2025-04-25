@@ -324,7 +324,7 @@ export const registerProduct = async (
   price: number, 
   category_id: number, 
   quantity: number, 
-  batch_id: number,
+  batch_id: string
   ) => {
   try {
     const response = await axios.post(`${apiUrl}/products`,
