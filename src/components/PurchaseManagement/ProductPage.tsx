@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"; 
-import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct} from "@/app/api/admin/api";
+import { fetchProductsList, fetchCategoriesList, registerProduct, updateProduct, deleteProduct, updateBatchProduct} from "@/app/api/admin/api";
 import { fetchBatchesList } from "@/app/api/purchase/api";
 import { getSession } from 'next-auth/react';
 import { Batch, Category, Product } from "@/types/type";
@@ -11,6 +11,7 @@ import React from "react";
 import { useTable, usePagination, Column, useSortBy } from 'react-table';
 import Modal from "../Common/Modal/ModalPage";
 import InfoCardGrid from "../Common/Card/InfoCardGrid";
+import { se } from "date-fns/locale";
 
 
 const ProductPage = () =>{
@@ -31,7 +32,11 @@ const ProductPage = () =>{
         category: "",
         quantity: "",
         batch: "",
-      });    
+      });
+    const [formDataBatch, setFormDataBatch] = useState({
+        batch: " ",
+    });
+
     const [errors, setErrors] = useState<{
         priceMessage: string | null;
       }>({
@@ -126,7 +131,7 @@ const ProductPage = () =>{
                                 </svg>
                         </button>
                         
-                        <button title="Eliminar Producto" onClick={() => handleDelete(row.original.id)} 
+                        <button title="Revocar Lote" onClick={() => handleDelete(row.original.id)} 
                             className="text-primary">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                     <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
@@ -201,6 +206,16 @@ const ProductPage = () =>{
         cleanInputs();
     };
 
+    const handleInputChangeBatch = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { 
+        const { name, value } = e.target; 
+        setFormDataBatch({ 
+            ...formDataBatch, 
+            [name]: value 
+        });
+
+        
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { 
         const { name, value } = e.target; 
         setFormData({ 
@@ -222,6 +237,7 @@ const ProductPage = () =>{
             }
         }
     };
+    
     
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -246,26 +262,24 @@ const ProductPage = () =>{
                 Number(formData.price),
                 Number(formData.category),
                 Number(formData.quantity),
-                formData.batch,
                 );
                 if (response && response.product.id) {
                     // Buscar el nombre de la categoría correspondiente
                     const category = categories.find((category) => category.id === Number(formData.category));
-                    const batch = batches.find((batch) => batch.id === Number(formData.batch));
                                             
                     // Agregar el nuevo producto al estado
                     setProducts((prevProducts) => [
                         ...prevProducts,
                         {
-                            id: response.product.id, // Asegúrate de que este valor sea válido
+                            id: response.product.id,
                             name: response.product.name,
                             description: response.product.description,
                             price: response.product.price,
                             quantity: response.product.quantity,
                             category_id: response.product.category_id,
-                            batch_id: response.product.batch_id,
                             category: category || { id: 0, name: "Sin categoría" },
-                            batches: batch || { id: 0, name: "Sin lote", description: "", quantity: 0, status: "unknown", order_creation_date: "" },
+                            batch_id: 0, // Default value or fetched value
+                            batches: { id: 0, name: "", description: "", quantity: 0, status: "unknown", order_creation_date: "" }, // Default value or fetched value
                         },
                     ]);
                     setShowNotification(true);
@@ -289,7 +303,6 @@ const ProductPage = () =>{
                     Number(formData.price),
                     Number(formData.category),
                     Number(formData.quantity),
-                    Number(formData.batch),
                 );
                 if (response){
                     setProducts(
@@ -302,9 +315,7 @@ const ProductPage = () =>{
                                     price: Number(formData.price),
                                     category_id: Number(formData.category),
                                     quantity: Number(formData.quantity),
-                                    batch_id: Number(formData.batch),
                                     category: categories.find((category) => category.id === Number(formData.category)) || { id: 0, name: "" },
-                                    batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, status: "unknown", order_creation_date: "" },
                                 };
                             }
                             return product;
@@ -340,7 +351,6 @@ const ProductPage = () =>{
         formData.price = "";
         formData.quantity = "";
         formData.category="";
-        formData.batch="";
     }
     
     const handleEditClick = (product: Product) => {
@@ -351,7 +361,7 @@ const ProductPage = () =>{
             price: String(product.price),
             category: String(product.category_id),
             quantity: String(product.quantity || ""),
-            batch: String(product.batch_id),
+            batch: String(product.batch_id || ""), // Ensure batch is included
         });
         setIsModalOpen(true);
         setTypeRequest("update");
@@ -372,10 +382,9 @@ const ProductPage = () =>{
             const session = await getSession(); 
             const response = await deleteProduct(session?.user.token as string, id);
             if(response === 204){
-                console.log("producto eliminado correctamente:", id);
-                console.log("productos antes de eliminar:", products);
                  // Filtrar también la lista de usuarios mostrada en la tabla
                 setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
+                setSelectedProducts((prevSelected) => prevSelected.filter((productId) => productId !== id)); // Limpiar la selección de productos eliminados
                 setShowNotification(true);
                 setTypeMessage("success");
                 setErrorMessage("El registro fue eliminado exitosamente"); 
@@ -424,61 +433,95 @@ const ProductPage = () =>{
     ];
 
     const handleAssingBatch = () => {
-        
         setIsModalOpenBatch(true);
     };
 
-    const handleSubmitBatch = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const handleSaveAssingBatch = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault(); // Prevenir el comportamiento predeterminado del formulario
+        setIsModalOpenBatch(false);
+        setShowSpinner(true);
+        const session = await getSession();
         try {
-            setShowSpinner(true);
-            setIsModalOpenBatch(false);
-            const session = await getSession();
-            const response = await updateProduct(
-                session?.user.token as any,
-                Number(formData.id),
-                formData.name,
-                formData.description,
-                Number(formData.price),
-                Number(formData.category),
-                Number(formData.quantity),
-                Number(formData.batch),
+            const response = await updateBatchProduct(
+                session?.user.token as string,
+                selectedProducts.map((id) => ({ id })),
+                formDataBatch.batch,
             );
-            if (response){
+            if (response) {
                 setProducts(
                     products.map((product) => {
-                        if (product.id === Number(formData.id)) {
+                        if (selectedProducts.includes(product.id)) {
                             return {
                                 ...product,
-                                batch_id: Number(formData.batch),
-                                batches: batches.find((batch) => batch.id === Number(formData.batch)) || { id: 0, name: "", description: "", quantity: 0, status: "unknown", order_creation_date: "" },
+                                batch_id: Number(formDataBatch.batch),
+                                batches: batches.find((batch) => batch.id === Number(formDataBatch.batch)) || { id: 0, name: "", description: "", quantity: 0, status: "unknown", order_creation_date: "" },
                             };
                         }
                         return product;
                     })
                 );
-                
                 setShowNotification(true);
                 setTypeMessage("success");
-                setErrorMessage("El lote fue asignado satisfactoriamente"); 
+                setErrorMessage("El lote fue asignado exitosamente"); 
                 setShowSpinner(false);
+                setSelectedProducts([]); // Limpiar la selección después de asignar el lote
+                setFormDataBatch({ batch: " " }); // Limpiar el campo de lote
             }
-        } catch (errors) {
-            console.error("Error actualizando o guardando registro:", errors);
+        } catch (error) {
+            console.error("Error actualizando lote:", error);
             setShowNotification(true);
             setTypeMessage("error");
-            setErrorMessage("Error actualizando o guardando registro"); 
+            setErrorMessage("Error actualizando lote"); 
             setShowSpinner(false);
-        }
-        finally{
-            if (showNotification) {
-            const timer = setTimeout(() => {
-                setShowNotification(false);
-            }, 10000); // 10 segundos
-            return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+        }   
+        
+    }
+
+    const handleRemoveLote = async () => {
+        const result = await Swal.fire({
+            title: '¿Estás seguro de revocar el lote?',
+            text: "No podrás revertir esto",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#72cb10',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, revocar!'
+        });
+        if (result.isConfirmed) {
+            setShowSpinner(true);
+            const session = await getSession(); 
+            const response = await updateBatchProduct(
+                session?.user.token as string, 
+                selectedProducts.map((id) => ({ id })), 
+                formDataBatch.batch = " ");
+            if(response){
+                setProducts(
+                    products.map((product) => {
+                        if (selectedProducts.includes(product.id)) {
+                            return {
+                                ...product,
+                                batch_id: 0, // O el valor que desees para indicar que no tiene lote
+                                batches: { id: 0, name: "", description: "", quantity: 0, status: "unknown", order_creation_date: "" }, // O el valor que desees para indicar que no tiene lote
+                            };
+                        }
+                        return product;
+                    })
+                );
+                setSelectedProducts([]); // Limpiar la selección de productos eliminados
+                setShowNotification(true);
+                setTypeMessage("success");
+                setErrorMessage("El lote fue revocado exitosamente"); 
+                setShowSpinner(false);
             }
-          }
-      };
+            else{
+                setShowNotification(true);
+                setTypeMessage("error");
+                setErrorMessage("Error revocando el lote"); 
+                setShowSpinner(false);
+            }
+        }
+        
+    }
 
 
     return(
@@ -545,7 +588,7 @@ const ProductPage = () =>{
                             Asignar Lote
                         </button>
                         <button type="button" onClick={() => {
-                            handleAddProduct();
+                            handleRemoveLote();
                             }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-remove-list rounded">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                     <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
@@ -746,48 +789,47 @@ const ProductPage = () =>{
                         </div>
                     </div>
                     <button
-                    type="submit"
-                    className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
-                    disabled={!!btnAction}
+                        type="submit"
+                        className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
+                        disabled={!!btnAction}
                     >
                         {buttonText}
                     </button>
                 </form>
             </Modal>
             <Modal
-            //* Modal para asignarel lote a un producto
-            isOpen={isModalOpenBatch}
-            onClose={() => setIsModalOpenBatch(false)} title="Asignar Lote">
-                <form onSubmit={handleSubmitBatch} className="text-primary-contrast">
-                    <div className="grid gap-6 mb-6 md:grid-cols-1">
-                        <div>
-                            <label htmlFor="batch" className="block mb-2 text-sm font-medium">Lote</label>
-                            <select
-                            id="batch"
-                            name="batch"
-                            value={formData.batch}
-                            onChange={handleInputChange}
-                            className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            >
-                                <option value="">
-                                    Selecciona un Lote
-                                </option>
-                                {batches?.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                        {item.name} - {item.description}
+                //* Modal para asignarel lote a un producto
+                isOpen={isModalOpenBatch}
+                onClose={() => setIsModalOpenBatch(false)} title="Asignar Lote">
+                    <form className="text-primary-contrast">
+                        <div className="grid gap-6 mb-6 md:grid-cols-1">
+                            <div>
+                                <label htmlFor="batch" className="block mb-2 text-sm font-medium">Lote</label>
+                                <select
+                                id="batch"
+                                name="batch"
+                                value={formDataBatch.batch}
+                                onChange={handleInputChangeBatch}
+                                className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                >
+                                    <option value="">
+                                        Selecciona un Lote
                                     </option>
-                                ))}
-                            </select>
+                                    {batches?.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.name} - {item.description}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                onClick={(e) => handleSaveAssingBatch(e as unknown as React.FormEvent<HTMLFormElement>)}
+                                className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
+                            >
+                                Asignar Lote
+                            </button>
                         </div>
-                        <button
-                            type="submit"
-                            className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
-                        >
-                            Asignar Lote
-                        </button>
-                    </div>
-                </form>
-
+                    </form>
                 </Modal>
         </>
     )

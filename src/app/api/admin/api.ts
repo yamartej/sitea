@@ -324,7 +324,6 @@ export const registerProduct = async (
   price: number, 
   category_id: number, 
   quantity: number, 
-  batch_id: string
   ) => {
   try {
     const response = await axios.post(`${apiUrl}/products`,
@@ -334,7 +333,6 @@ export const registerProduct = async (
         price,
         category_id,
         quantity,
-        batch_id,
       },
       {
         headers: {
@@ -361,7 +359,6 @@ export const updateProduct = async (
   price: number,
   category_id: number,
   quantity: number,
-  batch_id: number,
 ) => {
   try {
     const response = await axios.put(
@@ -372,7 +369,6 @@ export const updateProduct = async (
         price,
         category_id,
         quantity,
-        batch_id
       },
       {
         headers: {
@@ -404,6 +400,37 @@ export const deleteProduct = async (token: string, id: number) => {
     return response.status; // Retornar solo los datos necesarios
   } catch (error: any) {
     console.error("Error en la respuesta:", error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
+
+export const updateBatchProduct = async (
+  token: string,
+  product_ids: {
+    id: number;
+  }[],
+  batch_id: string,
+) => {
+  try {
+    const response = await axios.put(
+      `${apiUrl}/products/update-batch`,
+      {
+        batch_id,
+        product_ids,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error('Error en la respuesta del Update:', error);
     if (error.response && error.response.data && error.response.data.errors) {
       throw error.response.data.errors;
     }
