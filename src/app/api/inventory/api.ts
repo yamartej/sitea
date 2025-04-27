@@ -133,15 +133,16 @@ export const fetchWarehousesList = async (token: string) => {
   
   export const registerInventory = async (
     token: string, 
-    product_id: number,
-    quantity: string,
+    product_ids: {
+      id: number,
+      quantity: number,
+    }[],
     warehouse_id: number,
     ) => {
     try {
       const response = await axios.post(`${apiUrl}/inventory`,
         {
-          product_id,
-          quantity,
+          product_ids,
           warehouse_id,
         },
         {
@@ -151,7 +152,7 @@ export const fetchWarehousesList = async (token: string) => {
           },
         }
       );
-      return response.data; // Retornar solo los datos necesarios
+      return response; // Retornar solo los datos necesarios
     } catch (error: any) {
       console.error("Error en la respuesta de registro:", error);
       if (error.response && error.response.data && error.response.data.errors) {
@@ -215,7 +216,7 @@ export const fetchWarehousesList = async (token: string) => {
 
   export const fetchProductsAvailable = async (token: string) => {
     try {
-        const response = await axios.get(`${apiUrl}/products/available`, {
+        const response = await axios.get(`${apiUrl}/products/with-batch-and-status`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

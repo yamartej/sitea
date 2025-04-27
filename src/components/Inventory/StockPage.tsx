@@ -38,6 +38,8 @@ const StockPage = () => {
         quantity: "",
         warehouseId: "",
     });
+
+    const [selectedStocks, setSelectedStocks] = useState<{ id: number; quantity: number }[]>([]);
     
     useEffect(() => { 
         setShowSpinner(true);
@@ -47,6 +49,12 @@ const StockPage = () => {
             try {
                 const data = await fetchInventoriesList(session?.user.token as string);
                 const dataProducts = await fetchProductsAvailable(session?.user.token as string);
+                setProducts(
+                    dataProducts.map((product: Product) => ({
+                      ...product,
+                      selectedQuantity: product.quantity, // Inicializar con la cantidad disponible
+                    }))
+                  );
                 const dataWarehouses = await fetchWarehousesList(session?.user.token as string);
                 setInventories(data);
                 setProducts(dataProducts.filter((product: Product) => product.quantity !== 0));
@@ -70,53 +78,116 @@ const StockPage = () => {
         fetchInventories (); 
     }, [showRegister]);
 
-    const columns: Column<Inventory>[] = React.useMemo(
+    const columns: Column<Product>[] = React.useMemo(
         () => [
-            {
-                Header: "Almacen",
-                accessor: "warehouse.name",
+                        {
+              id: "selection",
+              Header: ({ getToggleAllRowsSelectedProps }) => (
+                <input
+                  type="checkbox"
+                  checked={selectedStocks.length === products.length}
+                  onChange={handleSelectAll}
+                />
+              ),
+              Cell: ({ row }: { row: { original: Product } }) => (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedStocks.some((item) => item.id === row.original.id)}
+                    onChange={() =>
+                      handleSelectStocks(row.original.id, row.original.selectedQuantity || row.original.quantity)
+                    }
+                  />
+                  
+                </div>
+              ),
             },
             {
                 Header: "Producto",
-                accessor: "product.name",
+                accessor: (row) => row.name,
+                Cell: ({ cell }: { cell: { value: string } }) => (
+                    <span>{cell.value}</span>
+                ),
             },
             {
                 Header: "Cantidad",
                 accessor: "quantity",
-            },
-            {
-                Header: "Actualización",
-                accessor: "updated_at",
-                Cell: ({ value }) => format(new Date(value), 'dd/MM/yyyy HH:mm:ss'),
-            },
-            {
-                Header: "Acciones",
-                Cell: ({ row }) => (
-                    <div className="flex justify-center space-x-2">
-                        <button
-                            className="text-primary"
-                            onClick={() => handleEditClick(row.original)}
-
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
-                                <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
-                                <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />
-                            </svg>
-                        </button>
-                        <button
-                            className="text-primary"
-                            onClick={() => handleDelete(row.original.id)}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
-                                <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
+                Cell: ({ row }: { row: { original: Product } }) => (
+                  <input
+                    type="number"
+                    min="1"
+                    max={row.original.quantity} // El valor máximo es la cantidad disponible
+                    value={row.original.selectedQuantity || row.original.quantity} // Mostrar la cantidad seleccionada o la cantidad original
+                    onChange={(e) => handleQuantityChange(row.original.id, e.target.value)} // Manejar el cambio
+                    className="w-full border rounded p-1 text-center"
+                  />
                 ),
             },
+            {
+              Header: "Estatus",
+              accessor: (row: Product) => row.inventory,
+              Cell: ({ row }: { row: { original: Product } }) => (
+                <span
+                  className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    row.original.inventory
+                      ? "bg-green-100 text-green-800" // Verde si tiene datos en `inventory`
+                      : "bg-red-100 text-red-800" // Rojo si `inventory` es null
+                  }`}
+                >
+                  {row.original.inventory ? "Asignado" : "No asignado"}
+                </span>
+              ),
+            },
+            
         ],
-        [inventories]
+        [selectedStocks, products]
     );
+
+    const handleQuantityChange = (productId: number, value: string) => {
+      const newQuantity = Math.min(Number(value), products.find((product) => product.id === productId)?.quantity || 0);
+    
+      // Actualizar la cantidad en el estado de productos
+      setProducts((prevProducts) =>
+        prevProducts.map((product) =>
+          product.id === productId
+            ? { ...product, selectedQuantity: newQuantity }
+            : product
+        )
+      );
+    
+      // Actualizar la cantidad en el estado de productos seleccionados
+      setSelectedStocks((prevSelected) =>
+        prevSelected.map((item) =>
+          item.id === productId ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    };
+
+        const handleSelectStocks = (id: number, quantity: number) => {
+      setSelectedStocks((prevSelected) => {
+        const exists = prevSelected.find((item) => item.id === id);
+        if (exists) {
+          // Si ya está seleccionado, lo eliminamos
+          return prevSelected.filter((item) => item.id !== id);
+        } else {
+          // Si no está seleccionado, lo agregamos con la cantidad actual
+          return [...prevSelected, { id, quantity }];
+        }
+      });
+    };
+
+    const handleSelectAll = () => {
+      if (selectedStocks.length === products.length) {
+        setSelectedStocks([]); // Deseleccionar todos
+      } else {
+        setSelectedStocks(
+          products.map((product) => ({
+            id: product.id,
+            quantity: product.selectedQuantity || product.quantity,
+          }))
+        ); // Seleccionar todos con sus cantidades actuales
+      }
+    };
 
     const {
         getTableProps,
@@ -135,7 +206,7 @@ const StockPage = () => {
     } = useTable(
         {
             columns,
-            data: inventories,
+            data: products,
             initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
         },
         useSortBy, // Agregar el plugin de ordenación
@@ -206,58 +277,39 @@ const StockPage = () => {
         setShowSpinner(false); 
     };
     
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        try {
-            setShowSpinner(true);
-            setIsModalOpen(false);
-            const session = await getSession();
-            let response;
-            if (typeRequest === "create") {
-                response = await registerInventory(
-                    session?.user.token as string,
-                    Number(formData.productId),
-                    formData.quantity.toString(),
-                    Number(formData.warehouseId),
-                );
-                if (response) {
-                    setInventories([...inventories, response]);
-                    setProducts((prevProducts) =>
-                        prevProducts.map((product) =>
-                            product.id === Number(formData.productId)
-                                ? { ...product, quantity: product.quantity - Number(formData.quantity) }
-                                : product
-                        )
-                    );
-                    setAvailable(available - Number(formData.quantity));
-                    
-                    updateProductQuantity(response.product_id, response.quantity);
-                    setShowNotification(true);
-                    setTypeMessage("success");
-                    setErrorMessage("El registro fue agregado exitosamente"); 
-                    setShowSpinner(false);
-                    cleanInputs();
-                }
-            } else {
-                response = await updateInventory(
-                    session?.user.token as string,
-                    Number(formData.id),
-                    Number(formData.productId),
-                    formData.quantity.toString(),
-                    Number(formData.warehouseId),
-                );
-                if (response) {
-                    updateProductQuantity(response.product_id, response.quantity);
-                    setShowNotification(true);
-                    setTypeMessage("success");
-                    setErrorMessage("El registro fue actualizado exitosamente"); 
-                    setShowSpinner(false);
-                    cleanInputs();
-                }
-            }
-        } catch (error) {
-            handleError(error as ErrorResponse);
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      try {
+        setShowSpinner(true);
+        setIsModalOpen(false);
+        const session = await getSession();
+        if (selectedStocks && selectedStocks.length > 0) {
+            const response = await registerInventory(
+                session?.user.token as string,
+                selectedStocks.map((item) => ({
+                    id: item.id,
+                    quantity: item.quantity,
+                })),
+                Number(formData.warehouseId)
+            );
+          if (response) {
+            console.log("Registro exitoso:", response);
+            setProducts((prevProducts) =>
+              prevProducts.map((product) =>
+                selectedStocks.some((item) => item.id === product.id)
+                  ? { ...product, quantity: product.quantity - Number(formData.quantity) }
+                  : product
+              )
+            );
+            setShowNotification(true);
+            setTypeMessage("success");
+            setErrorMessage("El registro fue guardado exitosamente");
+            setShowSpinner(false);
+          }
         }
+      } catch (error) {
+        handleError(error as ErrorResponse);
+      }
     };
 
     const cleanInputs = () =>{
@@ -347,6 +399,13 @@ const StockPage = () => {
         setAvailable(0);
     };
 
+    const handleAddWarehouse = () => {
+        setIsModalOpen(true);
+        cleanInputs();
+        setAvailable(0);
+    };
+
+
 
     return(
         <>
@@ -372,7 +431,7 @@ const StockPage = () => {
             </div>
 
             <div>
-                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
+                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast pb-5">
                     <div className="">
                         <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
                         <select
@@ -392,15 +451,17 @@ const StockPage = () => {
                         </select>
                     </div>
 
-                    <div className="inline-flex rounded-md shadow-sm" role="group">
-                        <button id="add_user" type="button" onClick={() => {
-                            handleAddStock();
-                            }}  
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-                                </svg>
+                    <div className="inline-flex rounded-md shadow-sm text-primary-contrast" role="group">
+                        <button type="button" onClick={() => {
+                            handleAddWarehouse();
+                            }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z" clipRule="evenodd" />
+                            </svg>
+                            Asignar Almacen
                         </button>
+                        
+                        
                     </div>
                 </div>
             </div>
@@ -408,53 +469,53 @@ const StockPage = () => {
                     <table
                         {...getTableProps()}
                         className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                            <thead className="text-xs text-gray-700 uppercase border-b border-t">
-                                {headerGroups.map((headerGroup) => {
-                                    const { key, ...restHeaderGroupProps } = headerGroup.getHeaderGroupProps();
-                                    return (
-                                        <tr key={key} {...restHeaderGroupProps}>
-                                            {headerGroup.headers.map((column) => {
-                                                const { key: columnKey, ...restColumnProps } = column.getHeaderProps(
-                                                    column.getSortByToggleProps()
-                                                    );
-                                                    return (
-                                                        <th
-                                                            key={columnKey}
-                                                            {...restColumnProps}
-                                                            className="px-4 py-2 cursor-pointer border-t border-b border-gray-200"
-                                                        >
-                                                            {column.render("Header")}
-                                                            {column.canSort && (
-                                                                <span>
-
-                                                                    {column.isSorted
-                                                                    ? column.isSortedDesc
-                                                                    ? " ↓"
-                                                                    : " ↑"
-                                                                    : " ↓↑"
-                                                                    }
-                                                                </span>
-                                                            )}
-                                                        </th>
-                                                    );
-                                                })}
-                                        </tr>
-                                    );
-                                })}
+                                                        <thead className="text-xs text-gray-700 uppercase border-b border-t">
+                              {headerGroups.map((headerGroup) => {
+                                const { key, ...restHeaderGroupProps } = headerGroup.getHeaderGroupProps(); // Extraer `key`
+                                return (
+                                  <tr key={key} {...restHeaderGroupProps}>
+                                    {headerGroup.headers.map((column) => {
+                                      const { key: columnKey, ...restColumnProps } = column.getHeaderProps(column.getSortByToggleProps()); // Extraer `key`
+                                      return (
+                                        <th
+                                          key={columnKey}
+                                          {...restColumnProps}
+                                          className="px-4 py-2 cursor-pointer border-t border-b border-gray-200"
+                                        >
+                                          {column.render("Header")}
+                                          {column.canSort && (
+                                            <span>
+                                              {column.isSorted
+                                                ? column.isSortedDesc
+                                                  ? " ↓"
+                                                  : " ↑"
+                                                : " ↓↑"}
+                                            </span>
+                                          )}
+                                        </th>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              })}
                             </thead>
-                            <tbody {...getTableBodyProps()}>
-                                {page.map((row) => {
-                                    prepareRow(row);
-                                    return (
-                                        <tr {...row.getRowProps()} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
-                                            {row.cells.map((cell) => (
-                                                <td {...cell.getCellProps()} className="px-4 py-2">
-                                                    {cell.render('Cell')}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    );
-                                })}
+                                                        <tbody {...getTableBodyProps()}>
+                              {page.map((row) => {
+                                prepareRow(row);
+                                const { key, ...restRowProps } = row.getRowProps(); // Extraer `key`
+                                return (
+                                  <tr key={key} {...restRowProps} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
+                                    {row.cells.map((cell) => {
+                                      const { key: cellKey, ...restCellProps } = cell.getCellProps(); // Extraer `key`
+                                      return (
+                                        <td key={cellKey} {...restCellProps} className="px-4 py-2">
+                                          {cell.render("Cell")}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                     </table>
             </div>
@@ -526,10 +587,10 @@ const StockPage = () => {
                 <Modal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
-                    title={typeRequest === "create" ? "Agregar Registro" : "Actualizar Registro"}
+                    title="Agregar Almacen"
                     >
                     <form onSubmit={handleSubmit}>
-                        <div className="grid gap-6 mb-6 md:grid-cols-2 text-primary-contrast">
+                        <div className="grid gap-6 mb-6 md:grid-cols-1 text-primary-contrast">
                             <div>
                                 <label htmlFor="warehouseId" className="block mb-2 text-sm font-medium">
                                     Almacen
@@ -552,47 +613,12 @@ const StockPage = () => {
                                     ))}
                                 </select>
                             </div>
-                            <div>
-                                <label htmlFor="productId" className="block mb-2 text-sm font-medium">Producto</label>
-                                <select
-                                    id="productId"
-                                    name="productId"
-                                    value={formData.productId}
-                                    onChange={handleInputChange}
-                                    className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                    required
-                                    >
-                                    <option value="">
-                                        Seleccione un producto
-                                    </option>
-                                    {products?.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                        {item.name} / Disponibilidad: {item.quantity} 
-                                    </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="quantity" className="block mb-2 text-sm font-medium">
-                                    Cantidad
-                                </label>
-                                <input
-                                    id="quantity"
-                                    name="quantity"
-                                    type="text"
-                                    value={formData.quantity}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="block w-full rounded-md border py-1.5"
-                                />
-                            </div>
                         </div>
                         <button
                             type="submit"
                             className="w-full p-2 bg-primary text-white rounded-lg"
-                            disabled={!!btnAction}
                         >
-                            {buttonText}
+                            Guardar
                         </button>
                         
                     </form>
