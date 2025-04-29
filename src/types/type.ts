@@ -77,7 +77,9 @@ export type Product = {
   batch_id: number;
   batches: Batch;
   selectedQuantity?: number;
-  inventory?: Inventory[];
+  inventory: Inventory;
+  warehouseId?: Number;
+  warehouseName: string;
 }
 
 export type Inventory = {

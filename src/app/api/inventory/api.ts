@@ -133,11 +133,12 @@ export const fetchWarehousesList = async (token: string) => {
   
   export const registerInventory = async (
     token: string, 
+    warehouse_id: string,
     product_ids: {
       id: number,
       quantity: number,
     }[],
-    warehouse_id: number,
+    
     ) => {
     try {
       const response = await axios.post(`${apiUrl}/inventory`,
