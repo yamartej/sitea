@@ -6,14 +6,13 @@ import {
     fetchProductsAvailable,
     fetchInventoriesList,
     fetchWarehousesList,
-    registerInventory,
+    saveInventory,
 } from "@/app/api/inventory/api";
 
 import { useTable, useSortBy, usePagination, Column } from "react-table";
 import Modal from "../Common/Modal/ModalPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import Notification from "../Common/Notification/NotificationPage";
-import { set } from "date-fns";
 
 const Stock1Page = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -32,6 +31,7 @@ const Stock1Page = () => {
         warehouseName: "",
     });
     const [typeMessage, setTypeMessage] = useState("error");
+    const [auxAsigned, setAuxAsigned] = useState<Product[]>([]);
     
 
         useEffect(() => {
@@ -283,21 +283,34 @@ const Stock1Page = () => {
         setShowSpinner(true);
         setIsModalOpen(false);
         const session = await getSession();
-        try {
-            const response = await registerInventory(
+        try{
+
+            //Validar si existe en el inventario un producto asignado en un almacen para actulizar el producto.
+            const commonProducts  = selectedProducts.filter(sp =>
+                assignedProducts.some(ap => ap.id === sp.id)
+            );
+            //Validar que productos no estan asignados para realizar un registro desde cero
+            const differenceProducts = selectedProducts.filter(sp =>
+                !assignedProducts.some(ap => ap.id === sp.id)
+            );
+
+            const response = await saveInventory(
                 session?.user.token as string,
                 formData.warehouseId,
-                selectedProducts.map((product) => ({
+                differenceProducts.map((product) => ({
+                    id: product.id,
+                    quantity: product.quantity,
+                })),
+                commonProducts.map((product) => ({
                     id: product.id,
                     quantity: product.quantity,
                 }))
             );
-                        if (response) {
-              console.log("Asignación exitosa:", response);
-            
-              // Actualizar las listas de productos
-            setProducts((prevProducts) =>
-                prevProducts
+            if (response) {
+                console.log("Asignación exitosa:", response);
+                // Actualizar las listas de productos
+                setProducts((prevProducts) =>
+                    prevProducts
                     .map((product) => {
                         const selectedProduct = selectedProducts.find((item) => item.id === product.id);
                         if (selectedProduct) {
@@ -309,41 +322,54 @@ const Stock1Page = () => {
                         return product;
                     })
                     .filter((product): product is Product => product !== undefined) // Filtrar valores undefined
-            );
-            
-              setAssignedProducts((prevAssigned) =>
-                prevAssigned.concat(
-                  selectedProducts.map((product) => {
-                    const originalProduct = products.find((p) => p.id === product.id);
-                    return {
-                      ...originalProduct,
-                      warehouseId: Number(formData.warehouseId),
-                      warehouseName: formData.warehouseName,
-                      quantity: product.quantity,
-                    } as Product;
-                  })
-                )
-              );
-            
-              // Limpiar selección y formulario
-              setSelectedProducts([]);
-              setFormData({ 
-                warehouseId: "",
-                warehouseName: ""  
-            });
-            
-              // Mostrar notificación de éxito
-              setTypeMessage("success");
-              setErrorMessage("Asignación exitosa");
-              setShowNotification(true);
-            
-              setTimeout(() => {
-                setShowNotification(false);
-              }, 10000); // 10 segundos
-            }
+                );
+                
+                //Agrega los nuevos productos a la tabla
+                setAssignedProducts((prevAssigned) =>
+                    prevAssigned.concat(
+                        differenceProducts.map((product) => {
+                            const originalProduct = products.find((p) => p.id === product.id);
+                            return {
+                                ...originalProduct,
+                                warehouseId: Number(formData.warehouseId),
+                                warehouseName: formData.warehouseName,
+                                quantity: product.quantity,
+                                } as Product;
+                        })
+                    )
+                );
 
+                //Actualiza el inventario existente
+                setAssignedProducts(prevProducts =>
+                    prevProducts.map(product => {
+                      const commonProduct = commonProducts.find(p => p.id === product.id);
+                      if (commonProduct) {
+                        return {
+                          ...product,
+                          quantity: product.quantity + commonProduct.quantity
+                        };
+                      }
+                      return product;
+                    })
+                  );
 
-            
+                // Limpiar selección y formulario
+                setSelectedProducts([]);
+                setFormData({ 
+                    warehouseId: "",
+                    warehouseName: ""  
+                });
+
+                // Mostrar notificación de éxito
+                setTypeMessage("success");
+                setErrorMessage("Asignación exitosa");
+                setShowNotification(true);
+                
+                setTimeout(() => {
+                    setShowNotification(false);
+                }, 10000); // 10 segundos
+            } 
+
         } catch (error) {
             console.error("Error:", error);
             setErrorMessage("Error al asignar el almacen");
@@ -355,6 +381,9 @@ const Stock1Page = () => {
             }, 10000); // 10 segundos
             return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
         }
+
+        
+        
     };
 
     

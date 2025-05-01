@@ -131,9 +131,13 @@ export const fetchWarehousesList = async (token: string) => {
       }      
   };
   
-  export const registerInventory = async (
+  export const saveInventory = async (
     token: string, 
     warehouse_id: string,
+    new_product_ids: {
+      id: number,
+      quantity: number,
+    }[],
     product_ids: {
       id: number,
       quantity: number,
@@ -141,8 +145,9 @@ export const fetchWarehousesList = async (token: string) => {
     
     ) => {
     try {
-      const response = await axios.post(`${apiUrl}/inventory`,
+      const response = await axios.post(`${apiUrl}/inventory/saveInventoryProducts`,
         {
+          new_product_ids,
           product_ids,
           warehouse_id,
         },
