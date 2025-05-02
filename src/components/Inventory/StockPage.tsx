@@ -1,170 +1,321 @@
-"use client"
-import React, { useEffect, useState } from "react"; 
-import { fetchWarehousesList, fetchInventoriesList, registerInventory, deleteInventory, updateInventory, fetchProductsAvailable} from "@/app/api/inventory/api";
-import { getSession } from 'next-auth/react';
-import { ErrorResponse, Inventory, Product, Warehouse } from "@/types/type";
-import Notification from "../Common/Notification/NotificationPage";
-import { format } from 'date-fns';
-import Swal from "sweetalert2";
-import { useTable, usePagination, Column, useSortBy } from 'react-table';
-import InfoCardGrid from "../Common/Card/InfoCardGrid";
-import Spinner from "../Common/Spinner/SpinnerPage";
+"use client";
+import React, { useEffect, useState } from "react";
+import { Product } from "@/types/type"; // Asegúrate de que este archivo exista y exporte el tipo Product
+import { getSession } from "next-auth/react";
+import {
+    fetchProductsAvailable,
+    fetchInventoriesList,
+    fetchWarehousesList,
+    saveInventory,
+    removeAssignedInventory,
+} from "@/app/api/inventory/api";
+
+import { useTable, useSortBy, usePagination, Column } from "react-table";
 import Modal from "../Common/Modal/ModalPage";
+import Spinner from "../Common/Spinner/SpinnerPage";
+import Notification from "../Common/Notification/NotificationPage";
+import Swal from "sweetalert2";
 
 const StockPage = () => {
-    const [inventories, setInventories] = useState<Inventory[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
-    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-    const [available, setAvailable] = useState(0);
-    const [showRegister, setShowRegister] = useState(false);
+    const [assignedProducts, setAssignedProducts] = useState<Product[]>([]);
+    const [activeTab, setActiveTab] = useState<"unassigned" | "assigned">(
+        "unassigned"
+        );
     const [showSpinner, setShowSpinner] = useState(false);
-    const [btnAction, setBtnAction] = useState(false);
-    const [showNotification, setShowNotification] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [typeMessage, setTypeMessage] = useState("error");
-    const [typeRequest, setTypeRequest] = useState("create");
+    const [showNotification, setShowNotification] = useState(false);
+    const [selectedProducts, setSelectedProducts] = useState<{ id: number; quantity: number }[]>([]);
+    const [selectedProductsW, setSelectedProductsW] = useState<{ id: number; quantity: number }[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    
-    const [formData, setFormData] = useState<{
-        id: number | string;
-        productId: number | string;
-        productName: string;
-        quantity: number | string;
-        warehouseId: number | string;
-    }>({
-        id: "",
-        productId: "",
-        productName: "",
-        quantity: "",
+    const [warehouses, setWarehouses] = useState<any[]>([]); // Cambia 'any' por el tipo adecuado
+    const [formData, setFormData] = useState({
         warehouseId: "",
+        warehouseName: "",
     });
-
-    const [selectedStocks, setSelectedStocks] = useState<{ id: number; quantity: number }[]>([]);
+    const [typeMessage, setTypeMessage] = useState("error");
     
-    useEffect(() => { 
+    useEffect(() => {
+      const fetchInventories = async () => {
         setShowSpinner(true);
-        const fetchInventories  = async () => { 
-            setShowSpinner(true);
-            const session = await getSession(); 
-            try {
-                const data = await fetchInventoriesList(session?.user.token as string);
-                const dataProducts = await fetchProductsAvailable(session?.user.token as string);
-                setProducts(
-                    dataProducts.map((product: Product) => ({
-                      ...product,
-                      selectedQuantity: product.quantity, // Inicializar con la cantidad disponible
-                    }))
-                  );
-                const dataWarehouses = await fetchWarehousesList(session?.user.token as string);
-                setInventories(data);
-                setProducts(dataProducts.filter((product: Product) => product.quantity !== 0));
-                setWarehouses(dataWarehouses);
-              } catch (error) {
-                console.error("Error fetching:", error);
-                setErrorMessage("Error fetching");
-                setShowNotification(true);
-              }
-              finally{
-                setShowSpinner(false);
-                if (showNotification) {
-                const timer = setTimeout(() => {
-                    setShowNotification(false);
-                }, 10000); // 10 segundos
+        const session = await getSession();
+        try {
+            const dataProducts = await fetchProductsAvailable(
+                session?.user.token as string
+            );
+            const dataWarehouses = await fetchWarehousesList(
+                session?.user.token as string
+            );
             
-                return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-                }
-              }
-        }; 
-        fetchInventories (); 
-    }, [showRegister]);
+            // Separar productos asignados y no asignados
+            const unassigned = dataProducts.map((product: Product) => {
 
-    const columns: Column<Product>[] = React.useMemo(
+                const assignedQuantity = product.inventory?.quantity || 0;
+                const remainingQuantity = product.quantity - assignedQuantity;
+                return remainingQuantity > 0
+                ? { ...product, quantity: remainingQuantity }
+                : null; // Excluir productos sin cantidad pendiente
+            }).filter((product: Product | null): product is Product => product !== null);
+
+            const assigned = dataProducts.map((product: Product) => {
+                const assignedQuantity = product.inventory?.quantity || 0;
+
+                if (assignedQuantity > 0) {
+                const warehouse = dataWarehouses.find(
+                    (w: { id: number; name: string }) => Number(w.id) === Number(product.inventory?.warehouse_id)
+                );
+                return {
+                    ...product,
+                    quantity: assignedQuantity,
+                    warehouseName: warehouse ? warehouse.name : "Sin asignar",
+                };
+                }
+                return null; // Excluir productos sin cantidad asignada
+            }).filter((product: Product | null): product is Product => product !== null);
+
+            setWarehouses(dataWarehouses);
+            setProducts(
+                unassigned.map((product: Product) => ({
+                ...product,
+                selectedQuantity: product.quantity, // Inicializar con la cantidad disponible
+                }))
+            );
+            setAssignedProducts(assigned);
+
+        } catch (error) {
+          console.error("Error fetching:", error);
+          setErrorMessage("Error fetching");
+          setShowNotification(true);
+        } finally {
+          setShowSpinner(false);
+        }
+      };
+      fetchInventories();
+    }, []);
+
+    useEffect(()=>{
+        if (showNotification) {
+            const timer = setTimeout(() => {
+              setShowNotification(false);
+            }, 10000); // 10 segundos
+    
+            return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+          }
+    }, [showNotification])
+    
+    const unassignedColumns: Column<Product>[] = React.useMemo(
         () => [
-                        {
-              id: "selection",
-              Header: ({ getToggleAllRowsSelectedProps }) => (
-                <input
-                  type="checkbox"
-                  checked={selectedStocks.length === products.length}
-                  onChange={handleSelectAll}
-                />
-              ),
-              Cell: ({ row }: { row: { original: Product } }) => (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedStocks.some((item) => item.id === row.original.id)}
-                    onChange={() =>
-                      handleSelectStocks(row.original.id, row.original.selectedQuantity || row.original.quantity)
-                    }
-                  />
-                  
-                </div>
-              ),
-            },
             {
-                Header: "Producto",
-                accessor: (row) => row.name,
-                Cell: ({ cell }: { cell: { value: string } }) => (
-                    <span>{cell.value}</span>
+                id: "selection",
+                Header: ({ getToggleAllRowsSelectedProps }) => (
+                    <input
+                    type="checkbox"
+                    checked={selectedProducts.length === products.length}
+                    onChange={handleSelectAll}
+                    />
+                    ),
+                Cell: ({ row }: { row: { original: Product } }) => (
+                    <div className="flex items-center space-x-2">
+                        <input
+                        type="checkbox"
+                        checked={selectedProducts.some((item) => item.id === row.original.id)}
+                        onChange={() =>
+                            handleSelectProducts(row.original.id, row.original.selectedQuantity || row.original.quantity)
+                            }
+                        />
+                    </div>
                 ),
             },
+
+            { Header: "Nombre", accessor: "name" as keyof Product },
             {
                 Header: "Cantidad",
                 accessor: "quantity",
                 Cell: ({ row }: { row: { original: Product } }) => (
-                  <input
+                    <input
                     type="number"
                     min="1"
                     max={row.original.quantity} // El valor máximo es la cantidad disponible
                     value={row.original.selectedQuantity || row.original.quantity} // Mostrar la cantidad seleccionada o la cantidad original
                     onChange={(e) => handleQuantityChange(row.original.id, e.target.value)} // Manejar el cambio
                     className="w-full border rounded p-1 text-center"
-                  />
+                    />
                 ),
             },
-            {
-              Header: "Estatus",
-              accessor: (row: Product) => row.inventory,
-              Cell: ({ row }: { row: { original: Product } }) => (
-                <span
-                  className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                    row.original.inventory
-                      ? "bg-green-100 text-green-800" // Verde si tiene datos en `inventory`
-                      : "bg-red-100 text-red-800" // Rojo si `inventory` es null
-                  }`}
-                >
-                  {row.original.inventory ? "Asignado" : "No asignado"}
-                </span>
-              ),
-            },
-            
         ],
-        [selectedStocks, products]
+        [ products, selectedProducts ] // Dependencias para memoizar las columnas
     );
 
-    const handleQuantityChange = (productId: number, value: string) => {
-      const newQuantity = Math.min(Number(value), products.find((product) => product.id === productId)?.quantity || 0);
-    
-      // Actualizar la cantidad en el estado de productos
-      setProducts((prevProducts) =>
-        prevProducts.map((product) =>
-          product.id === productId
-            ? { ...product, selectedQuantity: newQuantity }
-            : product
-        )
-      );
-    
-      // Actualizar la cantidad en el estado de productos seleccionados
-      setSelectedStocks((prevSelected) =>
-        prevSelected.map((item) =>
-          item.id === productId ? { ...item, quantity: newQuantity } : item
-        )
-      );
-    };
+    const assignedColumns: Column<Product>[] = React.useMemo(
+      () => [
+        {
+            id: "selection",
+            Header: ({ getToggleAllRowsSelectedProps }) => (
+                <input
+                type="checkbox"
+                checked={selectedProductsW.length === assignedProducts.length}
+                onChange={handleSelectAllAssigned}
+                />
+                ),
+            Cell: ({ row }: { row: { original: Product } }) => (
+                <div className="flex items-center space-x-2">
+                    <input
+                    type="checkbox"
+                    checked={selectedProductsW.some((item) => item.id === row.original.id)}
+                    onChange={() =>
+                        handleSelectProductsAssigned(row.original.id, row.original.selectedQuantity || row.original.quantity)
+                        }
+                    />
+                </div>
+            ),
+        },
+        { Header: "Nombre", accessor: "name" as keyof Product },
+        { Header: "Cantidad", accessor: "quantity" as keyof Product },
+        {
+          Header: "Almacén",
+          accessor: "warehouseName" as keyof Product, // Usar el campo preprocesado
+          Cell: ({ row }: { row: { original: Product } }) => row.original.warehouseName || "Sin asignar",
+        },
+      ],
+      [assignedProducts, selectedProductsW]
+    );
+      
 
-        const handleSelectStocks = (id: number, quantity: number) => {
-      setSelectedStocks((prevSelected) => {
+   
+    const unassignedTableInstance = useTable(
+      {
+        columns: unassignedColumns,
+        data: products, // Datos de productos sin asignar
+        initialState: { pageIndex: 0, pageSize: 10 },
+      },
+      useSortBy,
+      usePagination
+    );
+    
+    const assignedTableInstance = useTable(
+      {
+        columns: assignedColumns,
+        data: assignedProducts, // Datos de productos asignados
+        initialState: { pageIndex: 0, pageSize: 10 },
+      },
+      useSortBy,
+      usePagination
+    );
+
+    const {
+      getTableProps: getUnassignedTableProps,
+      getTableBodyProps: getUnassignedTableBodyProps,
+      headerGroups: unassignedHeaderGroups,
+      rows: unassignedRows,
+      prepareRow: prepareUnassignedRow,
+      page: unassignedPage,
+      canPreviousPage: canUnassignedPreviousPage,
+      canNextPage: canUnassignedNextPage,
+      pageOptions: unassignedPageOptions,
+      nextPage: unassignedNextPage,
+      previousPage: unassignedPreviousPage,
+      state: { pageIndex: unassignedPageIndex, pageSize: unassignedPageSize },
+      setPageSize: setUnassignedPageSize,
+    } = unassignedTableInstance;
+    
+    const {
+      getTableProps: getAssignedTableProps,
+      getTableBodyProps: getAssignedTableBodyProps,
+      headerGroups: assignedHeaderGroups,
+      rows: assignedRows,
+      prepareRow: prepareAssignedRow,
+      page: assignedPage,
+      canPreviousPage: canAssignedPreviousPage,
+      canNextPage: canAssignedNextPage,
+      pageOptions: assignedPageOptions,
+      nextPage: assignedNextPage,
+      previousPage: assignedPreviousPage,
+      state: { pageIndex: assignedPageIndex, pageSize: assignedPageSize },
+      setPageSize: setAssignedPageSize,
+    } = assignedTableInstance;
+
+    const handlePageSizeChange: (e: React.ChangeEvent<HTMLSelectElement>) => void = (e) => {
+        setPageSize(Number(e.target.value));
+    };
+    const handleAddWarehouse = async () => {
+        console.log("Asignar Almacen");
+        setIsModalOpen(true);
+    }
+
+    const handleRemoveWarehouse = async () => {
+        console.log("Remover Almacen");
+        const result = await Swal.fire({
+            title: '¿Estás seguro de Remover Alamacen?',
+            text: "No podrás revertir esto!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#72cb10',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminarlo!'
+        });
+        if(result.isConfirmed){
+            setShowSpinner(true);
+            const session = await getSession(); 
+            const response = await removeAssignedInventory(
+                session?.user.token as string,
+                selectedProductsW.map((product) => ({
+                    id: product.id
+                }))
+            );
+            if(response){
+                const selectedIds = selectedProductsW.map(p => p.id);
+                const selectedMap = new Map(selectedProductsW.map(p => [p.id, p]));
+
+                // 1. Actualizar el array de products
+                const updatedProducts = products.map(product => {
+                    if (selectedIds.includes(product.id)) {
+                    const selected = selectedMap.get(product.id);
+                    return {
+                        ...product,
+                        selectedQuantity: product.quantity + (selected?.quantity || 0),
+                        quantity: product.quantity + (selected?.quantity || 0),
+                    };
+                    }
+                    return product;
+                });
+
+                // 2. Agregar los productos que estaban solo en assignedProducts (no en products)
+                assignedProducts.forEach(product => {
+                    const isSelected = selectedIds.includes(product.id);
+                    const existsInProducts = products.some(p => p.id === product.id);
+
+                    if (isSelected && !existsInProducts) {
+                    const selected = selectedMap.get(product.id);
+                    updatedProducts.push({
+                        ...product,
+                        quantity: selected?.quantity || product.quantity,
+                    });
+                    }
+                });
+
+                // 3. Remover los seleccionados del estado assignedProducts
+                const updatedAssigned = assignedProducts.filter(
+                    product => !selectedIds.includes(product.id)
+                );
+
+                // 4. Actualizar los estados
+                setProducts(updatedProducts);
+                setAssignedProducts(updatedAssigned);    
+                
+
+                setShowNotification(true);
+                setTypeMessage("success");
+                setErrorMessage("Se removió el almacen exitosamente"); 
+                setShowSpinner(false);
+            }
+        }
+        else{
+            setShowSpinner(false);
+        }
+    }
+
+    const handleSelectProducts = (id: number, quantity: number) => {
+      setSelectedProducts((prevSelected) => {
         const exists = prevSelected.find((item) => item.id === id);
         if (exists) {
           // Si ya está seleccionado, lo eliminamos
@@ -176,11 +327,27 @@ const StockPage = () => {
       });
     };
 
+    const handleSelectProductsAssigned = (id: number, quantity: number) => {
+        setSelectedProductsW((prevSelected) => {
+          const exists = prevSelected.find((item) => item.id === id);
+          if (exists) {
+            // Si ya está seleccionado, lo eliminamos
+            return prevSelected.filter((item) => item.id !== id);
+          } else {
+            // Si no está seleccionado, lo agregamos con la cantidad actual
+            return [...prevSelected, { id, quantity }];
+          }
+        });
+      };
+
     const handleSelectAll = () => {
-      if (selectedStocks.length === products.length) {
-        setSelectedStocks([]); // Deseleccionar todos
+        console.log("-------------------handleSelectAll----------------");
+        console.log("selectedProducts=", selectedProducts);
+        console.log("products=", products);
+      if (selectedProducts.length === products.length) {
+        setSelectedProducts([]); // Deseleccionar todos
       } else {
-        setSelectedStocks(
+        setSelectedProducts(
           products.map((product) => ({
             id: product.id,
             quantity: product.selectedQuantity || product.quantity,
@@ -189,226 +356,156 @@ const StockPage = () => {
       }
     };
 
-    const {
-        getTableProps,
-        getTableBodyProps,
-        headerGroups,
-        rows,
-        prepareRow,
-        page, // Filas de la página actual
-        canPreviousPage,
-        canNextPage,
-        pageOptions,
-        nextPage,
-        previousPage,
-        state: { pageIndex, pageSize },
-        setPageSize,
-    } = useTable(
-        {
-            columns,
-            data: products,
-            initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
-        },
-        useSortBy, // Agregar el plugin de ordenación
-        usePagination // Agregar el plugin de paginación
-    );
-    
-    useEffect(() => { 
-        const timer = setTimeout(() => {
-            setShowNotification(false);
-        }, 10000); // 10 segundos
-    
-        return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-    }, [showNotification]);
-
-    const handleAddRegisterClick = () => {
-        setShowRegister(true);
-        setTypeRequest("create");
-        cleanInputs();
-        setAvailable(0);
-    };
-
-    const handleBackClick = () => {
-        setShowRegister(false);
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { 
-        const { name, value } = e.target; 
-        setFormData({ 
-            ...formData, 
-            [name]: value 
-        });
-        if (name === 'productId'){
-            const selectedProduct = products.find(product => product.id === parseInt(e.target.value));
-            const selectedWarehouse = formData.warehouseId;
-            const existingInventory = inventories.find(inventory => 
-                inventory.product_id === Number(selectedProduct?.id) && 
-                inventory.warehouse.id === Number(selectedWarehouse)
-            );
-            if (existingInventory) {
-                setErrorMessage(`El producto ${existingInventory?.product.name} ya está incluido en el inventario del almacén ${existingInventory?.warehouse.name}`);
-                setShowNotification(true);
-                setTypeMessage("error");
-                setBtnAction(true);
-            } else {
-                setAvailable(selectedProduct ? selectedProduct.quantity : 0);
-                setBtnAction(false);
-            }
+    const handleSelectAllAssigned = () => {
+        console.log("-------------------handleSelectAllAssigned----------------");
+        console.log("selectedProductsW=", selectedProductsW);
+        console.log("products=", assignedProducts);
+        if (selectedProductsW.length === assignedProducts.length) {
+            console.log("selectedProductsW.length=", selectedProductsW.length);
+          setSelectedProductsW([]); // Deseleccionar todos
+        } else {
+          setSelectedProductsW(
+            assignedProducts.map((product) => ({
+              id: product.id,
+              quantity: product.selectedQuantity || product.quantity,
+            }))
+          ); // Seleccionar todos con sus cantidades actuales
         }
+      };
 
-        if(name === 'quantity') {
-            if(Number(value) > available){
-                setTypeMessage("error");
-                setBtnAction(true);
-                setErrorMessage("Cantidad Ingresada es Mayor a la disponible");
-                setShowNotification(true);
-            }
-            else{
-                setBtnAction(false);
-            }
-        }
+    const handleQuantityChange = (id: number, value: string) => {
+        const Newquantity = Math.min(Number(value), products.find((product) => product.id === id)?.quantity || 0);
+        const quantity = Newquantity < 1 ? 1 : Newquantity; // Asegurarse de que la cantidad sea al menos 1
+        setSelectedProducts((prevSelected) =>
+            prevSelected.map((item) =>
+                item.id === id ? { ...item, quantity } : item
+            )
+        );
+        // Actualizar la cantidad seleccionada en el estado de productos
+        setProducts((prevProducts) =>
+            prevProducts.map((product) =>
+                product.id === id ? { ...product, selectedQuantity: quantity } : product
+            )
+        );
     };
 
-    const handleError = (errors: ErrorResponse) => { 
-        console.error("Error actualizando o guardando registro:", errors.message || errors);
-        setShowNotification(true); 
-        setTypeMessage("error"); 
-        setErrorMessage(errors.status === 400 ? errors.response.data.message : "Error actualizando o guardando registro"); 
-        setShowSpinner(false); 
+    const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const { name, value } = e.target;
+
+        const selectedWarehouse = warehouses.find(
+            (w: { id: number; name: string }) => Number(w.id) === Number(e.target.value)
+          );
+        
+          setFormData((prevData) => ({
+            ...prevData,
+            [name]: value,
+            warehouseName: selectedWarehouse.name,
+        }));
     };
-    
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      try {
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         setShowSpinner(true);
         setIsModalOpen(false);
         const session = await getSession();
-        if (selectedStocks && selectedStocks.length > 0) {
-            const response = await registerInventory(
+        try{
+
+            //Validar si existe en el inventario un producto asignado en un almacen para actulizar el producto.
+            const commonProducts  = selectedProducts.filter(sp =>
+                assignedProducts.some(ap => ap.id === sp.id)
+            );
+            //Validar que productos no estan asignados para realizar un registro desde cero
+            const differenceProducts = selectedProducts.filter(sp =>
+                !assignedProducts.some(ap => ap.id === sp.id)
+            );
+
+            const response = await saveInventory(
                 session?.user.token as string,
-                selectedStocks.map((item) => ({
-                    id: item.id,
-                    quantity: item.quantity,
+                formData.warehouseId,
+                differenceProducts.map((product) => ({
+                    id: product.id,
+                    quantity: product.quantity,
                 })),
-                Number(formData.warehouseId)
+                commonProducts.map((product) => ({
+                    id: product.id,
+                    quantity: product.quantity,
+                }))
             );
-          if (response) {
-            console.log("Registro exitoso:", response);
-            setProducts((prevProducts) =>
-              prevProducts.map((product) =>
-                selectedStocks.some((item) => item.id === product.id)
-                  ? { ...product, quantity: product.quantity - Number(formData.quantity) }
-                  : product
-              )
-            );
+            if (response) {
+                console.log("Asignación exitosa:", response);
+                // Actualizar las listas de productos
+                setProducts((prevProducts) =>
+                    prevProducts
+                    .map((product) => {
+                        const selectedProduct = selectedProducts.find((item) => item.id === product.id);
+                        if (selectedProduct) {
+                            const remainingQuantity = product.quantity - selectedProduct.quantity;
+                            return remainingQuantity > 0
+                                ? { ...product, quantity: remainingQuantity, selectedQuantity: remainingQuantity }
+                                : undefined; // Cambiar null por undefined
+                        }
+                        return product;
+                    })
+                    .filter((product): product is Product => product !== undefined) // Filtrar valores undefined
+                );
+                
+                //Agrega los nuevos productos a la tabla
+                setAssignedProducts((prevAssigned) =>
+                    prevAssigned.concat(
+                        differenceProducts.map((product) => {
+                            const originalProduct = products.find((p) => p.id === product.id);
+                            return {
+                                ...originalProduct,
+                                warehouseId: Number(formData.warehouseId),
+                                warehouseName: formData.warehouseName,
+                                quantity: product.quantity,
+                                } as Product;
+                        })
+                    )
+                );
+
+                //Actualiza el inventario existente
+                setAssignedProducts(prevProducts =>
+                    prevProducts.map(product => {
+                      const commonProduct = commonProducts.find(p => p.id === product.id);
+                      if (commonProduct) {
+                        return {
+                          ...product,
+                          quantity: product.quantity + commonProduct.quantity
+                        };
+                      }
+                      return product;
+                    })
+                  );
+
+                // Limpiar selección y formulario
+                setSelectedProducts([]);
+                setFormData({ 
+                    warehouseId: "",
+                    warehouseName: ""  
+                });
+
+                // Mostrar notificación de éxito
+                setTypeMessage("success");
+                setErrorMessage("Asignación exitosa");
+                setShowNotification(true);
+                
+                setTimeout(() => {
+                    setShowNotification(false);
+                }, 10000); // 10 segundos
+            } 
+
+        } catch (error) {
+            console.error("Error:", error);
+            setErrorMessage("Error al asignar el almacen");
             setShowNotification(true);
-            setTypeMessage("success");
-            setErrorMessage("El registro fue guardado exitosamente");
+        } finally {
             setShowSpinner(false);
-          }
-        }
-      } catch (error) {
-        handleError(error as ErrorResponse);
-      }
-    };
-
-    const cleanInputs = () =>{
-        formData.quantity = "";
-        formData.productId = "";
-        formData.warehouseId = "";
-
-    }
-    const handleEditClick = (inventory: Inventory) => {
-        // Encuentra el producto correspondiente
-        const selectedProduct = products.find(product => product.id === Number(inventory.product_id));
-        
-        // Calcula el máximo permitido solo si el producto correspondiente existe
-        const maxQuantity = selectedProduct ? inventory.quantity + selectedProduct.quantity : inventory.quantity;
-        
-        // Establece el estado disponible con el máximo permitido
-        setAvailable(maxQuantity);
-        setShowRegister(true);
-        setFormData({
-            id: inventory.id.toString(),
-            productId: inventory.product_id.toString(),
-            productName: inventory.product.name,
-            quantity: inventory.quantity.toString(),
-            warehouseId: inventory.warehouse.id.toString(),
-        });
-        setTypeRequest("update");
+        }        
     };
     
-    const handleDelete = async (id: number) => {
-        Swal.fire({
-                    title: '¿Estás seguro de que deseas eliminar este lote?',
-                    text: "No podrás revertir esto.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, eliminarlo!'
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        setShowSpinner(true);
-                        const session = await getSession(); 
-                        const response = await deleteInventory(session?.user.token as string, id);
-                        if(response === 204){
-                            setInventories(inventories.filter(inventory => inventory.id !== id));
-                            setShowNotification(true);
-                            setTypeMessage("success");
-                            setErrorMessage("El registro fue eliminado exitosamente"); 
-                            setShowSpinner(false);
-                        } else {
-                            setShowNotification(true);
-                            setErrorMessage('Error al eliminar el registro');
-                            setTypeMessage('error');
-                            setShowSpinner(false);
-                        }
-                    }
-                })
-        
-        
-    };
-
-    const updateProductQuantity = (productId: number, available: number) => {
-        setProducts((prevProducts) =>
-          prevProducts.map((product) =>
-            product.id === productId
-              ? { ...product, quantity: product.quantity - available }
-              : product
-          )
-        );
-      };
-
-      
-    // Determinar el texto del botón basado en el estado 
-    const buttonText = typeRequest === 'create' ? 'Guardar' : 'Actualizar';
-
-    const cards = [
-        { title: "Total Productos", value: products.length },
-        { title: "Total Almacenes", value: warehouses.length },
-        { title: "Total Registros", value: inventories.length },
-        { title: "Total Cantidad", value: inventories.reduce((acc, inventory) => acc + inventory.quantity, 0) },
-    ];
-
-    const handleAddStock = () => {
-        setIsModalOpen(true);
-        //setShowRegister(true);
-        setTypeRequest("create");
-        cleanInputs();
-        setAvailable(0);
-    };
-
-    const handleAddWarehouse = () => {
-        setIsModalOpen(true);
-        cleanInputs();
-        setAvailable(0);
-    };
-
-
-
-    return(
-        <>
+    return (
+        <div>
             <div>
                 {showSpinner && (
                     <div className="spinner-container">
@@ -416,10 +513,6 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                     </div>              
                 )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <InfoCardGrid cards={cards}/>
-            </div>
-            
             <div>
                 {showNotification && errorMessage && (
                     <Notification
@@ -429,204 +522,318 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                     />
                 )} 
             </div>
-
             <div>
-                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast pb-5">
-                    <div className="">
-                        <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
-                        <select
-                            id="pageSize"
-                            value={pageSize}
-                            onChange={(e) => {
-                                const value = Number(e.target.value);
-                                setPageSize(value);
-                            }}
-                            className="border rounded p-1"
-                        >
-                            {[5, 10, 20, 50].map((size) => (
-                                <option key={size} value={size}>
-                                    {size}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="inline-flex rounded-md shadow-sm text-primary-contrast" role="group">
-                        <button type="button" onClick={() => {
-                            handleAddWarehouse();
-                            }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
-                                <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z" clipRule="evenodd" />
-                            </svg>
-                            Asignar Almacen
-                        </button>
-                        
-                        
-                    </div>
-                </div>
-            </div>
-            <div className="overflow-x-auto hidden md:block">
-                    <table
-                        {...getTableProps()}
-                        className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                                                        <thead className="text-xs text-gray-700 uppercase border-b border-t">
-                              {headerGroups.map((headerGroup) => {
-                                const { key, ...restHeaderGroupProps } = headerGroup.getHeaderGroupProps(); // Extraer `key`
-                                return (
-                                  <tr key={key} {...restHeaderGroupProps}>
-                                    {headerGroup.headers.map((column) => {
-                                      const { key: columnKey, ...restColumnProps } = column.getHeaderProps(column.getSortByToggleProps()); // Extraer `key`
-                                      return (
-                                        <th
-                                          key={columnKey}
-                                          {...restColumnProps}
-                                          className="px-4 py-2 cursor-pointer border-t border-b border-gray-200"
-                                        >
-                                          {column.render("Header")}
-                                          {column.canSort && (
-                                            <span>
-                                              {column.isSorted
-                                                ? column.isSortedDesc
-                                                  ? " ↓"
-                                                  : " ↑"
-                                                : " ↓↑"}
-                                            </span>
-                                          )}
-                                        </th>
-                                      );
-                                    })}
-                                  </tr>
-                                );
-                              })}
-                            </thead>
-                                                        <tbody {...getTableBodyProps()}>
-                              {page.map((row) => {
-                                prepareRow(row);
-                                const { key, ...restRowProps } = row.getRowProps(); // Extraer `key`
-                                return (
-                                  <tr key={key} {...restRowProps} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
-                                    {row.cells.map((cell) => {
-                                      const { key: cellKey, ...restCellProps } = cell.getCellProps(); // Extraer `key`
-                                      return (
-                                        <td key={cellKey} {...restCellProps} className="px-4 py-2">
-                                          {cell.render("Cell")}
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                    </table>
-            </div>
-            
-            <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
-                <button
-                    onClick={() => previousPage()}
-                    disabled={!canPreviousPage}
-                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                        <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
-                    </svg>
-                </button>
-
-                <span className="mx-2">
-                    Página{' '}
-                    <strong>
-                        {pageIndex + 1} de {pageOptions.length}
-                    </strong>
-                </span>
-
-                <button
-                    onClick={() => nextPage()}
-                    disabled={!canNextPage}
-                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                        <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
-                    </svg>
-                </button>
-            </div>
-            
-            <div className="block md:hidden mt-2 space-y-4">
-                  {inventories?.map((inventory) => (
-                    <div key={inventory.id} className="p-4 bg-white rounded-lg shadow border border-gray-300">
-                      <p>
-                        <span className="font-semibold">Almacen:</span> {inventory.warehouse?.name || "Sin información"}
-                        <hr />
-                        <span className="font-semibold">Producto:</span> {inventory.product?.name || "Sin información"}
-                        <hr />
-                        <span className="font-semibold">Cantidad:</span> {inventory.quantity || 0}
-                        <hr />
-                        <span className="font-semibold">Actualización:</span>{" "}
-                        {inventory.updated_at
-                          ? format(new Date(inventory.updated_at), "dd/MM/yyyy HH:mm:ss")
-                          : "Sin información"}
-                        <hr />
-                      </p>
-                
-                      <div className="mt-2 flex justify-end space-x-2">
+                {/* Tabs */}
+                <ul className="flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200">
+                    <li className="mr-2">
                         <button
-                          onClick={() => handleEditClick(inventory)}
-                          className="text-blue-600 hover:underline"
+                        onClick={() => setActiveTab("unassigned")}
+                        className={`inline-block p-4 rounded-t-lg ${
+                            activeTab === "unassigned"
+                            ? "text-blue-600 bg-gray-100"
+                            : "hover:text-gray-600 hover:bg-gray-50"
+                        }`}
                         >
-                          Editar
+                            Productos sin asignar
                         </button>
+                    </li>
+                    <li className="mr-2">
                         <button
-                          onClick={() => handleDelete(inventory.id)}
-                          className="text-red-600 hover:underline"
+                        onClick={() => setActiveTab("assigned")}
+                        className={`inline-block p-4 rounded-t-lg ${
+                            activeTab === "assigned"
+                            ? "text-blue-600 bg-gray-100"
+                            : "hover:text-gray-600 hover:bg-gray-50"
+                        }`}
                         >
-                          Eliminar
+                        Productos asignados
                         </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Modal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    title="Agregar Almacen"
-                    >
-                    <form onSubmit={handleSubmit}>
-                        <div className="grid gap-6 mb-6 md:grid-cols-1 text-primary-contrast">
-                            <div>
-                                <label htmlFor="warehouseId" className="block mb-2 text-sm font-medium">
-                                    Almacen
-                                </label>
-                                <select
-                                    id="warehouseId"
-                                    name="warehouseId"
-                                    value={formData.warehouseId}
-                                    onChange={handleInputChange}
-                                    className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                    required
+                    </li>
+                </ul>
+                {/* Tab Content */}
+                <div>
+                    {activeTab === "unassigned" && (
+                    <div>
+                        <div>
+                            <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast pb-5">
+                                <div className="">
+                                    <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
+                                    <select
+                                        id="pageSize"
+                                        value={unassignedPageSize}
+                                        onChange={(e) => setUnassignedPageSize(Number(e.target.value))}
+                                        className="border rounded p-1"
                                     >
-                                    <option value="">
-                                        Seleccione un Almacen
-                                    </option>
-                                    {warehouses?.map((item) => (
+                                        {[5, 10, 20, 50].map((size) => (
+                                            <option key={size} value={size}>
+                                                {size}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="inline-flex rounded-md shadow-sm text-primary-contrast" role="group">
+                                    <button type="button" onClick={() => {
+                                        handleAddWarehouse();
+                                        }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                            <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z" clipRule="evenodd" />
+                                        </svg>
+                                        Asignar Almacen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto hidden md:block">
+                            <table {...getUnassignedTableProps()} className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                <thead className="text-xs text-gray-700 uppercase border-b border-t">
+                                    {unassignedHeaderGroups.map((headerGroup) => {
+                                        const { key, ...restHeaderGroupProps } = headerGroup.getHeaderGroupProps(); // Extraer `key`
+                                        return (
+                                            <tr key={key} {...restHeaderGroupProps}>
+                                                {headerGroup.headers.map((column) => {
+                                                    const { key: columnKey, ...restColumnProps } = column.getHeaderProps(column.getSortByToggleProps()); // Extraer `key`
+                                                    return (
+                                                        <th
+                                                            key={columnKey}
+                                                            {...restColumnProps}
+                                                            className="px-4 py-2 cursor-pointer border-t border-b border-gray-200"
+                                                        >
+                                                            {column.render("Header")}
+                                                            {column.canSort && (
+                                                                <span>
+                                                                    {column.isSorted
+                                                                        ? column.isSortedDesc
+                                                                            ? " ↓"
+                                                                            : " ↑"
+                                                                        : " ↓↑"}
+                                                                </span>
+                                                            )}
+                                                        </th>
+                                                    );
+                                                })}
+                                            </tr>
+                                        );
+                                    })}
+                                </thead>
+                                <tbody {...getUnassignedTableBodyProps()}>
+                                    {unassignedPage.map((row) => {
+                                        prepareUnassignedRow(row);
+                                        const { key, ...restRowProps } = row.getRowProps(); // Extraer `key`
+                                        return (
+                                            <tr key={key} {...restRowProps} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
+                                                {row.cells.map((cell) => {
+                                                    const { key: cellKey, ...restCellProps } = cell.getCellProps(); // Extraer `key`
+                                                    return (
+                                                        <td key={cellKey} {...restCellProps} className="px-4 py-2">
+                                                            {cell.render("Cell")}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* Paginación */}
+                        <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
+                            <button
+                                onClick={() => unassignedPreviousPage()}
+                                disabled={!canUnassignedPreviousPage}
+                                className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                    <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+
+                            <span className="mx-2">
+                                Página{' '}
+                                <strong>
+                                    {unassignedPageIndex + 1} de {unassignedPageOptions.length}
+                                </strong>
+                            </span>
+
+                            <button
+                                onClick={() => unassignedNextPage()}
+                                disabled={!canUnassignedNextPage}
+                                className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                    <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    )}
+                    {/* Productos Asignados */}
+                    {activeTab === "assigned" && (
+                        <div>
+                            <div>
+                                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast pb-5">
+                                    <div className="">
+                                        <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
+                                        <select
+                                            id="pageSize"
+                                            value={assignedPageSize}
+                                            onChange={(e) => setAssignedPageSize(Number(e.target.value))}
+                                            className="border rounded p-1"
+                                        >
+                                            {[5, 10, 20, 50].map((size) => (
+                                                <option key={size} value={size}>
+                                                    {size}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="inline-flex rounded-md shadow-sm text-primary-contrast" role="group">
+                                        <button type="button" onClick={() => {
+                                            handleRemoveWarehouse();
+                                            }}  className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                                                <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm4-7a.75.75 0 0 0-.75-.75h-6.5a.75.75 0 0 0 0 1.5h6.5A.75.75 0 0 0 12 8Z" clipRule="evenodd" />
+                                            </svg>
+                                            Remover Almacen
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto hidden md:block">
+                                <table {...getAssignedTableProps()} className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                    <thead className="text-xs text-gray-700 uppercase border-b border-t">
+                                        {assignedHeaderGroups.map((headerGroup) => {
+                                            const { key, ...restHeaderGroupProps } = headerGroup.getHeaderGroupProps(); // Extraer `key`
+                                            return (
+                                                <tr key={key} {...restHeaderGroupProps}>
+                                                    {headerGroup.headers.map((column) => {
+                                                        const { key: columnKey, ...restColumnProps } = column.getHeaderProps(column.getSortByToggleProps()); // Extraer `key`
+                                                        return (
+                                                            <th
+                                                                key={columnKey}
+                                                                {...restColumnProps}
+                                                                className="px-4 py-2 cursor-pointer border-t border-b border-gray-200"
+                                                            >
+                                                                {column.render("Header")}
+                                                                {column.canSort && (
+                                                                    <span>
+                                                                        {column.isSorted
+                                                                            ? column.isSortedDesc
+                                                                                ? " ↓"
+                                                                                : " ↑"
+                                                                            : " ↓↑"}
+                                                                    </span>
+                                                                )}
+                                                            </th>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            );
+                                        })}
+                                    </thead>
+                                    <tbody {...getAssignedTableBodyProps()}>
+                                        {assignedPage.map((row) => {
+                                            prepareAssignedRow(row);
+                                            const { key, ...restRowProps } = row.getRowProps(); // Extraer `key`
+                                            return (
+                                                <tr key={key} {...restRowProps} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
+                                                    {row.cells.map((cell) => {
+                                                        const { key: cellKey, ...restCellProps } = cell.getCellProps(); // Extraer `key`
+                                                        return (
+                                                            <td key={cellKey} {...restCellProps} className="px-4 py-2">
+                                                                {cell.render("Cell")}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+
+                                {/* Paginación */}
+                                
+                                <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
+                                    <button
+                                        onClick={() => assignedPreviousPage()}
+                                        disabled={!canAssignedPreviousPage}
+                                        className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                            <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+
+                                    <span className="mx-2">
+                                        Página{' '}
+                                        <strong>
+                                            {assignedPageIndex + 1} de {assignedPageOptions.length}
+                                        </strong>
+                                    </span>
+
+                                    <button
+                                        onClick={() => assignedNextPage()}
+                                        disabled={!canAssignedNextPage}
+                                        className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                            <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* Modal para agregar Almacen */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Agregar Almacen"
+                >
+                <form onSubmit={handleSubmit}>
+                    <div className="grid gap-6 mb-6 md:grid-cols-1 text-primary-contrast">
+                        <div>
+                            <label htmlFor="warehouseId" className="block mb-2 text-sm font-medium">
+                                Almacen
+                            </label>
+                            <select
+                                id="warehouseId"
+                                name="warehouseId"
+                                value={formData.warehouseId}
+                                onChange={handleInputChange}
+                                className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                required
+                            >
+                                <option value="">
+                                    Seleccione un Almacen
+                                </option>
+                                {warehouses?.map((item) => (
                                     <option key={item.id} value={item.id}>
                                         {item.name}
                                     </option>
-                                    ))}
-                                </select>
-                            </div>
+                                ))}
+                            </select>
                         </div>
-                        <button
-                            type="submit"
-                            className="w-full p-2 bg-primary text-white rounded-lg"
-                        >
-                            Guardar
-                        </button>
-                        
-                    </form>
-                </Modal>
-                
-        </>
-    )
-    
-}
+                    </div>
+                    <button
+                    type="submit"
+                    className="w-full p-2 bg-primary text-white rounded-lg"
+                    >
+                        Guardar
+                    </button>
+                </form>
+            </Modal>
+        </div>
+        
+    );
+};
 
 export default StockPage;
+
+function setPageSize(arg0: number) {
+    throw new Error("Function not implemented.");
+}

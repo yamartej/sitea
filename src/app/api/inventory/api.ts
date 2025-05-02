@@ -167,6 +167,34 @@ export const fetchWarehousesList = async (token: string) => {
       throw error;
     }
   };
+
+  export const removeAssignedInventory = async (
+    token: string, 
+    product_ids: {
+      id: number
+    }[],
+    ) => {
+    try {
+      const response = await axios.post(`${apiUrl}/inventory/removeAssignedInventory`,
+        {
+          product_ids,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response; // Retornar solo los datos necesarios
+    } catch (error: any) {
+      console.error("Error en la respuesta de registro:", error);
+      if (error.response && error.response.data && error.response.data.errors) {
+        throw error.response.data.errors;
+      }
+      throw error;
+    }
+  };
   
   export const updateInventory = async (
     token: string,
