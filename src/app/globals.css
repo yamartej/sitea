@@ -86,8 +86,6 @@
   color: #434343; /* Asegura que el texto sea blanco para buena legibilidad */
 }
 
-
-
 .bg-add-options {
   background-color: #f2e269;
   border-color: #f2e269; /* Asegura que el borde sea del mismo color que el fondo */
@@ -107,4 +105,20 @@
 .bg-remove-list:hover {
   background-color: #cd5c5c; /* Un tono más oscuro para el hover */
   color: white;
+}
+
+.text-edit{
+  color: #a7b811;
+}
+
+.text-edit:hover{
+  color: #6e5b28;
+}
+
+.text-cancel{
+  color: #d71212;
+}
+
+.text-cancel:hover{
+  color: #864e42;
 }

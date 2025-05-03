@@ -250,7 +250,30 @@ export const fetchWarehousesList = async (token: string) => {
 
   export const fetchProductsAvailable = async (token: string) => {
     try {
-        const response = await axios.get(`${apiUrl}/products/with-batch-and-status`, {
+        const response = await axios.get(`${apiUrl}/products/with-costs`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        return response.data;
+      } catch (error: any) {
+        if (error.response) {
+          // Error de respuesta del servidor.
+          console.error("Error en la API:", error.response.status, error.response.data);
+        } else if (error.request) {
+          // La solicitud se hizo, pero no se recibió respuesta.
+          console.error("Sin respuesta de la API:", error.request);
+        } else {
+          // Error al configurar la solicitud.
+          console.error("Error al configurar Axios:", error.message);
+        }
+        throw error; // Re-lanza el error si es necesario.
+      }      
+  };
+
+  export const fetchBatchesListReceived = async (token: string) => {
+    try {
+        const response = await axios.get(`${apiUrl}/batches/getBatchesReceived`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

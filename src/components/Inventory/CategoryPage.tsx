@@ -253,14 +253,14 @@ const CategoryPage = () =>{
 
     return(
         <>
-        <div>
-        {showSpinner && (
-            <div className="spinner-container">
-                <Spinner/>  
-            </div>              
-            )}
+            <div>
+                {showSpinner && (
+                    <div className="spinner-container">
+                        <Spinner/>  
+                    </div>              
+                    )}
 
-        </div>
+            </div>
         <div>
             {showNotification && errorMessage && (
                 <Notification

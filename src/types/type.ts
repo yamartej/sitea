@@ -80,6 +80,8 @@ export type Product = {
   inventory: Inventory;
   warehouseId?: Number;
   warehouseName: string;
+  price_shipping: Number;
+  final_cost: Number;
 }
 
 export type Inventory = {
