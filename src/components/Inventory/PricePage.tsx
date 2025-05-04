@@ -7,7 +7,7 @@ import Spinner from "../Common/Spinner/SpinnerPage";
 import Swal from "sweetalert2";
 import { useTable, usePagination, Column, useSortBy } from 'react-table';
 import Modal from "../Common/Modal/ModalPage";
-import { fetchProductsAvailable } from "@/app/api/inventory/api";
+import { fetchProductsAvailable, updateFinalCost} from "@/app/api/inventory/api";
 
 
 const PricePage = () =>{
@@ -19,6 +19,10 @@ const PricePage = () =>{
     const [typeMessage, setTypeMessage] = useState("error");
     const [editRowId, setEditRowId] = useState<number | null>(null);
     const [editedCost, setEditedCost] = useState<string>('');
+    const [formData, setFormData] = useState({
+        final_cost: "",
+    });
+    
     
     useEffect (() =>{
         const PriceManegement = async () =>{
@@ -36,14 +40,7 @@ const PricePage = () =>{
             }
             finally{
                 setShowSpinner(false);
-                if (showNotification) {
-                const timer = setTimeout(() => {
-                    setShowNotification(false);
-                }, 10000); // 10 segundos
-            
-                return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-                }
-              }
+            }
         }; 
         PriceManegement(); 
     }, []);
@@ -66,20 +63,23 @@ const PricePage = () =>{
             Header: 'Precio Final',
             accessor: 'final_cost',
             Cell: ({ row }: { row: { original: Product } }) => {
-                const isEditing = editRowId === row.original.id;
-              
                 return (
                   <div>
-                    {isEditing ? (
+                    {editRowId === row.original.id ? (
                       <div className="flex space-x-2">
                         <input
-                          type="text"
-                          value={row.original.final_cost?.toString()}
-                          className="w-full border rounded p-1 text-center"
+                        id="final_cost"
+                        name="final_cost"
+                        type="text"
+                            value={editedCost}
+                            onChange={handleInputChange}
+                            
+                            className="w-full border rounded p-1 text-center"
+                            autoFocus
                         />
                         <button
                             className="text-primary"
-                            onClick={() => handleSaveClick(row.original)}
+                            onClick={() => handleSaveFinalCost(row.original.id)}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
                                 <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
@@ -88,7 +88,7 @@ const PricePage = () =>{
                         </button>
                         <button
                             className="text-cancel"
-                            onClick={() => handleCancelClick()}
+                            onClick={() => setEditRowId(null)}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
                                 <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
@@ -97,17 +97,14 @@ const PricePage = () =>{
                       </div>
                     ) : (
                       <div className="flex space-x-2">
-                        <div>{row.original.final_cost ? row.original.final_cost.toString() : " "}</div>
+                        <div>{Number(row.original.final_cost)}</div>
                         <button
                                 className="text-edit"
-                                onClick={() => setEditRowId(row.original.id)}
+                                onClick={() => handleEditClick(row.original.id, Number(row.original.final_cost))}
                             >
                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
                                     <path d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
                                 </svg>
-
-
-
                             </button>
                         
                       </div>
@@ -119,7 +116,7 @@ const PricePage = () =>{
           },
           
         ],
-        [products,editRowId]
+        [products, editRowId, editedCost]
     );
 
 
@@ -147,18 +144,56 @@ const PricePage = () =>{
                 useSortBy, // Agregar el plugin de ordenación
                 usePagination // Agregar el plugin de paginación
         );
-    const handleSaveClick = (row: Product) => {
-        const updatedProducts = products.map((product) =>
-            product.id === row.id ? { ...product, final_cost: parseFloat(editedCost) } : product
-        );
-        setProducts(updatedProducts);
-        setEditRowId(null);
-    };
     
-    const handleCancelClick = () => {
-        setEditRowId(null);
-        setEditedCost('');
-    };
+        const handleEditClick = (id: number, currentCost: number | null) => {
+            setEditRowId(id);
+            setEditedCost(currentCost?.toString() || '');
+          };
+          
+          const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            setEditedCost(e.target.value);
+          };
+          
+          const handleSaveFinalCost = async (productId: number) => {
+            try {
+                setShowSpinner(true);
+                const session = await getSession();
+                const response = await updateFinalCost(
+                    session?.user.token as any,
+                    Number(editRowId),
+                    Number(editedCost),
+                );
+                if (response){
+                    setProducts(prev =>
+                        prev.map(p =>
+                          p.id === productId ? { ...p, final_cost: parseFloat(editedCost) } : p
+                        )
+                      );
+                    setEditRowId(null);
+
+                    setShowNotification(true);
+                    setTypeMessage("success");
+                    setErrorMessage("Costo final actualizado"); 
+                    setShowSpinner(false);
+                }
+            } catch (errors) {
+                console.error("Error actualizando o guardando registro:", errors);
+                setShowNotification(true);
+                setTypeMessage("error");
+                setErrorMessage("Error actualizando o guardando registro"); 
+            }
+            finally{
+                setShowSpinner(false);
+            }            
+          };
+
+        useEffect(() => {
+            const timer = setTimeout(() => {
+                setShowNotification(false);
+            }, 10000); // 10 segundos
+            
+            return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+        }, [showNotification]); // Dependencia para reiniciar el temporizador
           
     
     return (
@@ -243,7 +278,14 @@ const PricePage = () =>{
                         {page.map((row) => {
                             prepareRow(row);
                             return (
-                                <tr {...row.getRowProps()} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
+                                <tr
+                                    {...row.getRowProps()}
+                                    className={`transition ${
+                                        row.original.id === editRowId
+                                        ? 'bg-yellow-300 border-l-4 border-yellow-500' // Fila resaltada
+                                        : 'odd:bg-white bg-gray-100 hover:bg-gray-100'
+                                    }`}
+                                    >
                                     {row.cells.map((cell) => (
                                         <td {...cell.getCellProps()} className="px-4 py-2">
                                             {cell.render('Cell')}

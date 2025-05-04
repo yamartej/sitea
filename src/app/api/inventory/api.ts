@@ -293,3 +293,33 @@ export const fetchWarehousesList = async (token: string) => {
         throw error; // Re-lanza el error si es necesario.
       }      
   };
+
+  export const updateFinalCost = async (
+    token: string,
+    id: number,
+    final_cost: number,
+    
+  ) => {
+    try {
+      const response = await axios.put(
+        `${apiUrl}/products/update-final-cost`,
+        {
+          id,
+          final_cost
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.status; // Retornar solo los datos necesarios
+    } catch (error: any) {
+      console.error('Error en la respuesta del Update:', error);
+      if (error.response && error.response.data && error.response.data.errors) {
+        throw error.response.data.errors;
+      }
+      throw error;
+    }
+  };
