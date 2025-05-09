@@ -243,31 +243,39 @@ const SalePage: React.FC = () => {
 
 
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Spinner />
-      </div>
-    );
-  }
+  
 
   return (
     <>
-      {showNotification && error && (
-        <Notification
-          message={error}
-          type={typeMessage}
-          onClose={() => setShowNotification(false)}
-        />
-      )}
+      <div>
+        {loading && (
+          <div className="spinner-container">
+            <Spinner/>  
+          </div>              
+        )}
+      </div>
+      <div>
+        {showNotification && error && (
+            <Notification
+              message={error}
+              type={typeMessage}
+              onClose={() => setShowNotification(false)}
+            />
+          )}
+      </div>
+      
       {seller ? (
+        
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="bg-blue-500 col-span-1 sm:col-span-2 md:col-span-2 p-4">
+            <div className="bg-card-green shadow-md rounded-lg p-4 col-span-1 sm:col-span-3 md:col-span-3 p-4">
               <div>
                 <div className="grid gap-6 mb-6 md:grid-cols-2">
                   <div>
-                    <label htmlFor="clientId" className="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Buscar</label>
+                    <label htmlFor="name" className="block mb-2 text-sm font-medium">
+                      CI / Rif:
+                    </label>
+                    <label htmlFor="clientId" className="mb-2 text-sm font-medium sr-only">Buscar</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
                         <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
@@ -285,7 +293,7 @@ const SalePage: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleClientSearch}
-                        className="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                        className=" text-white bg-primary rounded absolute end-2.5 bottom-2.5 font-medium rounded-lg text-sm px-4 py-2 text-gray"
                       >
                         Buscar
                       </button>
@@ -294,7 +302,7 @@ const SalePage: React.FC = () => {
                   <div>
                   </div>
                   <div>
-                    <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    <label htmlFor="name" className="block mb-2 text-sm font-medium">
                       Nombre
                     </label>
                     <input
@@ -302,11 +310,11 @@ const SalePage: React.FC = () => {
                       id="name"
                       value={client?.name || ''}
                       readOnly
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                   </div>
                   <div>
-                    <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    <label htmlFor="phone" className="block mb-2 text-sm font-medium">
                       Teléfono
                     </label>
                     <input
@@ -314,70 +322,66 @@ const SalePage: React.FC = () => {
                       id="phone"
                       value={client?.phone || ''}
                       readOnly
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      className="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"
                     />
                   </div>
                 </div>
                 <div className="mb-6">
-                  <label htmlFor="address" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  <label htmlFor="address" className="block mb-2 text-sm font-medium">
                     Dirección
                   </label>
                   <input
                     type="text"
                     id="address"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    className="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"
                     value={client?.address || ''}
                     readOnly
                   />
                 </div>
-              </div>
-            </div>
-            <div className="bg-red-500 p-4">
-              <div className="inline-flex rounded-md shadow-sm" role="group">
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  type="button"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white"
-                  disabled={!clientId || !!btnAction}>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                  </svg>
-                  Buscar Productos
-                </button>
-              </div>
-              <div className="mt-4">
-                <div className="mb-2">
-                  <h1 className="font-semibold">Vendedor:</h1>
-                  <span>{seller.seller || 'No asignado'}</span>
-                </div>
                 <div>
-                  <h1 className="font-semibold">Caja:</h1>
-                  <span>{seller.identifier || 'No asignada'}</span>
+                  <div className="inline-flex rounded-md shadow-sm p-2" role="group">
+                    <p className="text-base text-gray-900 dark:text-white"><strong>Vendedor:</strong> {seller.seller || 'No asignado'}</p>
+                  </div>
+                  <div className="inline-flex rounded-md shadow-sm p-2" role="group">
+                    <p className="text-base text-gray-900 dark:text-white"><strong>Caja:</strong> {seller.identifier || 'No asignada'}</p>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="bg-blue-500 p-4">
-              <div className="p-4 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700">
-                <p> <strong>Subtotal:</strong>   ${totalAmount.toFixed(2)}</p>
-                <p> <strong>IVA (16%):</strong>   20 $</p>
-                <div className="text-center">
+            
+            <div className="bg-card-green shadow-md rounded-lg p-4 text-white flex flex-col justify-between">
+              <div className="border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700 p-4 flex flex-col justify-between flex-grow">
+                
+                <div>
+                  <p><strong>Subtotal:</strong> ${totalAmount.toFixed(2)}</p>
+                  <p><strong>IVA (16%):</strong> 20 $</p>
+                </div>
+
+                <div className="text-center mt-4">
                   <button
                     onClick={handleSelectTypeSale}
-                    className="mt-2 p-2 bg-green-500 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    disabled={!clientId || cart.length === 0 || !!btnAction} // Deshabilitar si no hay cliente, carrito vacío o acción en curso
+                    className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded"
+                    disabled={!clientId || cart.length === 0 || !!btnAction}
                   >
                     Confirmar Compra
                   </button>
                 </div>
+
               </div>
             </div>
+
           </div>
-          <div className="p-4 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700 mt-14">
-            <div>
-              <div className="flex justify-between items-center">
-                <h1 className="">Productos seleccionados</h1>
-              </div>
+          <div className="p-4 mt-4">
+            <div className="inline-flex rounded-md shadow-sm text-primary-contrast" role="group">
+              <button type="button" onClick={() => setIsModalOpen(true)} className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                  <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z" clipRule="evenodd" />
+                </svg>
+                  Agregar Producto
+              </button>
             </div>
+            
+            <hr className='mt-2'/>
             <ProductTable cart={cart} onEdit={handleEditClick} onDelete={handleDelete} />
             {/* Diseño de tarjetas para pantallas pequeñas */}
             <div className="block md:hidden mt-2 space-y-4">
@@ -434,8 +438,8 @@ const SalePage: React.FC = () => {
                 <p className="text-lg text-gray-900 dark:text-white">Productos disponibles:</p>
               </div>
               <hr />
-              <div className="mt-4">
-                <table className="hidden md:block min-w-full border-collapse border border-gray-300 text-left">
+              <div className="mt-4 hidden md:block">
+                <table className="min-w-full border-collapse border border-gray-300 text-left">
                   <thead>
                     <tr className="bg-gray-200">
                       <th className="px-4 py-2 border border-gray-300">Item</th>
@@ -486,11 +490,6 @@ const SalePage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-              <button onClick={() => setIsModalOpen(false)}
-                className="mt-4 p-2 bg-red-500 text-white rounded-lg"
-              >
-                Cerrar
-              </button>
             </div>
             {/* Diseño de tarjetas para pantallas pequeñas */}
             <div className="block md:hidden mt-2 space-y-4">
@@ -542,6 +541,13 @@ const SalePage: React.FC = () => {
                   </div>
                 );
               })}
+            </div>
+            <div>
+            <button onClick={() => setIsModalOpen(false)}
+                className="mt-4 p-2 bg-red-500 text-white rounded-lg"
+              >
+                Cerrar
+              </button>
             </div>
           </Modal>
           <Modal title="Confirmar Venta" isOpen={isModalConfirmOpen} onClose={() => setIsModalConfirmOpen(false)}>

@@ -11,8 +11,8 @@ const Modal: React.FC<ModalProps> = ({ title, isOpen, onClose, children }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-8">
-            <div className="bg-white w-full max-w-lg md:max-w-xl lg:max-w-2xl p-8 rounded-lg shadow-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-lg shadow-lg flex flex-col">
                 <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                         {title}
@@ -28,7 +28,7 @@ const Modal: React.FC<ModalProps> = ({ title, isOpen, onClose, children }) => {
                         </svg>
                     </button>
                 </div>
-                <div className="p-4 md:p-5">
+                <div className="p-4 overflow-y-auto flex-1">
                     {children}
                 </div>
             </div>

@@ -92,6 +92,11 @@
   color: #878937;
 }
 
+.bg-card-green {
+  background-color: #ecece8;
+  color: #2c2d2f;
+}
+
 .bg-add-options:hover {
   background-color: #be9e48; /* Un tono más oscuro para el hover */
   color: white;
