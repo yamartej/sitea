@@ -74,8 +74,6 @@ const SalePage: React.FC = () => {
       if (session && session.user.roles.includes('Vendedor')) {
         const response = await getPopByUserId(session.user.token, Number(session.user.id));
         if (response) {
-          console.log(response.data[0]);
-          console.log(response.data[0].point_of_sale);
           setSellerName(response.data[0].user.name);
           setMachineName(response.data[0].point_of_sale.identifier);
         }
@@ -97,7 +95,6 @@ const SalePage: React.FC = () => {
         const session = await getSession();
         if (session?.user.token) {
           const getClient = await getClientById(clientId, session.user.token);
-          console.log(getClient[0]);
           setClient({
             id: getClient[0].id,
             client_id: getClient[0].client_id,
@@ -121,8 +118,6 @@ const SalePage: React.FC = () => {
   };
 
   const handleAddToCart = (product: Product, quantity: number) => {
-    console.log(product);
-    console.log(quantity);
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.productId === product.id);
       if (existingItem) {
@@ -194,7 +189,6 @@ const SalePage: React.FC = () => {
       setLoading(true);
       const session = await getSession();
       if (session?.user.token) {
-        console.log(clientId, seller.seller_id, seller.identifier, seller.id, totalAmount, products, typeOfSale);
         const response = await registerSale(
           session.user.token,
           client.id,
@@ -430,7 +424,7 @@ const SalePage: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="descripcion del producto" required />
-                <button type="submit" className="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Search</button>
+                <button type="submit" className="absolute end-2.5 bottom-2.5 px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">Buscar</button>
               </div>
             </div>
             <div>
@@ -472,7 +466,7 @@ const SalePage: React.FC = () => {
                           <td className="px-4 py-2 border border-gray-300">
                             <button
                               type="button"
-                              className="p-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                              className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded"
                               onClick={() =>
                                 handleAddToCart(
                                   product.product,
@@ -542,9 +536,9 @@ const SalePage: React.FC = () => {
                 );
               })}
             </div>
-            <div>
+            <div className='text-right mt-4'>
             <button onClick={() => setIsModalOpen(false)}
-                className="mt-4 p-2 bg-red-500 text-white rounded-lg"
+                className="mt-4 p-2 bg-red-500 px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white rounded"
               >
                 Cerrar
               </button>
