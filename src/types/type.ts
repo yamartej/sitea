@@ -82,6 +82,7 @@ export type Product = {
   warehouseName: string;
   price_shipping: Number;
   final_cost: Number;
+  product: Product;
 }
 
 export type Inventory = {
@@ -181,4 +182,23 @@ export type InfoCard = {
 
 export type InfoCardGridProps = {
   cards: InfoCard[];
+}
+
+export type Sale = {
+  id: number;
+  customer_id: number;
+  total_amount: number;
+  created_at: Date;
+  customer: Customer;
+  product: Product;
+  details: Product;
+  payment_details: PaymentDetail[];
+}
+
+export type PaymentDetail = {
+  id: number;
+  sale_id: number;
+  amount: number;
+  payment_date: Date;
+  detail: string;
 }

@@ -796,3 +796,78 @@ export const closePopStatus = async (
     throw error;
   }
 };
+
+export const fetchSaleCretitList = async (token: string) => {
+  try {
+      const response = await axios.get(`${apiUrl}/sales/sales-by-credit-type`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
+
+export const registerPay = async (
+  token: string, 
+  sale_id: number,
+  amount: number,
+  payment_date: string,
+  detail: string
+) => {
+  try {
+    const response = await axios.post(`${apiUrl}/credit-details`,
+      {
+        sale_id,
+        amount,
+        payment_date,
+        detail
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error("Error en la respuesta de registro:", error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
+
+export const removePayment = async (token: string, id: number) => {
+    try {
+      const response = await axios.delete(`${apiUrl}/credit-details/${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.status; // Retornar solo los datos necesarios
+    } catch (error: any) {
+      console.error("Error en la respuesta:", error);
+      if (error.response && error.response.data && error.response.data.errors) {
+        throw error.response.data.errors;
+      }
+      throw error;
+    }
+  }
