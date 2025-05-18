@@ -297,7 +297,7 @@ const PricePage = () =>{
                     </tbody>
                 </table>
             </div>
-                <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
+            <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
                 <button
                     onClick={() => previousPage()}
                     disabled={!canPreviousPage}

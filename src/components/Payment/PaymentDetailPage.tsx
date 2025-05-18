@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Swal from "sweetalert2";
 
-
 const PaymentDetailPage = () => {
     const [sales, setSales] = useState<Sale[]>([]);
     const [showSpinner, setShowSpinner] = useState(false);
@@ -21,13 +20,20 @@ const PaymentDetailPage = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [typeMessage, setTypeMessage] = useState("error");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editRowId, setEditRowId] = useState<number | null>(null);
+    const [balance, setBalance] = useState<number | null>(null);
+
     const [formData, setFormData] = useState({
-        id: null as number | null,
-        amount: 0,
+        id: 0,
+        amount: null,
         paymentDate: new Date(),
         detail: "",
-    }); 
-
+    });
+    const [errors, setErrors] = useState<{
+        amountInf: string | null;
+    }>({
+        amountInf: null,
+    });
 
     useEffect(() => {
         setShowSpinner(true);
@@ -67,98 +73,120 @@ const PaymentDetailPage = () => {
     }, [showNotification]);
 
     const columns: Column<Sale>[] = React.useMemo(
-        () => [
-            {
-                // Columna para expandir
-                id: 'expander',
-                Header: () => null,
-                Cell: ({ row }) => (
-                  <span
+    () => [
+        {
+            id: 'expander',
+            Header: () => null,
+            Cell: ({ row }) => (
+                <span
                     {...row.getToggleRowExpandedProps()}
                     className="cursor-pointer text-blue-600"
                     title="Mostrar detalles"
-                  >
+                >
                     {row.isExpanded ? '−' : '+'}
-                  </span>
-                ),
-              },
-            
-                {
-                    Header: 'Cliente',
-                    accessor: (row) => row.customer?.name || 'Sin Nombre',
-                },
-                {
-                    Header: 'Total',
-                    accessor: 'total_amount',
-                },
-                {
-                    Header: 'Fecha de compra',
-                    accessor: 'created_at',
-                },
-                {
-                    Header: 'Acciones',
-                    Cell: ({ row }) => (
-                        <div className="flex justify-center space-x-2">
-                            <button title="Editar Producto" onClick={() => handleEditQuota(row.original)} 
-                                className="text-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
-                                        <path fillRule="evenodd" d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3Zm9 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm-6.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM11.5 6A.75.75 0 1 1 13 6a.75.75 0 0 1-1.5 0Z" clipRule="evenodd" />
-                                        <path d="M13 11.75a.75.75 0 0 0-1.5 0v.179c0 .15-.138.28-.306.255A65.277 65.277 0 0 0 1.75 11.5a.75.75 0 0 0 0 1.5c3.135 0 6.215.228 9.227.668A1.764 1.764 0 0 0 13 11.928v-.178Z" />
-                                    </svg>
-
-                            </button>
-                        </div>
-                    ),
-                },
-            ],
-        []);
-        
-        const {
-            getTableProps,
-            getTableBodyProps,
-            headerGroups,
-            rows,
-            prepareRow,
-            page, // Filas de la página actual
-            canPreviousPage,
-            canNextPage,
-            pageOptions,
-            nextPage,
-            previousPage,
-            state: { pageIndex, pageSize },
-            setPageSize,
-        } = useTable(
-            {
-                columns,
-                data: sales,
-                initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
+                </span>
+            ),
+        },
+        {
+            Header: 'Cliente',
+            accessor: (row) => row.customer?.name || 'Sin Nombre',
+        },
+        {
+            Header: 'Deuda Pendiente',
+            accessor: 'total_amount',
+        },
+        {
+            Header: 'Total Pagado',
+            accessor: (row) => {
+                const total = row.payment_details?.reduce((sum, payment) => {
+                    return sum + parseFloat(payment.amount);
+                }, 0);
+                return total;
             },
-            useSortBy, // Agregar el plugin de ordenación
-            useExpanded,
-            usePagination, // Agregar el plugin de paginación
-            
-        );
+        },
+        {
+            Header: 'Fecha de compra',
+            accessor: 'created_at',
+        },
+        {
+            Header: 'Acciones',
+            Cell: ({ row }) => (
+                <div className="flex justify-center space-x-2">
+                    <button title="Editar Producto" onClick={() => handleEditQuota(row.original)} 
+                        className="text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                            <path fillRule="evenodd" d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3Zm9 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm-6.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM11.5 6A.75.75 0 1 1 13 6a.75.75 0 0 1-1.5 0Z" clipRule="evenodd" />
+                            <path d="M13 11.75a.75.75 0 0 0-1.5 0v.179c0 .15-.138.28-.306.255A65.277 65.277 0 0 0 1.75 11.5a.75.75 0 0 0 0 1.5c3.135 0 6.215.228 9.227.668A1.764 1.764 0 0 0 13 11.928v-.178Z" />
+                        </svg>
+                    </button>
+                </div>
+            ),
+        },
+    ],
+    []);
 
-        const handleEditQuota = (sale: Sale) => {
-            console.log("Venta", sale);
-            formData.id = Number(sale.id);
-            setIsModalOpen(true);
-        };
+    const {
+        getTableProps,
+        getTableBodyProps,
+        headerGroups,
+        rows,
+        prepareRow,
+        page, // Filas de la página actual
+        canPreviousPage,
+        canNextPage,
+        pageOptions,
+        nextPage,
+        previousPage,
+        state: { pageIndex, pageSize },
+        setPageSize,
+    } = useTable(
+        {
+            columns,
+            data: sales,
+            initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
+        },
+        useSortBy, // Agregar el plugin de ordenación
+        useExpanded,
+        usePagination, // Agregar el plugin de paginación
+    );
 
-        const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-            e.preventDefault();
-            setIsModalOpen(false);
-            setShowSpinner(true);
-            try {
+    const handleEditQuota = (sale: Sale) => {
+        setFormData({
+            id: sale.id,
+            amount: null,
+            paymentDate: new Date(),
+            detail: "",
+        });
+
+        const totalAmount = sale.total_amount;
+        const totalPaid = sale.payment_details.reduce((sum, payment) => {
+            return sum + parseFloat(payment.amount);
+        }, 0);
+        setBalance(totalAmount - totalPaid);       
+        setEditRowId(sale.id);
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setIsModalOpen(false);
+        setShowSpinner(true);
+        try {
+            if (errors.amountInf) {
+                setShowNotification(true);
+                setErrorMessage("El Monto es mayor a la deuda");
+                setTypeMessage("error");
+            }
+            else{
                 const session = await getSession();
                 const response = await registerPay(
                     session?.user.token as any,
                     Number(formData.id),
-                    formData.amount,
+                    Number(formData.amount),
                     format(formData.paymentDate, "yyyy-MM-dd"),
                     formData.detail,
-                    );
-                
+                );
+
                 if (response) {
                     setSales((prevSales) =>
                         prevSales.map((sale) =>
@@ -170,8 +198,8 @@ const PaymentDetailPage = () => {
                                         {
                                             id: response.id,
                                             sale_id: sale.id,
-                                            amount: formData.amount,
-                                            payment_date: formData.paymentDate,
+                                            amount: response.amount,
+                                            payment_date: response.payment_date,
                                             detail: formData.detail,
                                         } as PaymentDetail,
                                     ],
@@ -182,90 +210,94 @@ const PaymentDetailPage = () => {
                     setShowNotification(true);
                     setErrorMessage("El pago fue creado correctamente");
                     setTypeMessage("success");
-                
+                    clearInputs();
                 }
                 else{
                     setErrorMessage(response.message); 
                 }
-                    
-                    
-                    
-                } catch (errors) {
-                    console.error("Error:", errors);
-                    // Mostrar los errores de la API en el componente de notificación
-                    if (typeof errors === 'object' && errors !== null) {
-                      if ('password' in errors && Array.isArray(errors.password)) {
-                        setShowNotification(true);
-                        setTypeMessage("error");
-                        setErrorMessage(errors.password.join(" ")); 
-                        setShowSpinner(false);
-                      }
-                      if ('email' in errors && Array.isArray(errors.email)) {
-                        setShowNotification(true);
-                        setTypeMessage("error");
-                        setErrorMessage(errors.email.join(" ")); 
-                        setShowSpinner(false);
-                      }
-                    }
-                  }
-                finally{
-                    setShowSpinner(false);
-                }
-        };
-
-        const handleDateChange = (date: Date | null) => {
-            if (date) {
-                setFormData((prevData) => ({
-                    ...prevData,
-                    paymentDate: date, // Actualizar la fecha seleccionada
-                }));
             }
-        };
-
-        const handleRemovePayment = async (id: number) =>{
-            console.log("Item=", id)
-            Swal.fire({
-                title: '¿Estás seguro de que deseas eliminar este Pago?',
-                text: "No podrás revertir esto.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#72cb10',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, eliminarlo!'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    const session = await getSession();
-                    const response = await removePayment(session?.user.token as any, id);
-                    if (response === 200) {
-                        setShowNotification(true);
-                        setErrorMessage('Pagoeliminado correctamente');
-                        setTypeMessage('success');
-                        setSales((prevSales) =>
-                            prevSales.map((sale) => ({
-                                ...sale,
-                                payment_details: sale.payment_details
-                                    ? sale.payment_details.filter((payment) => payment.id !== id)
-                                    : [],
-                            }))
-                        );
-                    } else {
-                        setShowNotification(true);
-                        setErrorMessage('Error al eliminar el punto de venta');
-                        setTypeMessage('error');
-                    }
-                }
-            })
+        } catch (errors) {
+            console.error("Error:", errors);
         }
+        finally{
+            setShowSpinner(false);
+        }
+    };
 
-        const handleInputChange = (
-            e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    const handleDateChange = (date: Date | null) => {
+        if (date) {
+            setFormData((prevData) => ({
+                ...prevData,
+                paymentDate: date, // Actualizar la fecha seleccionada
+            }));
+        }
+    };
+
+
+    const handleRemovePayment = async (id: number) =>{
+        Swal.fire({
+            title: '¿Estás seguro de que deseas eliminar este Pago?',
+            text: "No podrás revertir esto.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#72cb10',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminarlo!'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const session = await getSession();
+                const response = await removePayment(session?.user.token as any, id);
+                if (response === 200) {
+                    setShowNotification(true);
+                    setErrorMessage('Pagoeliminado correctamente');
+                    setTypeMessage('success');
+                    setSales((prevSales) =>
+                        prevSales.map((sale) => ({
+                            ...sale,
+                            payment_details: sale.payment_details
+                            ? sale.payment_details.filter((payment) => payment.id !== id)
+                            : [],
+                        }))
+                    );
+                } else {
+                    setShowNotification(true);
+                    setErrorMessage('Error al eliminar el punto de venta');
+                    setTypeMessage('error');
+                }
+            }
+        })
+    }
+
+    const handleInputChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
         ) => { 
             const { name, value } = e.target; 
             setFormData({ 
                 ...formData, 
                 [name]: value 
             });
-        };
+
+            if(name === 'amount'){
+                setErrors({
+                ...errors,
+                amountInf:
+                Number(value) > (balance ?? 0)
+                    ? "El monto a cancelar es mayor a la deuda"
+                    : null,
+            });
+                
+
+            }
+    };
+
+    const clearInputs=()=>{
+        setFormData({
+           id : 0,
+           amount : null,
+           detail : "",
+           paymentDate : new Date(),
+        });
+    }
     
     return (
         <>
@@ -286,7 +318,29 @@ const PaymentDetailPage = () => {
                     />
                 )} 
             </div>
-
+            <div>
+                <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
+                    <div className="">
+                        <label htmlFor="pageSize" className="mr-2">Filas por página:</label>
+                        <select
+                            id="pageSize"
+                            value={pageSize}
+                            onChange={(e) => {
+                                const value = Number(e.target.value);
+                                setPageSize(value);
+                            }}
+                            className="border rounded p-1"
+                        >
+                            {[5, 10, 20, 50].map((size) => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
+                    </div>                    
+                </div>
+            </div>
+            
             <div className="overflow-x-auto hidden md:block">
                 <table
                 {...getTableProps()}
@@ -328,17 +382,29 @@ const PaymentDetailPage = () => {
                     <tbody {...getTableBodyProps()}>
                         {page.map((row) => {
                             prepareRow(row);
+                            const { key: rowKey, ...restRowProps } = row.getRowProps();
                             return (
                             <React.Fragment key={row.id}>
-                                <tr {...row.getRowProps()} className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition">
-                                {row.cells.map((cell) => (
-                                    <td {...cell.getCellProps()} className="px-4 py-2">
-                                    {cell.render('Cell')}
-                                    </td>
-                                ))}
+                                <tr
+                                    key={rowKey}
+                                    {...restRowProps}
+                                    className={`transition ${
+                                        row.original.id === editRowId
+                                            ? 'bg-yellow-300 border-l-4 border-yellow-500'
+                                            : 'odd:bg-white bg-gray-100 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    {row.cells.map((cell) => {
+                                        const { key: cellKey, ...restCellProps } = cell.getCellProps();
+                                        return (
+                                            <td key={cellKey} {...restCellProps} className="px-4 py-2">
+                                                {cell.render('Cell')}
+                                            </td>
+                                        );
+                                    })}
                                 </tr>
                                 {row.isExpanded && (
-                                <tr className="bg-gray-50">
+                                <tr className="bg-yellow-300">
                                     <td colSpan={row.cells.length} className="px-4 py-2 text-sm text-gray-600">
                                     {/* Aquí va el detalle de la compra, por ejemplo una lista de productos */}
                                     <div>
@@ -358,7 +424,7 @@ const PaymentDetailPage = () => {
                                                 {row.original.payment_details.map((item, i) => (
                                                     <tr key={i} className="bg-white">
                                                     <td className="px-4 py-2 border">{item.amount}</td>
-                                                    <td className="px-4 py-2 border">{new Date(item.payment_date).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-2 border">{item.payment_date instanceof Date ? item.payment_date.toLocaleDateString() : item.payment_date}</td>
                                                     <td className="px-4 py-2 border">{item.detail}</td>
                                                     <td className="px-4 py-2 border">
                                                         <button title="Editar Producto" onClick={() => handleRemovePayment(item.id)} 
@@ -386,9 +452,36 @@ const PaymentDetailPage = () => {
                         </tbody>
 
                 </table>
-                <Modal
+            </div>
+            <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
+                <button
+                    onClick={() => previousPage()}
+                    disabled={!canPreviousPage}
+                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                        <path fillRule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clipRule="evenodd" />
+                    </svg>
+                </button>
+                <span className="mx-2">
+                    Página{' '}
+                    <strong>
+                        {pageIndex + 1} de {pageOptions.length}
+                    </strong>
+                </span>
+                <button
+                    onClick={() => nextPage()}
+                    disabled={!canNextPage}
+                    className="px-4 py-2 bg-primary rounded disabled:opacity-50"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                        <path fillRule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clipRule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <Modal
                     isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={() => { setIsModalOpen(false); setEditRowId(null); }}
                     title="Agregar Pago">
                     <form onSubmit={handleSubmit}>
                         <div className="grid gap-6 mb-6 md:grid-cols-2 text-primary-contrast">
@@ -399,8 +492,8 @@ const PaymentDetailPage = () => {
                                 <input
                                     id="amount"
                                     name="amount"
-                                    type="text"
-                                    value={formData.amount}
+                                    type="Number"
+                                    value={formData.amount ?? ""}
                                     onChange={handleInputChange}
                                     required
                                     className="block w-full rounded-md border py-1.5"
@@ -442,7 +535,6 @@ const PaymentDetailPage = () => {
                         </button>
                     </form>
                 </Modal>
-            </div>
         </>
     )
 }
