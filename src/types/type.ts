@@ -202,3 +202,11 @@ export type PaymentDetail = {
   payment_date: Date;
   detail: string;
 }
+
+export type CreditByCustomer = {
+  id: number;
+  customer_id: number;
+  customer_name: string;
+  total_debt: number;
+  payments: PaymentDetail[];
+}

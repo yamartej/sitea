@@ -247,9 +247,9 @@ const PaymentDetailPage = () => {
             if (result.isConfirmed) {
                 const session = await getSession();
                 const response = await removePayment(session?.user.token as any, id);
-                if (response === 200) {
+                if (response) {
                     setShowNotification(true);
-                    setErrorMessage('Pagoeliminado correctamente');
+                    setErrorMessage('Pago eliminado correctamente');
                     setTypeMessage('success');
                     setSales((prevSales) =>
                         prevSales.map((sale) => ({
