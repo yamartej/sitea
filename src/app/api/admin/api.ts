@@ -294,9 +294,9 @@ export const deleteCategory = async (token: string, id: number) => {
   }
 };
 
-export const fetchProductsList = async (token: string) => {
+export const fetchBatchesWithProducts = async (token: string) => {
   try {
-      const response = await axios.get(`${apiUrl}/products`, {
+      const response = await axios.get(`${apiUrl}/batches/get-batches-with-products`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -323,7 +323,8 @@ export const registerProduct = async (
   description: string, 
   price: number, 
   category_id: number, 
-  quantity: number, 
+  quantity: number,
+  batch_id: number,
   ) => {
   try {
     const response = await axios.post(`${apiUrl}/products`,
@@ -333,6 +334,7 @@ export const registerProduct = async (
         price,
         category_id,
         quantity,
+        batch_id,
       },
       {
         headers: {
@@ -359,6 +361,7 @@ export const updateProduct = async (
   price: number,
   category_id: number,
   quantity: number,
+  batch_id: number,
 ) => {
   try {
     const response = await axios.put(
@@ -369,6 +372,7 @@ export const updateProduct = async (
         price,
         category_id,
         quantity,
+        batch_id,
       },
       {
         headers: {

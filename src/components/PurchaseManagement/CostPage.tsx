@@ -74,7 +74,7 @@ const CostPage = () => {
             {
                 Header: 'Monto',
                 accessor: 'amount',
-                Cell: ({ value }) => formatCurrency(value.toString()), // Convertir el monto a cadena antes de formatear
+                Cell: ({ value }) => value, // Convertir el monto a cadena antes de formatear
             },
             {
                 Header: 'Descripción',

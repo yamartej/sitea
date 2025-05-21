@@ -12,7 +12,7 @@ import { useTable, usePagination, Column, useSortBy, useExpanded } from 'react-t
 import Modal from "../Common/Modal/ModalPage";
 import InfoCardGrid from "../Common/Card/InfoCardGrid";
 
-const ProductPage = () => {
+const PruebaPage = () => {
     const [batchesWithProducts, setBatchesWithProducts] = useState<BatchesWithProduct[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [batches, setBatches] = useState<Batch[]>([]);
@@ -162,6 +162,7 @@ const ProductPage = () => {
     const buttonText = typeRequest === 'create' ? 'Guardar' : 'Actualizar';
 
     const handleExpandRow = (row: import('react-table').Row<BatchesWithProduct>) => {
+        console.log("Row expanded:", row.original); 
         // Sumar el total de productos y el monto total de los productos del batch expandido
         const totalProducts = row.original.products.reduce((acc, prod) => acc + Number(prod.quantity), 0);
         const totalAmount = row.original.products.reduce((acc, prod) => acc + (Number(prod.quantity) * Number(prod.price)), 0);
@@ -174,6 +175,7 @@ const ProductPage = () => {
 
     const handleAddProduct = ( batchesWithProduct : BatchesWithProduct) => {
         setIsModalOpen(true);
+        console.log("Batch selected:", batchesWithProduct);
         setLoteName(batchesWithProduct.name);
         setFormData({
             ...formData,
@@ -349,6 +351,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     };
 
     const handleRemoveProduct =  async(product:Product) =>{
+        console.log("Producto a eliminar =" , product.id);
         const result = await Swal.fire({
                     title: '¿Estás seguro de eliminar este producto?',
                     text: "No podrás revertir esto",
@@ -390,6 +393,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 }
         }
     const handleEditClick = (product: Product) => {
+        console.log("Producto a editar:", product);
         setIsModalOpen(true);
         setTypeRequest("update");
         setEditRowId(String(product.id));
@@ -646,4 +650,4 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     </div>
     );
     }
-export default ProductPage;
+export default PruebaPage;

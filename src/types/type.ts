@@ -210,3 +210,13 @@ export type CreditByCustomer = {
   total_debt: number;
   payments: PaymentDetail[];
 }
+
+export type BatchesWithProduct = {
+  id: number;
+  name: string;
+  description: string;
+  quantity: number;
+  status: string;
+  order_creation_date: string;
+  products: Product[];  
+}
