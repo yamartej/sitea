@@ -298,6 +298,7 @@ export const fetchWarehousesList = async (token: string) => {
     token: string,
     id: number,
     final_cost: number,
+    wholesale_final_cost: number,
     
   ) => {
     try {
@@ -305,7 +306,8 @@ export const fetchWarehousesList = async (token: string) => {
         `${apiUrl}/products/update-final-cost`,
         {
           id,
-          final_cost
+          final_cost,
+          wholesale_final_cost,
         },
         {
           headers: {

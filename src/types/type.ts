@@ -83,6 +83,7 @@ export type Product = {
   price_shipping: Number;
   final_cost: Number;
   product: Product;
+  wholesale_final_cost: Number;
 }
 
 export type Inventory = {
@@ -220,3 +221,4 @@ export type BatchesWithProduct = {
   order_creation_date: string;
   products: Product[];  
 }
+

@@ -4,26 +4,24 @@ import { getSession } from 'next-auth/react';
 import { Batch, Product } from "@/types/type";
 import Notification from "../Common/Notification/NotificationPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
-import Swal from "sweetalert2";
 import { useTable, usePagination, Column, useSortBy } from 'react-table';
-import Modal from "../Common/Modal/ModalPage";
 import { fetchProductsAvailable, updateFinalCost} from "@/app/api/inventory/api";
-
+import Modal from "../Common/Modal/ModalPage";
 
 const PricePage = () =>{
     const [batches, setBatches] = useState<Batch[]>([])
     const [products, setProducts] = useState<Product[]>([])
+    const [productsAux, setProductsAux] = useState<Product[]>([])
     const [showSpinner, setShowSpinner] = useState(false);
     const [showNotification, setShowNotification] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [typeMessage, setTypeMessage] = useState("error");
     const [editRowId, setEditRowId] = useState<number | null>(null);
     const [editedCost, setEditedCost] = useState<string>('');
-    const [formData, setFormData] = useState({
-        final_cost: "",
-    });
-    
-    
+    const [whosaleEditedCost, setWhosaleEditedCost] = useState<string>('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+
     useEffect (() =>{
         const PriceManegement = async () =>{
 
@@ -33,6 +31,17 @@ const PricePage = () =>{
                     session?.user.token as string
                 );
                 setProducts(dataProducts);
+                setProductsAux(dataProducts);
+                // Obtener lista de lotes únicos
+                const uniqueBatches = dataProducts.reduce((acc: Batch[], product: Product) => {
+                    const batch = product.batches;
+                    if (!acc.some((b: Batch) => b.id === batch.id)) {
+                        acc.push(batch);
+                    }
+                    return acc;
+                }, []);
+                setBatches(uniqueBatches);
+                
             } catch (error) {
                 console.error("Error fetching:", error);
                 setErrorMessage("Error fetching");
@@ -45,88 +54,92 @@ const PricePage = () =>{
         PriceManegement(); 
     }, []);
 
-    const columns: Column<Product>[] = React.useMemo(
+    const columns = React.useMemo<Column<Product>[]>(
         () => [
-          {
-            Header: 'Nombre',
-            accessor: 'name',
-          },
-          {
-            Header: 'Precio Compra',
-            accessor: 'price',
-          },
-          {
-            Header: 'Precio + Envío',
-            accessor: 'price_shipping',
-          },
-          {
-            Header: 'Precio Final',
-            accessor: 'final_cost',
-            Cell: ({ row }: { row: { original: Product } }) => {
-                return (
-                  <div>
-                    {editRowId === row.original.id ? (
-                      <div className="flex space-x-2">
-                        <input
-                        id="final_cost"
-                        name="final_cost"
-                        type="text"
-                            value={editedCost}
-                            onChange={handleInputChange}
-                            
-                            className="w-full border rounded p-1 text-center"
-                            autoFocus
-                        />
-                        <button
-                            className="text-primary"
-                            onClick={() => handleSaveFinalCost(row.original.id)}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                            </svg>
+            {
+                Header: 'Nombre',
+                accessor: 'name',
+            },
+            {
+                Header: 'Precio Compra',
+                accessor: 'price',
+            },
+            {
+                Header: 'Precio + Envío',
+                accessor: 'price_shipping',
+            },
+            {
+                Header: 'Costo 35%',
+                accessor: 'cost_65',
+                Cell: ({ row }: { row: { original: Product } }) => {
+                    return (
+                        <div>
+                            {(Number(row.original.price_shipping) / 0.65).toFixed(2)}
+                        </div>
+                    );
+                }
+            },
+            {
+                Header: 'Precio Mayor',
+                accessor: 'wholesale_final_cost',
+                Cell: ({ row }: { row: { original: Product } }) => {
+                    return (
+                        <div>
+                            {Number(row.original.wholesale_final_cost).toFixed(2)}
+                        </div>
+                    );
+                }
+            },
 
-                        </button>
-                        <button
-                            className="text-cancel"
-                            onClick={() => setEditRowId(null)}
+                                {
+                Header: 'Precio Detal',
+                accessor: 'final_cost',
+                Cell: ({ row }: { row: { original: Product } }) => {
+                    return (
+                        <div>
+                            {Number(row.original.final_cost).toFixed(2)}
+                        </div>
+                    );
+                }
+            },
+            {
+                Header: 'Acciones',
+                Cell: ({ row }: { row: { original: Product } }) => {
+                    const { id, final_cost, wholesale_final_cost } = row.original;
+                    const isEditing = editRowId === id;
+
+                    const handleClick = () =>
+                    handleEditClick(id, Number(final_cost), Number(wholesale_final_cost));
+
+                    return (
+                    <div className="flex space-x-2 justify-center">
+                        <button className="text-edit" onClick={handleClick}>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            className="w-4 h-4"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                            </svg>
+                            <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
+                            <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />
+                        </svg>
                         </button>
-                      </div>
-                    ) : (
-                      <div className="flex space-x-2">
-                        <div>{Number(row.original.final_cost)}</div>
-                        <button
-                                className="text-edit"
-                                onClick={() => handleEditClick(row.original.id, Number(row.original.final_cost))}
-                            >
-                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                                    <path d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
-                                </svg>
-                            </button>
-                        
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              
-          },
-          
-        ],
-        [products, editRowId, editedCost]
+                    </div>
+                    );
+                }
+            }
+        ],[products, editRowId, editedCost, whosaleEditedCost]
     );
 
 
+        // 1. Obtén gotoPage del hook useTable:
     const {
         getTableProps,
         getTableBodyProps,
         headerGroups,
         rows,
         prepareRow,
-        page, // Filas de la página actual
+        page,
         canPreviousPage,
         canNextPage,
         pageOptions,
@@ -134,58 +147,88 @@ const PricePage = () =>{
         previousPage,
         state: { pageIndex, pageSize },
         setPageSize,
-
-        } = useTable(
-            {
-                columns,
-                data: products,
-                initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
-                },
-                useSortBy, // Agregar el plugin de ordenación
-                usePagination // Agregar el plugin de paginación
-        );
+        gotoPage, // <-- agrega esto
+    } = useTable(
+        {
+            columns,
+            data: products,
+            manualSortBy: true,
+            disableMultiSort: true,
+            pageCount: -1,
+            manualPagination: false,
+            autoResetPage: false,
+            
+        },
+        useSortBy,
+        usePagination
+    );
     
-        const handleEditClick = (id: number, currentCost: number | null) => {
-            setEditRowId(id);
-            setEditedCost(currentCost?.toString() || '');
-          };
-          
-          const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            setEditedCost(e.target.value);
-          };
-          
-          const handleSaveFinalCost = async (productId: number) => {
-            try {
-                setShowSpinner(true);
-                const session = await getSession();
-                const response = await updateFinalCost(
-                    session?.user.token as any,
-                    Number(editRowId),
-                    Number(editedCost),
-                );
-                if (response){
-                    setProducts(prev =>
-                        prev.map(p =>
-                          p.id === productId ? { ...p, final_cost: parseFloat(editedCost) } : p
-                        )
-                      );
-                    setEditRowId(null);
-
-                    setShowNotification(true);
-                    setTypeMessage("success");
-                    setErrorMessage("Costo final actualizado"); 
-                    setShowSpinner(false);
-                }
-            } catch (errors) {
-                console.error("Error actualizando o guardando registro:", errors);
+    // 2. Antes de guardar, guarda el pageIndex actual:
+    const handleSaveFinalCost = async (productId: number) => {
+        const currentPage = pageIndex; // <-- guarda el índice de página actual
+        try {
+            setShowSpinner(true);
+            const session = await getSession();
+            const response = await updateFinalCost(
+                session?.user.token as any,
+                Number(editRowId),
+                Number(editedCost),
+                Number(whosaleEditedCost),
+            );
+            if (response){
+                setProducts(prev =>
+                    prev.map(p =>
+                      p.id === productId ? { ...p, 
+                        final_cost: parseFloat(editedCost),
+                        wholesale_final_cost: parseFloat(whosaleEditedCost),
+                     } : p
+                    )
+                  );
+                setProductsAux(prev =>
+                    prev.map(p =>
+                      p.id === productId ? { ...p, 
+                        final_cost: parseFloat(editedCost),
+                        wholesale_final_cost: parseFloat(whosaleEditedCost),
+                     } : p
+                    )
+                  );
+                setEditedCost('');
+                setWhosaleEditedCost('');
                 setShowNotification(true);
-                setTypeMessage("error");
-                setErrorMessage("Error actualizando o guardando registro"); 
-            }
-            finally{
+                setTypeMessage("success");
+                setErrorMessage("Costo final actualizado"); 
                 setShowSpinner(false);
-            }            
+                
+    
+                // 3. Vuelve a la página donde estabas
+                gotoPage(currentPage);
+            }
+        } catch (errors) {
+            console.error("Error updating:", errors);
+            setErrorMessage("Error updating");
+            setShowNotification(true);
+            setTypeMessage("error");
+            setShowSpinner(false);
+        }
+        finally{
+            setShowSpinner(false);
+            setEditedCost('');
+            setWhosaleEditedCost('');
+            setIsModalOpen(false);
+            setShowSpinner(false);
+        }            
+    };
+    
+        const handleEditClick = (id: number, retail: number | null, whosale: number | null ) => {
+            setEditRowId(id);
+            setEditedCost(retail?.toString() || '');
+            setWhosaleEditedCost(whosale?.toString() || '');
+            setIsModalOpen(true);
           };
+          
+          
+          
+          
 
         useEffect(() => {
             const timer = setTimeout(() => {
@@ -194,6 +237,7 @@ const PricePage = () =>{
             
             return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
         }, [showNotification]); // Dependencia para reiniciar el temporizador
+
           
     
     return (
@@ -214,6 +258,7 @@ const PricePage = () =>{
                     />
                 )} 
             </div>
+            
             <div>
                 <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
                     <div className="">
@@ -233,7 +278,41 @@ const PricePage = () =>{
                                 </option>
                             ))}
                         </select>
-                    </div>                    
+                    </div>
+                    <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
+                        <div>
+                            <select
+                            id="batch"
+                            name="batch"
+                            onChange={(e) => {
+                                const selectedBatchId = e.target.value;
+                                if (!selectedBatchId) {
+                                    // Si no hay lote seleccionado, mostrar todos los productos
+                                    setProducts(productsAux);
+                                } else {
+                                    // Si hay lote seleccionado, filtrar por lote
+                                    const filteredProducts = productsAux.filter(
+                                        (product) => product.batches.id === Number(selectedBatchId)
+                                    );
+                                    setProducts(filteredProducts);
+                                    gotoPage(0); // Regresar a la primera página después de filtrar
+                                }
+                            }}
+                            className="border rounded p-1"
+                            required
+                            >
+                                <option value="">
+                                    Selecciona un Lote
+                                </option>
+                                {batches.map((batch) => (
+                                    <option key={batch.id} value={batch.id}>
+                                        {batch.name}
+                                    </option>
+                                ))}
+                                
+                            </select>
+                        </div>
+                    </div>                 
                 </div>
             </div>
             <div className="overflow-x-auto hidden md:block">
@@ -323,6 +402,53 @@ const PricePage = () =>{
                     </svg>
                 </button>
             </div>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Actualizar Almacen">
+                <form onSubmit={(e) =>  
+                    {
+                        e.preventDefault();
+                        handleSaveFinalCost(editRowId as number);
+                    }
+                }>
+                    <div className="grid gap-6 mb-6 md:grid-cols-2 text-primary-contrast">
+                        <div>
+                            <label htmlFor="wholesale" className="block mb-2 text-sm font-medium">
+                                Precio al Mayor
+                            </label>
+                            <input
+                                id="wholesale"
+                                name="wholesale"
+                                value={whosaleEditedCost}
+                                onChange={(e) => setWhosaleEditedCost(e.target.value)}
+                                type="text"
+                                className="block w-full rounded-md border py-1.5"
+                            />
+                        </div>
+
+                         <div>
+                            <label htmlFor="retail" className="block mb-2 text-sm font-medium">
+                                Precio al Detal
+                            </label>
+                            <input
+                                id="wholesale"
+                                name="wholesale"
+                                value={editedCost}
+                                onChange={(e) => setEditedCost(e.target.value)}
+                                type="text"
+                                className="block w-full rounded-md border py-1.5"
+                            />
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
+                        >
+                        Guardar
+                    </button>
+                </form>
+            </Modal>
         </>
     )
 }
