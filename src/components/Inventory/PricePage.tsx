@@ -24,7 +24,7 @@ const PricePage = () =>{
 
     useEffect (() =>{
         const PriceManegement = async () =>{
-
+            setShowSpinner(true);
             const session = await getSession();
             try{
                 const dataProducts = await fetchProductsAvailable(
