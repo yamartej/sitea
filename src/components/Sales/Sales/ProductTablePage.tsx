@@ -28,11 +28,8 @@ const ProductTable: React.FC<ProductTableProps> = ({ cart, onEdit, onDelete }) =
                             <td className="px-4 py-2 border border-gray-300">{item.name}</td>
                             <td className="px-4 py-2 border border-gray-300">{item.quantity}</td>
                             <td className="px-4 py-2 border border-gray-300">{item.price}</td>
-                            <td className="px-4 py-2 border border-gray-300">{item.price * item.quantity}</td>
+                            <td className="px-4 py-2 border border-gray-300">{Number(item.price * item.quantity).toFixed(2)}</td>
                             <td className="px-4 py-2 border border-gray-300 text-center">
-                                <button className="text-blue-600 hover:underline" onClick={() => onEdit(item.productId)}>
-                                    Editar
-                                </button>
                                 <button className="ml-2 text-red-600 hover:underline" onClick={() => onDelete(item.productId)}>
                                     Eliminar
                                 </button>

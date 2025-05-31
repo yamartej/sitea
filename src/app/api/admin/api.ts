@@ -824,6 +824,29 @@ export const fetchSaleCretitList = async (token: string) => {
     }      
 };
 
+export const fetchCustomerCreditNoteList = async (token: string) => {
+  try {
+      const response = await axios.get(`${apiUrl}/sales/credit-note-list`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
+
 export const registerPay = async (
   token: string, 
   sale_id: number,
@@ -931,6 +954,38 @@ export const registerCustomerPay = async (
   }
 };
 
+export const creditCustomerRegister = async (
+  token: string, 
+  customer_id: number,
+  amount: number,
+  credit_note_date: string,
+  credit_note_detail: string
+) => {
+  try {
+    const response = await axios.post(`${apiUrl}/sales/credit-customer-register`,
+      {
+        customer_id,
+        amount,
+        credit_note_date,
+        credit_note_detail,        
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error("Error en la respuesta de registro:", error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};
+
 export const removePaymentCustomerDetail = async (token: string, id: number) => {
     try {
       const response = await axios.delete(`${apiUrl}/credit-customer-details/${id}`,
@@ -950,3 +1005,78 @@ export const removePaymentCustomerDetail = async (token: string, id: number) => 
       throw error;
     }
   }
+
+  export const fetchCreditCustomerDetailList = async (token: string) => {
+  try {
+      const response = await axios.get(`${apiUrl}/customers/with-credits-and-payments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
+
+export const removeCreditNote = async (token: string, id: number) => {
+    try {
+      const response = await axios.delete(`${apiUrl}/sales/${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response; // Retornar solo los datos necesarios
+    } catch (error: any) {
+      console.error("Error en la respuesta:", error);
+      if (error.response && error.response.data && error.response.data.errors) {
+        throw error.response.data.errors;
+      }
+      throw error;
+    }
+  }
+
+  export const updateCreditNote = async (
+  token: string,
+  id: number,
+  total_amount: number,
+  credit_note_date: string,
+  credit_note_detail: string,
+) => {
+  try {
+    const response = await axios.put(
+      `${apiUrl}/sales/${id}`,
+      {
+        total_amount,
+        credit_note_date,
+        credit_note_detail,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.status; // Retornar solo los datos necesarios
+  } catch (error: any) {
+    console.error('Error en la respuesta del Update:', error);
+    if (error.response && error.response.data && error.response.data.errors) {
+      throw error.response.data.errors;
+    }
+    throw error;
+  }
+};

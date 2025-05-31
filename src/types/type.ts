@@ -199,7 +199,7 @@ export type Sale = {
 export type PaymentDetail = {
   id: number;
   sale_id: number;
-  amount: string;
+  amount: number;
   payment_date: Date;
   detail: string;
 }
@@ -222,3 +222,22 @@ export type BatchesWithProduct = {
   products: Product[];  
 }
 
+export type CustomerPaymentDetail = {
+  id: number;
+  name: string;
+  address: string;
+  phone: string;
+  created_at: Date;
+  updated_at: Date;
+  sales: Sale[];
+  credit_customer_details: PaymentDetail[];
+}
+
+export type CustomerCreditNote = {
+  sale_id: Number;
+  customer_id: Number;
+  customer_name: string;
+  total_amount: Number;
+  credit_note_date: String;
+  credit_note_detail: string;
+}

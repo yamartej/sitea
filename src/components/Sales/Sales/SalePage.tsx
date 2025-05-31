@@ -1,15 +1,17 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getSession } from 'next-auth/react';
-import { getClientById, registerSale } from '@/app/api/sale/api';
+import { getClientById, registerSale} from '@/app/api/sale/api';
+import { fetchCustomersList } from '@/app/api/admin/api';
 import { getPopByUserId } from '@/app/api/admin/api';
-import { Product, CartItem } from '@/types/type';
+import { Product, CartItem, Customer } from '@/types/type';
 import { fetchInventoriesList } from '@/app/api/inventory/api';
 import Modal from '@/components/Common/Modal/ModalPage';
 import ProductTable from './ProductTablePage';
 import QuantityInput from './QuantityInput';
 import Notification from '@/components/Common/Notification/NotificationPage';
 import Spinner from '@/components/Common/Spinner/SpinnerPage';
+
 
 const SalePage: React.FC = () => {
   const [clientId, setClientId] = useState('');
@@ -31,6 +33,7 @@ const SalePage: React.FC = () => {
   const [isModalConfirmOpen, setIsModalConfirmOpen] = useState<boolean>(false);
   const [typeOfSale, setTypeOfSale] = useState<string>('normal'); // "contado" es el valor por defecto
   const [showSpinner, setShowSpinner] = useState(false);
+  const [searchCustomer, setSearchCustomer] = useState<string>('');
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -120,6 +123,7 @@ const SalePage: React.FC = () => {
   const handleAddToCart = (product: Product, quantity: number) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.productId === product.id);
+      const price = quantity >= 3 ? Number(product.wholesale_final_cost) : Number(product.final_cost);
       if (existingItem) {
         return prevCart.map(item =>
           item.productId === product.id
@@ -127,7 +131,7 @@ const SalePage: React.FC = () => {
             : item
         );
       } else {
-        return [...prevCart, { productId: product.id, name: product.name, price: product.price, quantity }];
+        return [...prevCart, { productId: product.id, name: product.name, price: price, quantity }];
       }
     });
 
@@ -233,11 +237,6 @@ const SalePage: React.FC = () => {
   const handletypeOfSaleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTypeOfSale(event.target.value);
   };
-
-
-
-
-  
 
   return (
     <>
@@ -395,12 +394,8 @@ const SalePage: React.FC = () => {
                   </p>
                   <div className="mt-2 flex justify-end space-x-2">
                     <button
-                      className="text-blue-600 hover:underline"
-                    >
-                      Editar
-                    </button>
-                    <button
                       className="text-red-600 hover:underline"
+                      onClick={() => handleDelete(item.productId)}
                     >
                       Eliminar
                     </button>
@@ -422,7 +417,9 @@ const SalePage: React.FC = () => {
                   type="search"
                   id="default-search"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)
+                  }
+                  
                   className="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="descripcion del producto" required />
                 <button type="submit" className="absolute end-2.5 bottom-2.5 px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded">Buscar</button>
               </div>
@@ -452,7 +449,7 @@ const SalePage: React.FC = () => {
                       return (
                         <tr key={product.product_id} className="bg-white hover:bg-gray-100 transition">
                           <td className="px-4 py-2 border border-gray-300">{product.product.name}</td>
-                          <td className="px-4 py-2 border border-gray-300">{product.product.price}</td>
+                          <td className="px-4 py-2 border border-gray-300">{product.product.final_cost}</td>
                           <td className="px-4 py-2 border border-gray-300">{product.quantity}</td>
                           <td className="px-4 py-2 border border-gray-300">
                             <QuantityInput
