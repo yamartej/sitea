@@ -1,12 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { getSession } from "next-auth/react";
-import { CreditByCustomer, PaymentDetail } from "@/types/type";
+import { CreditByCustomer } from "@/types/type";
 import {
   fetchCretitListByCustomer,
   registerCustomerPay,
   removePaymentCustomerDetail,
-  creditCustomerRegister,
 } from "@/app/api/admin/api";
 import Spinner from "@/components/Common/Spinner/SpinnerPage";
 import Notification from "../Common/Notification/NotificationPage";
@@ -23,6 +22,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Swal from "sweetalert2";
+import InfoCardGrid from "../Common/Card/InfoCardGrid";
 
 const PaymentCustomerDetailPage = () => {
   const [sales, setSales] = useState<CreditByCustomer[]>([]);
@@ -32,15 +32,6 @@ const PaymentCustomerDetailPage = () => {
   const [typeMessage, setTypeMessage] = useState("error");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editRowId, setEditRowId] = useState<number | null>(null);
-  const [isModalOpenCustomer, setIsModalOpenCustomer] = useState(false);
-  const [formDataCustomer, setFormDataCustomer] = useState({
-    client_id: "",
-    name: "",
-    address: "",
-    phone: "",
-    amount: 0,
-  });
-
   const [formData, setFormData] = useState({
     id: 0,
     amount: 0,
@@ -111,8 +102,19 @@ const PaymentCustomerDetailPage = () => {
         accessor: (row) => row.customer_name || "Sin Nombre",
       },
       {
-        Header: "Deuda Pendiente",
+        Header: "Deuda Total",
         accessor: (row) => row.total_debt || "Sin Nombre",
+      },
+      {
+        Header: "Deuda Pendiente",
+        // Restar la suma de los pagos al total_debt
+        accessor: (row) => {
+          const totalPaid = row.payments?.reduce(
+            (acc, payment) => acc + Number(payment.amount),
+            0
+          );
+          return row.total_debt - (totalPaid || 0);
+        },
       },
       {
         Header: "Total Pagado",
@@ -179,6 +181,7 @@ const PaymentCustomerDetailPage = () => {
     usePagination // Agregar el plugin de paginación
   );
   const handleEditQuota = (CreditByCustomer: CreditByCustomer) => {
+    console.log("CreditByCustomer", CreditByCustomer);
     setEditRowId(CreditByCustomer.customer_id);
     setFormData({
       id: CreditByCustomer.customer_id,
@@ -190,6 +193,9 @@ const PaymentCustomerDetailPage = () => {
   };
 
   const handleRemovePayment = async (items: CreditByCustomer) => {
+    console.log("items", items);
+    console.log("expandedSaleId", expandedSaleId);
+    console.log("FormData", formData);
     Swal.fire({
       title: "¿Estás seguro de que deseas eliminar este Pago?",
       text: "No podrás revertir esto.",
@@ -208,7 +214,7 @@ const PaymentCustomerDetailPage = () => {
         if (response) {
           setSales((prevSales) =>
             prevSales.map((sale) =>
-              sale.customer_id === items.customer_id // or use sale.id === items.sale_id if PaymentDetail has sale_id
+              sale.customer_id === items.customer_id
                 ? {
                     ...sale,
                     payments: sale.payments
@@ -260,9 +266,9 @@ const PaymentCustomerDetailPage = () => {
                     payments: [
                       ...(sale.payments || []),
                       {
-                        id: response.id,
-                        sale_id: sale.customer_id, // or use the correct sale_id if available
-                        amount: formData.amount.toString(),
+                        id: Number(response.id),
+                        customer_id: Number(sale.customer_id), // or use the correct sale_id if available
+                        amount: formData.amount,
                         payment_date: formData.paymentDate,
                         detail: formData.detail,
                       },
@@ -322,53 +328,6 @@ const PaymentCustomerDetailPage = () => {
       amountInf: null,
     });
   };
-  const handleInputChangeCustomer = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormDataCustomer((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-  const handleSubmitCustomer = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsModalOpenCustomer(false);
-    setShowSpinner(true);
-    try {
-      const session = await getSession();
-      const response = await creditCustomerRegister(
-        session?.user.token as any,
-        Number(formDataCustomer.client_id),
-        formDataCustomer.name,
-        formDataCustomer.address,
-        Number(formDataCustomer.phone),
-        Number(formDataCustomer.amount)
-      );
-
-      if (response) {
-        console.log("Response:", response);
-        setSales((prevSales) => [
-          ...prevSales,
-          {
-            id: response.customer_id, // Add the required id property
-            customer_id: response.customer_id,
-            customer_name: response.customer_name,
-            total_debt: response.total_debt,
-            payments: [],
-          },
-        ]);
-      }
-    } catch (errors) {
-      console.log("Dos:", errors.response.data.error);
-      setErrorMessage(errors.response.data.error);
-      setShowNotification(true);
-      setTypeMessage("error");
-    } finally {
-      console.log("Tres");
-      setShowSpinner(false);
-    }
-  };
 
   return (
     <>
@@ -379,7 +338,6 @@ const PaymentCustomerDetailPage = () => {
           </div>
         )}
       </div>
-
       <div>
         {showNotification && errorMessage && (
           <Notification
@@ -388,6 +346,46 @@ const PaymentCustomerDetailPage = () => {
             onClose={() => setShowNotification(false)}
           />
         )}
+      </div>
+      <div className="mb-4">
+        <InfoCardGrid
+          cards={[
+            {
+              title: "Total Deuda",
+              value: sales.reduce(
+                (acc, sale) => acc + Number(sale.total_debt),
+                0
+              ),
+            },
+            {
+              title: "Total Pagado",
+              value: sales.reduce(
+                (acc, sale) =>
+                  acc +
+                  (sale.payments?.reduce(
+                    (paymentAcc, payment) =>
+                      paymentAcc + Number(payment.amount),
+                    0
+                  ) || 0),
+                0
+              ),
+            },
+            {
+              title: "Deuda Pendiente",
+              value: sales.reduce(
+                (acc, sale) =>
+                  acc +
+                  (sale.total_debt -
+                    (sale.payments?.reduce(
+                      (paymentAcc, payment) =>
+                        paymentAcc + Number(payment.amount),
+                      0
+                    ) || 0)),
+                0
+              ),
+            },
+          ]}
+        />
       </div>
       <div>
         <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
@@ -410,14 +408,6 @@ const PaymentCustomerDetailPage = () => {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setIsModalOpenCustomer(true)}
-              className="px-4 py-2 bg-primary text-white rounded"
-            >
-              Agregar Cliente
-            </button>
           </div>
         </div>
       </div>
@@ -790,105 +780,6 @@ const PaymentCustomerDetailPage = () => {
                 className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Escribe cualquier detalle"
                 defaultValue={""}
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
-          >
-            Guardar
-          </button>
-        </form>
-      </Modal>
-      <Modal
-        isOpen={isModalOpenCustomer}
-        onClose={() => {
-          setIsModalOpenCustomer(false);
-        }}
-        title="Agregar Cliente"
-      >
-        <form onSubmit={handleSubmitCustomer}>
-          <div className="grid gap-6 mb-6 md:grid-cols-2 text-primary-contrast">
-            <div>
-              <label
-                htmlFor="client_id"
-                className="block mb-2 text-sm font-medium"
-              >
-                Cédula
-              </label>
-              <input
-                id="client_id"
-                name="client_id"
-                type="text"
-                value={formDataCustomer.client_id}
-                onChange={handleInputChangeCustomer}
-                className="block w-full rounded-md border py-1.5"
-              />
-            </div>
-            <div>
-              <label htmlFor="name" className="block mb-2 text-sm font-medium">
-                Nombre
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                value={formDataCustomer.name}
-                onChange={handleInputChangeCustomer}
-                required
-                className="block w-full rounded-md border py-1.5"
-              />
-            </div>
-          </div>
-          <div className="grid gap-6 mb-6 md:grid-cols-1 text-primary-contrast">
-            <div>
-              <label
-                htmlFor="address"
-                className="block mb-2 text-sm font-medium"
-              >
-                Dirección
-              </label>
-              <input
-                id="address"
-                name="address"
-                type="text"
-                value={formDataCustomer.address}
-                onChange={handleInputChangeCustomer}
-                className="block w-full rounded-md border py-1.5"
-              />
-            </div>
-          </div>
-          <div className="grid gap-6 mb-6 md:grid-cols-2 text-primary-contrast">
-            <div>
-              <label htmlFor="phone" className="block mb-2 text-sm font-medium">
-                Teléfono
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="text"
-                value={formDataCustomer.phone}
-                onChange={handleInputChangeCustomer}
-                required
-                className="block w-full rounded-md border py-1.5"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="amount"
-                className="block mb-2 text-sm font-medium"
-              >
-                Monto de la deuda
-              </label>
-              <input
-                id="amount"
-                name="amount"
-                type="text"
-                value={formDataCustomer.amount}
-                onChange={handleInputChangeCustomer}
-                required
-                className="block w-full rounded-md border py-1.5"
               />
             </div>
           </div>

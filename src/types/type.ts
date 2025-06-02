@@ -198,7 +198,6 @@ export type Sale = {
 
 export type PaymentDetail = {
   id: number;
-  sale_id: number;
   amount: number;
   payment_date: Date;
   detail: string;
