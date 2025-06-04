@@ -17,6 +17,7 @@ import swal from "sweetalert2";
 
 const CustomerPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customersAux, setCustomersAux] = useState<Customer[]>([]);
   const [showRegister, setShowRegister] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
   const [btnAction, setBtnAction] = useState(false);
@@ -46,6 +47,7 @@ const CustomerPage = () => {
       try {
         const data = await fetchCustomersList(session?.user.token as string);
         setCustomers(data);
+        setCustomersAux(data);
       } catch (error) {
         console.error("Error fetching:", error);
         setErrorMessage("Error fetching");
@@ -142,7 +144,19 @@ const CustomerPage = () => {
       console.error("Error actualizando o guardando registro:", errors);
       setShowNotification(true);
       setTypeMessage("error");
-      setErrorMessage("Error actualizando o guardando registro");
+      setErrorMessage(
+        typeof errors === "object" &&
+          errors !== null &&
+          "response" in errors &&
+          errors.response &&
+          typeof errors.response === "object" &&
+          "data" in errors.response &&
+          errors.response.data &&
+          typeof errors.response.data === "object" &&
+          "message" in errors.response.data
+          ? (errors as any).response.data.message
+          : "Ocurrió un error al procesar la solicitud."
+      );
       setShowSpinner(false);
     } finally {
       if (showNotification) {
@@ -205,6 +219,10 @@ const CustomerPage = () => {
   const buttonText = typeRequest === "create" ? "Guardar" : "Actualizar";
   const columns: Column<Customer>[] = React.useMemo(
     () => [
+      {
+        Header: "ID",
+        accessor: "client_id",
+      },
       {
         Header: "Nombre",
         accessor: "name", // Accessor for the 'name' field
@@ -354,6 +372,27 @@ const CustomerPage = () => {
               </svg>
             </button>
           </div>
+        </div>
+      </div>
+      <div>
+        <div>
+          <input
+            type="text"
+            placeholder="Buscar por nombre o ID"
+            className="block w-full rounded-md border py-1.5 mb-4"
+            onChange={(e) => {
+              const searchTerm = e.target.value.toLowerCase();
+              setCustomers(
+                customersAux.filter(
+                  (customer) =>
+                    customer.name.toLowerCase().includes(searchTerm) ||
+                    String(customer.client_id)
+                      .toLowerCase()
+                      .includes(searchTerm)
+                )
+              );
+            }}
+          />
         </div>
       </div>
       <div className="overflow-x-auto hidden md:block">

@@ -26,6 +26,7 @@ import InfoCardGrid from "../Common/Card/InfoCardGrid";
 
 const PaymentCustomerDetailPage = () => {
   const [sales, setSales] = useState<CreditByCustomer[]>([]);
+  const [salesAux, setSalesAux] = useState<CreditByCustomer[]>([]);
   const [showSpinner, setShowSpinner] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -55,6 +56,7 @@ const PaymentCustomerDetailPage = () => {
           session?.user.token as string
         );
         setSales(data);
+        setSalesAux(data);
       } catch (error) {
         console.error("Error fetching:", error);
         setErrorMessage("Error fetching");
@@ -410,6 +412,21 @@ const PaymentCustomerDetailPage = () => {
             </select>
           </div>
         </div>
+      </div>
+      <div>
+        <input
+          type="text"
+          placeholder="Buscar por nombre"
+          className="block w-full rounded-md border py-1.5 mb-4"
+          onChange={(e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            setSales(
+              salesAux.filter((sale) =>
+                sale.customer_name.toLowerCase().includes(searchTerm)
+              )
+            );
+          }}
+        />
       </div>
       <div className="overflow-x-auto hidden md:block">
         <table

@@ -240,3 +240,29 @@ export type CustomerCreditNote = {
   credit_note_date: String;
   credit_note_detail: string;
 }
+
+export type SaleReport = {
+  id: number;
+  sale_id: number;
+  customer_id: number;
+  customer_name: string;
+  total_amount: number;
+  sale_date: Date;
+  payment_details: PaymentDetail[];
+  product_details: Product[];
+  credit_note_date: string | null;
+  credit_note_detail: string | null;
+  customer: Customer;
+  type_of_sale: string;
+  created_at: Date;
+  details: {
+    length: number;
+    id: number;
+    sale_id: number;
+    product_id: number;
+    product_name: string;
+    quantity: number;
+    price: number;
+    total: number;
+  };
+}
