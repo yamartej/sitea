@@ -12,12 +12,12 @@ const RegisterPage = () => {
   const [typeMessage, setTypeMessage] = useState("error");
   const [showNotification, setShowNotification] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
-  
+
   useEffect(() => {
     const message = searchParams.get("message");
     if (showNotification) {
       const timer = setTimeout(() => {
-          setShowNotification(false);
+        setShowNotification(false);
       }, 10000); // 10 segundos
 
       return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
@@ -28,7 +28,7 @@ const RegisterPage = () => {
       setShowNotification(true);
     }
   }, [searchParams, showNotification]);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -58,19 +58,29 @@ const RegisterPage = () => {
       setErrors({
         ...errors,
         passwordMatch:
-          value !== formData.password
-            ? "Las contraseñas no coinciden"
-            : null,
+          value !== formData.password ? "Las contraseñas no coinciden" : null,
       });
     }
   };
+
+  useEffect(() => {
+    if (showNotification) {
+      const timer = setTimeout(() => {
+        setShowNotification(false);
+      }, 10000); // 10 segundos
+      return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+    }
+  }, [showNotification]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setShowNotification(false);
     setShowSpinner(true);
     if (!formData.termsAccepted) {
-      setErrors({ ...errors, termsAccepted: "Debe aceptar los términos y condiciones" });
+      setErrors({
+        ...errors,
+        termsAccepted: "Debe aceptar los términos y condiciones",
+      });
       return;
     } else {
       setErrors({ ...errors, termsAccepted: null });
@@ -79,70 +89,84 @@ const RegisterPage = () => {
       setErrorMessage("Validar password");
       setShowNotification(true);
       return;
-    } 
+    }
 
     try {
-        const response = await register(
-            formData.name,
-            formData.email,
-            formData.password,
-            formData.passwordConfirmation,
-            formData.company,
-        );
-        setShowNotification(true);
-        setTypeMessage("success");
-        setErrorMessage(response.message); 
-        setShowSpinner(false);
+      const response = await register(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.passwordConfirmation,
+        formData.company
+      );
+      setShowNotification(true);
+      setTypeMessage("success");
+      setErrorMessage(response.message);
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        passwordConfirmation: "",
+        termsAccepted: false,
+        company: "",
+      });
     } catch (errors) {
-        console.error("Error:", errors);
-        // Mostrar los errores de la API en el componente de notificación
-        if (typeof errors === 'object' && errors !== null) {
-          if ('password' in errors && Array.isArray(errors.password)) {
-            setShowNotification(true);
-            setTypeMessage("error");
-            setErrorMessage(errors.password.join(" ")); 
-            setShowSpinner(false);
-          }
-          if ('email' in errors && Array.isArray(errors.email)) {
-            setShowNotification(true);
-            setTypeMessage("error");
-            setErrorMessage(errors.email.join(" ")); 
-            setShowSpinner(false);
-          }
+      console.error("Error:", errors);
+      // Mostrar los errores de la API en el componente de notificación
+      if (typeof errors === "object" && errors !== null) {
+        if ("password" in errors && Array.isArray(errors.password)) {
+          setShowNotification(true);
+          setTypeMessage("error");
+          setErrorMessage(errors.password.join(" "));
+        }
+        if ("email" in errors && Array.isArray(errors.email)) {
+          setShowNotification(true);
+          setTypeMessage("error");
+          setErrorMessage(errors.email.join(" "));
         }
       }
+    } finally {
+      setShowSpinner(false);
+    }
   };
 
   return (
-    <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-      {showNotification && errorMessage && (
-        <Notification
-          message={errorMessage}
-          type={typeMessage}
-          onClose={() => setShowNotification(false)}
-        />
-      )}    
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <img
-          alt="Your Company"
-          src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=600"
-          className="mx-auto h-10 w-auto"
-        />
-        <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-          Create an account
-        </h2>
-        {showSpinner && (
-          <div className="spinner-container">
-            <Spinner/>  
-          </div>              
+    <div className="flex min-h-full flex-1 flex-col">
+      <div>
+        {showNotification && errorMessage && (
+          <Notification
+            message={errorMessage}
+            type={typeMessage}
+            onClose={() => setShowNotification(false)}
+          />
         )}
       </div>
+      <div>
+        {showSpinner && (
+          <div className="spinner-container">
+            <Spinner />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col items-center justify-center p-2">
+        <img
+          alt="Your Company"
+          src="logo.png"
+          className="h-20 w-20 mb-2 bg-white rounded-md"
+        />
+        <h2 className="text-2xl font-bold text-gray-700 text-center">
+          Total<strong>Plus</strong>
+        </h2>
+      </div>
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+      <div className="sm:mx-auto sm:w-full sm:max-w-sm bg-white rounded-tr-3xl p-8">
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-900">
-              Company
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-500"
+            >
+              Nombre de Empresa
             </label>
             <input
               id="company"
@@ -151,12 +175,15 @@ const RegisterPage = () => {
               value={formData.company}
               onChange={handleInputChange}
               required
-              className="block w-full rounded-md border py-1.5 text-gray-900"
+              className="block w-full rounded-md border py-1.5 text-gray-500"
             />
           </div>
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-900">
-              Name
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-500"
+            >
+              Nombre y Apellido
             </label>
             <input
               id="name"
@@ -165,12 +192,15 @@ const RegisterPage = () => {
               value={formData.name}
               onChange={handleInputChange}
               required
-              className="block w-full rounded-md border py-1.5 text-gray-900"
+              className="block w-full rounded-md border py-1.5 text-gray-500"
             />
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-              Email address
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-500"
+            >
+              Correo
             </label>
             <input
               id="email"
@@ -179,12 +209,15 @@ const RegisterPage = () => {
               value={formData.email}
               onChange={handleInputChange}
               required
-              className="block w-full rounded-md border py-1.5 text-gray-900"
+              className="block w-full rounded-md border py-1.5 text-gray-500"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-900">
-              Password
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-500"
+            >
+              Clave
             </label>
             <input
               id="password"
@@ -193,12 +226,15 @@ const RegisterPage = () => {
               value={formData.password}
               onChange={handleInputChange}
               required
-              className="block w-full rounded-md border py-1.5 text-gray-900"
+              className="block w-full rounded-md border py-1.5 text-gray-500"
             />
           </div>
           <div>
-            <label htmlFor="passwordConfirmation" className="block text-sm font-medium text-gray-900">
-              Password Confirmation
+            <label
+              htmlFor="passwordConfirmation"
+              className="block text-sm font-medium text-gray-500"
+            >
+              Confirmación de clave
             </label>
             <input
               id="passwordConfirmation"
@@ -207,10 +243,12 @@ const RegisterPage = () => {
               value={formData.passwordConfirmation}
               onChange={handleInputChange}
               required
-              className="block w-full rounded-md border py-1.5 text-gray-900"
+              className="block w-full rounded-md border py-1.5 text-gray-500"
             />
             {errors.passwordMatch && (
-              <p className="text-red-500 text-sm mt-1">{errors.passwordMatch}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.passwordMatch}
+              </p>
             )}
           </div>
           <div className="flex items-start">
@@ -223,8 +261,14 @@ const RegisterPage = () => {
               className="w-4 h-4 border-gray-300 rounded"
               required
             />
-            <label htmlFor="terms" className="ml-3 text-sm font-light text-gray-500">
-              I accept the <a href="#" className="font-bold text-indigo-500 hover:underline">Terms and Conditions</a>
+            <label
+              htmlFor="terms"
+              className="ml-3 text-sm font-light text-gray-500"
+            >
+              Acepto el{" "}
+              <a href="#" className="font-bold text-primary hover:underline">
+                Términos y condiciones
+              </a>
             </label>
           </div>
           {errors.termsAccepted && (
@@ -232,12 +276,15 @@ const RegisterPage = () => {
           )}
           <button
             type="submit"
-            className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white"
+            className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
           >
-            Create an account
+            Crear una cuenta
           </button>
           <p className="text-sm font-light text-gray-500">
-            Already have an account? <Link href={"/"} className="font-bold text-indigo-500 hover:underline">Login here</Link>
+            ¿Ya tienes una cuenta?{" "}
+            <Link href={"/"} className="font-bold text-primary hover:underline">
+              Inicie sesión aquí
+            </Link>
           </p>
         </form>
       </div>

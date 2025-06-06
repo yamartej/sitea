@@ -2,9 +2,9 @@ import LoginPage from "@/components/LoginPage";
 
 const Login = () => {
   return (
-    <>
-    <LoginPage/>
-    </>
+    <div>
+      <LoginPage />
+    </div>
   );
 };
 
