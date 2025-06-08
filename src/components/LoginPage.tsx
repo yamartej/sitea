@@ -49,7 +49,6 @@ const Login = () => {
         if (result && result.ok) {
           // Redirige manualmente al dashboard
           router.push("/pages/dashboard");
-          setShowSpinner(false);
         } else {
           // Manejo de error en caso de fallo de autenticación
           setErrorMessage("Contraseña incorrecta");
@@ -64,6 +63,7 @@ const Login = () => {
     } catch {
       setErrorMessage("Ocurrió un error al verificar el correo.");
       setShowNotification(true);
+      setShowSpinner(false);
     }
   };
 

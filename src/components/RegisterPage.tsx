@@ -35,7 +35,6 @@ const RegisterPage = () => {
     password: "",
     passwordConfirmation: "",
     termsAccepted: false,
-    company: "",
   });
 
   const [errors, setErrors] = useState<{
@@ -96,8 +95,7 @@ const RegisterPage = () => {
         formData.name,
         formData.email,
         formData.password,
-        formData.passwordConfirmation,
-        formData.company
+        formData.passwordConfirmation
       );
       setShowNotification(true);
       setTypeMessage("success");
@@ -108,7 +106,6 @@ const RegisterPage = () => {
         password: "",
         passwordConfirmation: "",
         termsAccepted: false,
-        company: "",
       });
     } catch (errors) {
       console.error("Error:", errors);
@@ -161,23 +158,6 @@ const RegisterPage = () => {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-sm bg-white rounded-tr-3xl p-8">
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-500"
-            >
-              Nombre de Empresa
-            </label>
-            <input
-              id="company"
-              name="company"
-              type="text"
-              value={formData.company}
-              onChange={handleInputChange}
-              required
-              className="block w-full rounded-md border py-1.5 text-gray-500"
-            />
-          </div>
           <div>
             <label
               htmlFor="name"

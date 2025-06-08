@@ -31,7 +31,12 @@ export const login = async (email: string, password: string) => {
   }
 };
 
-export const register = async (name: string, email: string, password: string, password_confirmation: string, company: string) => {
+export const register = async (
+  name: string, 
+  email: string, 
+  password: string, 
+  password_confirmation: string,
+) => {
   try {
     const response = await axios.post(`${apiUrl}/register`,
       {
@@ -39,8 +44,6 @@ export const register = async (name: string, email: string, password: string, pa
         email,
         password,
         password_confirmation,
-        company,
-
       },
       {
         headers: {
