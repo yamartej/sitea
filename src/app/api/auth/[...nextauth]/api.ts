@@ -31,6 +31,28 @@ export const login = async (email: string, password: string) => {
   }
 };
 
+export const resendVerification = async (
+  token: string, 
+  email: string
+) => {
+  try {
+    const response = await axios.post(`${apiUrl}/email/verification-notification`, 
+      {
+        email,
+        },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    return response;
+  } catch (error) {
+    console.error("Error al enenviar correo:", error);
+    throw error;
+  }
+};
+
 export const register = async (
   name: string, 
   email: string, 
