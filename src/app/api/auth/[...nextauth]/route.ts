@@ -3,16 +3,15 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
-
 import {
   validateEmail,
   login,
   loginWithProvider,
-} from "./api"; // Asegúrate que estos métodos estén bien implementados
+  refreshToken
+} from "./api"; // Asegúrate que estos estén bien implementados
 
 import { JWT } from "next-auth/jwt";
 
-// 🔧 Tipado personalizado del usuario
 interface CustomUser {
   id: string;
   email: string;
@@ -20,11 +19,11 @@ interface CustomUser {
   roles: string[];
   company_id: string;
   name?: string | null;
-  expires?: string;
+  expires?: string | number;
   email_verified_at?: string | null;
 }
 
-// 📦 Extendiendo tipos de NextAuth
+// 🔧 Extensión de tipos para NextAuth
 declare module "next-auth" {
   interface Session {
     user: CustomUser;
@@ -34,10 +33,11 @@ declare module "next-auth" {
 }
 
 declare module "next-auth/jwt" {
-  interface JWT extends CustomUser {}
+  interface JWT extends CustomUser {
+    error?: string;
+  }
 }
-
-// 🚀 Configuración principal de NextAuth
+// 📦 Configuración principal de NextAuth
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -88,10 +88,8 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
-  // 🔄 Callbacks
   callbacks: {
     async signIn({ user }) {
-      // Solo aplica a OAuth
       if (!user.roles) {
         const emailExists = await validateEmail(user.email || "");
         if (!emailExists) {
@@ -119,21 +117,39 @@ export const authOptions: NextAuthOptions = {
 
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.token = user.token;
-        token.roles = user.roles;
-        token.company_id = user.company_id;
-        token.name = user.name;
-        token.expires = user.expires;
-        token.email_verified_at = user.email_verified_at;
+        return {
+          ...token,
+          id: user.id,
+          email: user.email,
+          token: user.token,
+          roles: user.roles,
+          company_id: user.company_id,
+          name: user.name,
+          expires: new Date(user.expires || Date.now() + 60 * 60 * 1000).getTime(),
+          email_verified_at: user.email_verified_at,
+        };
       }
+
+      const isExpired = token.expires && Date.now() > Number(token.expires);
+      if (isExpired) {
+        const newToken = await refreshToken(token.token);
+          if (newToken) { 
+            token.token = newToken.token;
+            token.expires = newToken.expiration; 
+          } 
+          else { 
+            throw new Error("Unable to refresh token"); 
+          } 
+
+      }
+
       return token;
     },
 
     async session({ session, token }) {
       session.user = {
         id: token.id,
-        email: token.email || "",
+        email: token.email!,
         token: token.token,
         roles: token.roles,
         company_id: token.company_id,
@@ -145,16 +161,16 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  // 🔐 Configuraciones de seguridad opcionales
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 4, // 4 horas
+    maxAge: 60 * 60, // 1 hora
   },
+
   pages: {
-    signIn: "/", // Página de login personalizada
-    error: "/?message=error", // Página de error
-    verifyRequest: "/verify-pending", // Página para verificar el email
+    signIn: "/",
+    error: "/auth/error", // Puedes personalizar esto
   },
+
   secret: process.env.NEXTAUTH_SECRET,
 };
 

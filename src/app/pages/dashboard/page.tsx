@@ -26,8 +26,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div>
-      <h1>Bienvenido al Dashboard</h1>
-    </div>
+    <>
+      <div className="p-4 sm:ml-64">
+        <div className="p-4 mt-14">
+          <h1>Dashboard</h1>
+        </div>
+      </div>
+    </>
   );
 }
