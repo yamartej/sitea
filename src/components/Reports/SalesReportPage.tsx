@@ -1,6 +1,6 @@
 "use client";
 import { Product, SaleReport } from "@/types/type";
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { getSession } from "next-auth/react";
 import {
   fetchSaleslist,
@@ -17,7 +17,6 @@ import {
   useExpanded,
 } from "react-table";
 import Modal from "../Common/Modal/ModalPage";
-import { max } from "date-fns";
 import Notification from "@/components/Common/Notification/NotificationPage";
 import Spinner from "@/components/Common/Spinner/SpinnerPage";
 
@@ -50,6 +49,31 @@ const SalesReportPage = () => {
     wholesale_final_cost: "",
     quantity: "",
   });
+
+  useEffect(() => {
+    const fetchSales = async () => {
+      const session = await getSession();
+      try {
+        setShowSpinner(true);
+        const data = await fetchSaleslist(session?.user?.token || "");
+        setSales(data);
+        setSalesAux(data);
+      } catch (error) {
+        console.error("Error fetching:", error);
+        setErrorMessage("Error fetching");
+        setShowNotification(true);
+      } finally {
+        setShowSpinner(false);
+        if (showNotification) {
+          const timer = setTimeout(() => {
+            setShowNotification(false);
+          }, 10000); // 10 segundos
+          return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+        }
+      }
+    };
+    fetchSales();
+  }, []);
 
   const columns: Column<SaleReport>[] = React.useMemo(
     () => [
@@ -151,30 +175,6 @@ const SalesReportPage = () => {
     useExpanded,
     usePagination // Agregar el plugin de paginación
   );
-
-  useEffect(() => {
-    const fetchSales = async () => {
-      const session = await getSession();
-      try {
-        const data = await fetchSaleslist(session?.user?.token || "");
-        setSales(data);
-        setSalesAux(data);
-      } catch (error) {
-        console.error("Error fetching:", error);
-        setErrorMessage("Error fetching");
-        setShowNotification(true);
-      } finally {
-        setShowSpinner(false);
-        if (showNotification) {
-          const timer = setTimeout(() => {
-            setShowNotification(false);
-          }, 10000); // 10 segundos
-          return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-        }
-      }
-    };
-    fetchSales();
-  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
