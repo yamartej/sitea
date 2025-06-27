@@ -376,6 +376,34 @@ const PaymentDetailReportPage = () => {
         </table>
       </div>
 
+      <div className="block md:hidden mt-2 space-y-4">
+        {paymentDetails?.map((paymentDetail) => (
+          <div
+            key={paymentDetail.id}
+            className="p-4 bg-white rounded-lg shadow border border-gray-300"
+          >
+            <p>
+              <span className="font-semibold">Id:</span>{" "}
+              {paymentDetail.customer.id}
+            </p>
+            <p>
+              <span className="font-semibold">Nombre:</span>{" "}
+              {paymentDetail.customer.name}
+            </p>
+            <p>
+              <span className="font-semibold">Monto:</span>{" "}
+              {paymentDetail.amount}
+            </p>
+            <p>
+              <span className="font-semibold">Fecha de Pago:</span>{" "}
+              {paymentDetail.payment_date
+                ? format(new Date(paymentDetail.payment_date), "dd-MM-yyyy")
+                : "—"}
+            </p>
+          </div>
+        ))}
+      </div>
+
       <div className="text-right mt-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-200 pt-2">
         <button
           onClick={() => previousPage()}
