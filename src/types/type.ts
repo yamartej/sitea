@@ -203,6 +203,15 @@ export type PaymentDetail = {
   detail: string;
 }
 
+export type PaymentDetailReport = {
+  id: number;
+  amount: number;
+  payment_date: Date;
+  detail: string;
+  customer_id: number;
+  customer: Customer;
+}
+
 export type CreditByCustomer = {
   id: number;
   customer_id: number;

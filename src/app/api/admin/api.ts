@@ -1103,3 +1103,30 @@ export const removeCreditNote = async (token: string, id: number) => {
     throw error;
   }
 };
+
+export const fetchPaymentListByDate = async (token: string, start_date: string, end_date: string) => {
+  try {
+    const response = await axios.get(`${apiUrl}/credit-customer-details/payments-by-date`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        start_date,
+        end_date,
+      },
+    });
+    return response.data; 
+  } catch (error: any) {
+    if (error.response) {
+      // Error de respuesta del servidor.
+      console.error("Error en la API:", error.response.status, error.response.data);
+    } else if (error.request) {
+      // La solicitud se hizo, pero no se recibió respuesta.
+      console.error("Sin respuesta de la API:", error.request);
+    } else {
+      // Error al configurar la solicitud.
+      console.error("Error al configurar Axios:", error.message);
+    }
+    throw error; // Re-lanza el error si es necesario.
+  }
+}
