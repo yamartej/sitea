@@ -1,8 +1,14 @@
 "use client";
-import { SaleReport } from "@/types/type";
+import { Product, SaleReport } from "@/types/type";
 import React, { use, useEffect, useState } from "react";
 import { getSession } from "next-auth/react";
-import { fetchSaleslist, updateSaleDetails } from "@/app/api/sale/api"; // Asegúrate de que esta ruta sea correcta
+import {
+  fetchSaleslist,
+  updateSaleDetails,
+  removeSaleDetail,
+} from "@/app/api/sale/api";
+import { removeCreditNote } from "@/app/api/admin/api";
+import Swal from "sweetalert2";
 import {
   useTable,
   usePagination,
@@ -12,15 +18,22 @@ import {
 } from "react-table";
 import Modal from "../Common/Modal/ModalPage";
 import { max } from "date-fns";
+import Notification from "@/components/Common/Notification/NotificationPage";
+import Spinner from "@/components/Common/Spinner/SpinnerPage";
 
 const SalesReportPage = () => {
   const [sales, setSales] = useState<SaleReport[]>([]);
+  const [salesAux, setSalesAux] = useState<SaleReport[]>([]);
   const [showSpinner, setShowSpinner] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [typeMessage, setTypeMessage] = useState("error");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editRowId, setEditRowId] = useState<number | null>(null);
+  const [totalProduct, setTotalProduct] = useState<number | null>(null);
+  const [newTotalProduct, setNewTotalProduct] = useState<number | null>(null);
   const [formData, setFormData] = useState({
+    saleDetailId: "",
     name: "",
     customerId: "",
     saleId: "",
@@ -28,8 +41,14 @@ const SalesReportPage = () => {
     productName: "",
     quantity: "",
     maxQuantity: 0,
-    totalAmount: "",
-    totalSoldProduct: 0,
+    saleTotal: 0,
+    finalCost: 0,
+    wholesaleFinalCost: 0,
+  });
+  const [ProductInfo, setProductInfo] = useState({
+    final_cost: "",
+    wholesale_final_cost: "",
+    quantity: "",
   });
 
   const columns: Column<SaleReport>[] = React.useMemo(
@@ -79,6 +98,31 @@ const SalesReportPage = () => {
         accessor: (row) =>
           new Date(row.created_at).toLocaleDateString() || "Sin Fecha",
       },
+      {
+        Header: "Acciones",
+        Cell: ({ row }) => (
+          <button
+            title="Eliminar Producto"
+            onClick={() => {
+              handleRemoveSale(row.original.id);
+            }}
+            className="text-primary mt-2 mr-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="size-4"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        ),
+      },
     ],
     []
   );
@@ -114,6 +158,7 @@ const SalesReportPage = () => {
       try {
         const data = await fetchSaleslist(session?.user?.token || "");
         setSales(data);
+        setSalesAux(data);
       } catch (error) {
         console.error("Error fetching:", error);
         setErrorMessage("Error fetching");
@@ -139,45 +184,225 @@ const SalesReportPage = () => {
       ...prevData,
       [name]: value,
     }));
+    if (name === "quantity") {
+      let total = 0;
+      if (Number(value) >= 3) {
+        total = Number(value) * formData.wholesaleFinalCost;
+      } else {
+        total = Number(value) * formData.finalCost;
+      }
+      setNewTotalProduct(total);
+    }
   };
 
   const handleUpdateSale = async () => {
+    setShowSpinner(true);
     const session = await getSession();
     try {
       const response = await updateSaleDetails(
         session?.user?.token || "",
-        formData.saleId,
-        formData.productId,
-        Number(formData.quantity)
+        Number(formData.saleDetailId),
+        Number(formData.saleId),
+        Number(formData.quantity),
+        Number(totalProduct),
+        Number(newTotalProduct)
       );
-
-      // Actualizar la fila editada en el estado
-      setSales((prevSales) =>
-        prevSales.map((sale) =>
-          sale.id === formData.saleId
-            ? {
-                ...sale,
-                details: sale.details.map((detail) =>
-                  detail.product.id === formData.productId
-                    ? { ...detail, quantity: Number(formData.quantity) }
-                    : detail
-                ),
-              }
-            : sale
-        )
-      );
+      setShowSpinner(false);
+      setErrorMessage("Venta actualizada correctamente");
+      setTypeMessage("success");
+      setShowNotification(true);
+      // Actualizar la lista de ventas después de la actualización
+      const updatedSales = sales.map((sale) => {
+        if (sale.id === Number(formData.saleId)) {
+          return {
+            ...sale,
+            total_amount:
+              typeof newTotalProduct === "number"
+                ? newTotalProduct
+                : sale.total_amount, // Ensure number
+            details: Array.isArray(sale.details)
+              ? sale.details.map((detail) => {
+                  if (detail.id === Number(formData.saleDetailId)) {
+                    return {
+                      ...detail,
+                      quantity: Number(formData.quantity), // Actualiza la cantidad
+                    };
+                  }
+                  return detail;
+                })
+              : [],
+          };
+        }
+        return sale;
+      });
+      setSales(updatedSales as SaleReport[]);
     } catch (error) {
-      console.error("Error updating sale:", error);
+      console.error("Error al actualizar la venta:", error);
+      setShowSpinner(false);
+      setErrorMessage("Error al actualizar la venta");
+      setTypeMessage("error");
+      setShowNotification(true);
+    } finally {
+      setIsModalOpen(false);
+      setEditRowId(null); // Resetea el ID de la fila editada
+      setFormData({
+        saleDetailId: "",
+        name: "",
+        customerId: "",
+        saleId: "",
+        productId: "",
+        productName: "",
+        quantity: "",
+        maxQuantity: 0,
+        saleTotal: 0,
+        finalCost: 0,
+        wholesaleFinalCost: 0,
+      });
+      setTotalProduct(null);
+      setNewTotalProduct(null);
     }
   };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowNotification(false);
+    }, 10000); // 10 segundos
+    return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
+  }, [showNotification]); // Dependencia para reiniciar el temporizador
 
-  // Calcular el total del producto vendido
-  const totalSold = sales.reduce((acc, sale) => {
-    return acc + sale.details.reduce((sum, detail) => sum + detail.quantity, 0);
-  }, 0);
+  const handleEditSalesDetails = (productInfo: Product) => {
+    setIsModalOpen(true);
+    let total = 0;
+    //saber cuantos productos tenia para calcular y restar al monto total de la compra
+    if (productInfo.quantity >= 3) {
+      total =
+        productInfo.quantity * Number(productInfo.product.wholesale_final_cost);
+    } else {
+      total = productInfo.quantity * Number(productInfo.product.final_cost);
+    }
+    setTotalProduct(total);
+  };
+
+  const handleRemoveSaleDetail = (productInfo: SaleReport) => {
+    Swal.fire({
+      title: "¿Estás seguro de que deseas eliminar esta venta?",
+      text: "No podrás revertir esto.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#72cb10",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, eliminarlo!",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const session = await getSession();
+        const response = await removeSaleDetail(
+          session?.user.token as any,
+          productInfo.id
+        );
+        if (response) {
+          let totalToRemove = 0;
+          if (productInfo.quantity >= 3) {
+            totalToRemove =
+              productInfo.quantity *
+              Number(productInfo.product.wholesale_final_cost);
+          } else {
+            totalToRemove =
+              productInfo.quantity * Number(productInfo.product.final_cost);
+          }
+
+          const updatedSales = sales.map((sale) => {
+            if (sale.id === productInfo.sale_id) {
+              return {
+                ...sale,
+                details: Array.isArray(sale.details)
+                  ? sale.details.filter(
+                      (detail) => detail.id !== productInfo.id
+                    )
+                  : [],
+                total_amount: sale.total_amount - totalToRemove,
+              };
+            }
+            return sale;
+          });
+          setSales(updatedSales as SaleReport[]);
+          // Si no quedan detalles, eliminar la venta completa
+          const filteredSales = updatedSales.filter(
+            (sale) => sale.details?.length > 0
+          );
+          setSales(filteredSales as SaleReport[]);
+          // Actualizar el estado de la notificación
+
+          setShowSpinner(false);
+          setShowNotification(true);
+          setErrorMessage("Venta eliminada correctamente");
+          setTypeMessage("success");
+        } else {
+          setShowNotification(true);
+          setErrorMessage("Error al eliminar la venta");
+          setTypeMessage("error");
+        }
+      }
+    });
+  };
+
+  const handleRemoveSale = (saleId: number) => {
+    Swal.fire({
+      title: "¿Estás seguro de que deseas eliminar esta venta?",
+      text: "No podrás revertir esto.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#72cb10",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, eliminarlo!",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const session = await getSession();
+        try {
+          const response = await removeCreditNote(
+            session?.user.token as any,
+            saleId
+          );
+          if (response) {
+            setSales((prevSales) =>
+              prevSales.filter((sale) => sale.id !== saleId)
+            );
+            setShowSpinner(false);
+            setShowNotification(true);
+            setErrorMessage("Venta eliminada correctamente");
+            setTypeMessage("success");
+          } else {
+            setShowNotification(true);
+            setErrorMessage("Error al eliminar la venta");
+            setTypeMessage("error");
+          }
+        } catch (error) {
+          console.error("Error al eliminar la venta:", error);
+          setShowSpinner(false);
+          setShowNotification(true);
+          setErrorMessage("Error al eliminar la venta");
+          setTypeMessage("error");
+        }
+      }
+    });
+  };
 
   return (
     <div>
+      <div>
+        {showSpinner && (
+          <div className="spinner-container">
+            <Spinner />
+          </div>
+        )}
+      </div>
+      <div>
+        {showNotification && errorMessage && (
+          <Notification
+            message={errorMessage}
+            type={typeMessage}
+            onClose={() => setShowNotification(false)}
+          />
+        )}
+      </div>
       <div>
         <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
           <div className="">
@@ -201,6 +426,21 @@ const SalesReportPage = () => {
             </select>
           </div>
         </div>
+      </div>
+      <div>
+        <input
+          type="text"
+          placeholder="Buscar por nombre"
+          className="block w-full rounded-md border py-1.5 mb-4"
+          onChange={(e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            setSales(
+              salesAux.filter((sale) =>
+                sale.customer.name.toLowerCase().includes(searchTerm)
+              )
+            );
+          }}
+        />
       </div>
 
       <div className="overflow-x-auto hidden md:block">
@@ -310,31 +550,37 @@ const SalesReportPage = () => {
                                             title="Editar Producto"
                                             className="text-primary mt-2 mr-2"
                                             onClick={() => {
-                                              setEditRowId(row.index);
-                                              setIsModalOpen(true);
+                                              handleEditSalesDetails(item);
                                               setFormData({
-                                                name: row.original.customer
-                                                  .name,
+                                                saleDetailId:
+                                                  item.id?.toString() || "",
+                                                name:
+                                                  row.original.customer?.name ||
+                                                  "",
                                                 customerId:
-                                                  row.original.customer.client_id.toString(),
+                                                  row.original.customer?.client_id?.toString() ||
+                                                  "",
                                                 saleId:
-                                                  row.original.id.toString(),
+                                                  row.original.id?.toString() ||
+                                                  "",
                                                 productId:
-                                                  item.product.id.toString(),
-                                                productName: item.product.name,
+                                                  item.product?.id?.toString() ||
+                                                  "",
+                                                productName:
+                                                  item.product?.name || "",
                                                 quantity:
-                                                  item.quantity.toString(),
+                                                  item.quantity?.toString() ||
+                                                  "",
                                                 maxQuantity:
-                                                  item.product.quantity,
-                                                totalAmount:
-                                                  row.original.total_amount.toString(),
-                                                totalSoldProduct:
-                                                  item.quantity >= 3
-                                                    ? item.quantity *
-                                                      item.product
-                                                        .wholesale_final_cost
-                                                    : item.quantity *
-                                                      item.product.final_cost,
+                                                  item.product.inventory
+                                                    ?.quantity || 0,
+                                                saleTotal:
+                                                  row.original.total_amount,
+                                                finalCost:
+                                                  item.product.final_cost,
+                                                wholesaleFinalCost:
+                                                  item.product
+                                                    .wholesale_final_cost,
                                               });
                                             }}
                                           >
@@ -350,6 +596,9 @@ const SalesReportPage = () => {
                                           </button>
                                           <button
                                             title="Eliminar Producto"
+                                            onClick={() => {
+                                              handleRemoveSaleDetail(item);
+                                            }}
                                             className="text-primary mt-2 mr-2"
                                           >
                                             <svg
@@ -457,8 +706,7 @@ const SalesReportPage = () => {
                 htmlFor="productName"
                 className="block mb-2 text-sm font-medium"
               >
-                Producto (Total del producto vendido:{" "}
-                {formData.totalSoldProduct})
+                Producto
               </label>
               <input
                 type="text"

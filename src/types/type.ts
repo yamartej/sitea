@@ -243,6 +243,7 @@ export type CustomerCreditNote = {
 
 export type SaleReport = {
   id: number;
+  quantity: number;
   sale_id: number;
   customer_id: number;
   customer_name: string;
@@ -255,6 +256,7 @@ export type SaleReport = {
   customer: Customer;
   type_of_sale: string;
   created_at: Date;
+  product: Product;
   details: {
     length: number;
     id: number;

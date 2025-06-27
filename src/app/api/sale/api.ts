@@ -90,29 +90,55 @@ export const getClientById = async (client_id: string, token: string) => {
   };
   
   export const updateSaleDetails = async (
-  token: string,
-  id: number,
-  name: string,
-) => {
-  try {
-    const response = await axios.put(
-      `${apiUrl}/sales/detail/${id}`,
-      {
-        name,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+    token: string,
+    id: number,
+    sale_id: number,
+    quantity: number,
+    total_amount: number,
+    new_total_amount: number,
+  ) => {
+    try {
+      const response = await axios.put(
+        `${apiUrl}/sales/detail/${id}`,
+        {
+          sale_id,
+          quantity,
+          total_amount,
+          new_total_amount
         },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.status; // Retornar solo los datos necesarios
+    } catch (error: any) {
+      console.error('Error en la respuesta del Update:', error);
+      if (error.response && error.response.data && error.response.data.errors) {
+        throw error.response.data.errors;
       }
-    );
-    return response.status; // Retornar solo los datos necesarios
-  } catch (error: any) {
-    console.error('Error en la respuesta del Update:', error);
-    if (error.response && error.response.data && error.response.data.errors) {
-      throw error.response.data.errors;
+      throw error;
     }
-    throw error;
+  };
+
+  export const removeSaleDetail = async (token: string, id: number) => {
+    try {
+      const response = await axios.delete(`${apiUrl}/sales/detail/${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response; // Retornar solo los datos necesarios
+    } catch (error: any) {
+      console.error("Error en la respuesta:", error);
+      if (error.response && error.response.data && error.response.data.errors) {
+        throw error.response.data.errors;
+      }
+      throw error;
+    }
   }
-};
