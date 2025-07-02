@@ -54,7 +54,28 @@
   color: white; /* Asegura que el texto sea blanco para buena legibilidad */
   border-color: #72cb10; /* Asegura que el borde sea del mismo color que el fondo */
 }
-
+.bg-menu{
+  background-image: url('/background-fc.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bg-btn-menu{
+  background-color: #ffffff;
+  color: #72cb10;;
+}
+.bg-btn-menu-active{
+  background-color: #f2e269;
+  color: #434343;;
+}
+.bg-btn-menu-active:hover{
+  background-color: #72cb10;
+  color: #ffffff;;
+}
+.bg-btn-menu:hover{
+ background-color: #a9e159;
+  color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+}
 .bg-primary-menu {
   background-color: #72cb10;
   color: white; /* Asegura que el texto sea blanco para buena legibilidad */
@@ -74,8 +95,8 @@
 }
 
 .bg-menu-primary {
-  background-color: #434343;
-  color: #ced0d4; /* Asegura que el texto sea blanco para buena legibilidad */
+  background-color: #ffffff;
+  color: #72cb10; /* Asegura que el texto sea blanco para buena legibilidad */
 }
 .btn-attr-sing-out {
   width: 100%;

@@ -42,6 +42,7 @@ export type Permission = {
 }
 
 export type MenuItem = {
+  icon: any;
   id: number;
   name: string;
   url: string;

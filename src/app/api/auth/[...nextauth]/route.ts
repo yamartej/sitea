@@ -97,6 +97,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const loginResult = await loginWithProvider(user.email || "");
+        console.log("loginResult=", loginResult);
         if (!loginResult?.user.email_verified_at) {
           return "/verify-pending";
         }
@@ -129,20 +130,21 @@ export const authOptions: NextAuthOptions = {
           email_verified_at: user.email_verified_at,
         };
       }
-
-      const isExpired = token.expires && Date.now() > Number(token.expires);
-      if (isExpired) {
+      // Refrescar proactivamente el token si faltan menos de 5 minutos para expirar
+      const FIVE_MINUTES = 5 * 60 * 1000;
+      const expiresAt = Number(token.expires);
+      const now = Date.now();
+      const timeLeft = expiresAt - now;
+      const shouldRefresh = timeLeft < FIVE_MINUTES;
+      if (shouldRefresh) {
         const newToken = await refreshToken(token.token);
-          if (newToken) { 
-            token.token = newToken.token;
-            token.expires = newToken.expiration; 
-          } 
-          else { 
-            throw new Error("Unable to refresh token"); 
-          } 
-
+        if (newToken) {
+          token.token = newToken.token;
+          token.expires = new Date(newToken.expiration).getTime();
+        } else {
+          throw new Error("Unable to refresh token");
+        }
       }
-
       return token;
     },
 

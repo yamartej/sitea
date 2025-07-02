@@ -17,6 +17,9 @@ export default function DashboardPage() {
     }
     // Si el usuario no ha verificado el correo, redirige a verify-pending
     else if (!session.user.email_verified_at) {
+      console.log(
+        "Redirigiendo a verify-pending porque el correo no está verificado"
+      );
       router.push("/verify-pending");
     }
   }, [session, status, router]);
