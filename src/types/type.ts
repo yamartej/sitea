@@ -218,6 +218,7 @@ export type CreditByCustomer = {
   customer_id: number;
   customer_name: string;
   total_debt: number;
+  debtToPay: number;
   payments: PaymentDetail[];
 }
 

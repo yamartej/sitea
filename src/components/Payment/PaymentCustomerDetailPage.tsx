@@ -55,8 +55,19 @@ const PaymentCustomerDetailPage = () => {
         const data = await fetchCretitListByCustomer(
           session?.user.token as string
         );
-        setSales(data);
-        setSalesAux(data);
+        const newData = data
+          .map((data: CreditByCustomer) => {
+            const total = data.payments.reduce(
+              (suma, pago) => suma + Number(pago.amount),
+              0
+            );
+            const debtToPay = data.total_debt - total;
+            return { ...data, debtToPay };
+          })
+          .filter((data: CreditByCustomer) => data.debtToPay > 0);
+
+        setSales(newData);
+        setSalesAux(newData);
       } catch (error) {
         console.error("Error fetching:", error);
         setErrorMessage("Error fetching");
@@ -361,30 +372,34 @@ const PaymentCustomerDetailPage = () => {
             },
             {
               title: "Total Pagado",
-              value: sales.reduce(
-                (acc, sale) =>
-                  acc +
-                  (sale.payments?.reduce(
-                    (paymentAcc, payment) =>
-                      paymentAcc + Number(payment.amount),
-                    0
-                  ) || 0),
-                0
-              ),
-            },
-            {
-              title: "Deuda Pendiente",
-              value: sales.reduce(
-                (acc, sale) =>
-                  acc +
-                  (sale.total_debt -
+              value: sales
+                .reduce(
+                  (acc, sale) =>
+                    acc +
                     (sale.payments?.reduce(
                       (paymentAcc, payment) =>
                         paymentAcc + Number(payment.amount),
                       0
-                    ) || 0)),
-                0
-              ),
+                    ) || 0),
+                  0
+                )
+                .toFixed(2),
+            },
+            {
+              title: "Deuda Pendiente",
+              value: sales
+                .reduce(
+                  (acc, sale) =>
+                    acc +
+                    (sale.total_debt -
+                      (sale.payments?.reduce(
+                        (paymentAcc, payment) =>
+                          paymentAcc + Number(payment.amount),
+                        0
+                      ) || 0)),
+                  0
+                )
+                .toFixed(2),
             },
           ]}
         />
