@@ -8,6 +8,7 @@ import {
   deleteUser,
   updateUser,
   fetchCompaniesList,
+  fetchUsersListByCompany,
 } from "@/app/api/admin/api";
 import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
 import { getSession } from "next-auth/react";
@@ -49,15 +50,28 @@ function Userpage() {
       setShowSpinner(true);
       const session = await getSession();
       try {
-        const data = await fetchUsersList(session?.user.token as string);
-        const roles = await fetchRoleList(session?.user.token as string);
-        const companies = await fetchCompaniesList(
-          session?.user.token as string
-        );
-        setRoles(roles);
-        setUsers(data);
-        setCompanies(companies);
-        //filterUsers(data, session?.user);
+        if (session?.user.company_id) {
+          const data = await fetchUsersListByCompany(
+            session?.user.token as string,
+            session?.user.company_id as string
+          );
+          const roles = await fetchRoleList(session?.user.token as string);
+          const companies = await fetchCompaniesList(
+            session?.user.token as string
+          );
+          setRoles(roles);
+          setUsers(data);
+          setCompanies(companies);
+        } else {
+          const data = await fetchUsersList(session?.user.token as string);
+          const roles = await fetchRoleList(session?.user.token as string);
+          const companies = await fetchCompaniesList(
+            session?.user.token as string
+          );
+          setRoles(roles);
+          setUsers(data);
+          setCompanies(companies);
+        }
       } catch (error) {
         console.error("Error fetching users:", error);
         setErrorMessage("Error fetching users");
@@ -76,23 +90,16 @@ function Userpage() {
     fetchUsers();
   }, []);
 
-  const filterUsers = (users: User[], user: any) => {
-    if (user.roles.some((role: any) => role.name === "Soporte Técnico")) {
-      setFilteredUsers(users);
-    } else if (user.roles.some((role: any) => role.name === "Administrador")) {
-      setFilteredUsers(users.filter((u) => u.company_id === user.company_id));
-    }
-  };
-
   const handleAddUserClick = async () => {
     const session = await getSession();
-    if (
+    setCompanyName(session?.user.company_id || "");
+    /*if (
       !session?.user.roles.some((role: any) => role.name === "Soporte Técnico")
     ) {
       setCompanyName(session?.user.company_id || "");
     } else {
       setCompanyName("");
-    }
+    }*/
 
     setFormData({
       id: "",
@@ -303,10 +310,6 @@ function Userpage() {
         setErrorMessage("Error eliminando usuario");
         setShowSpinner(false);
       }
-    } else {
-      setShowNotification(true);
-      setTypeMessage("error");
-      setErrorMessage("Error eliminando usuario");
     }
   };
   // Determinar el texto del botón basado en el estado
@@ -420,10 +423,7 @@ function Userpage() {
     usePagination // Agregar el plugin de paginación
   );
 
-  const cards = [
-    { title: "Total de Usuarios", value: users.length },
-    { title: "Total de Empresas", value: companies.length },
-  ];
+  const cards = [{ title: "Total de Usuarios", value: users.length }];
 
   return (
     <>
@@ -710,49 +710,54 @@ function Userpage() {
                     className="block w-full rounded-md border py-1.5"
                   />
                 </div>
-                <div>
-                  <label
-                    htmlFor="company"
-                    className="block mb-2 text-sm font-medium"
-                  >
-                    Nombre Empresa
-                  </label>
-                  <select
-                    id="companyName"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleInputChange}
-                    className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    required
-                    disabled={companyName ? true : false}
-                  >
-                    <option value="">Selecciona una Empresa</option>
-                    {companies?.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="company"
-                    className="block mb-2 text-sm font-medium dark:text-white"
-                  >
-                    Nombre Empresa
-                  </label>
-                  <input
-                    id="company"
-                    name="company"
-                    type="text"
-                    value={formData.company}
-                    onChange={handleInputChange}
-                    onBlur={handleCompanyBlur}
-                    required
-                    className="block w-full rounded-md border py-1.5"
-                    disabled={!!formData.companyName}
-                  />
-                </div>
+                {!companyName && (
+                  <>
+                    <div>
+                      <label
+                        htmlFor="company"
+                        className="block mb-2 text-sm font-medium"
+                      >
+                        Nombre Empresa
+                      </label>
+                      <select
+                        id="companyName"
+                        name="companyName"
+                        value={formData.companyName}
+                        onChange={handleInputChange}
+                        className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        required
+                        disabled={companyName ? true : false}
+                      >
+                        <option value="">Selecciona una Empresa</option>
+                        {companies?.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="company"
+                        className="block mb-2 text-sm font-medium dark:text-white"
+                      >
+                        Nombre Empresa
+                      </label>
+                      <input
+                        id="company"
+                        name="company"
+                        type="text"
+                        value={formData.company}
+                        onChange={handleInputChange}
+                        onBlur={handleCompanyBlur}
+                        required
+                        className="block w-full rounded-md border py-1.5"
+                        disabled={!!formData.companyName}
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div>
                   <div>
                     <label

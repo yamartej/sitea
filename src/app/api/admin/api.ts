@@ -25,9 +25,9 @@ export const fetchUsersList = async (token: string) => {
       }      
 };
 
-export const fetchUsersListByCompany = async (token: string) => {
+export const fetchUsersListByCompany = async (token: string, company_id: string) => {
     try {
-        const response = await axios.get(`${apiUrl}/users/getUsersByCompany`, {
+        const response = await axios.get(`${apiUrl}/users/getUsersByCompany/${company_id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
