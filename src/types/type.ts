@@ -103,6 +103,8 @@ export type Customer = {
   name: string;
   address: string;
   phone: string;
+  company_id: string;
+  company: Company;
 }
 
 export type Warehouse = {
