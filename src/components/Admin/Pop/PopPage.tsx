@@ -3,10 +3,12 @@ import React from "react";
 import Modal from "@/components/Common/Modal/ModalPage";
 import { useEffect, useState } from "react";
 import {
+  fetchPops,
   registerPop,
   fetchPopsList,
   updatePop,
   deletePop,
+  fetchUsersListByCompany,
   getUsersByRole,
   fetchPopStatus,
   registerPopStatus,
@@ -50,10 +52,16 @@ const PopPage = () => {
     const fetchPopList = async () => {
       try {
         const session = await getSession();
-        const data = await fetchPopsList(session?.user.token as any);
-        const sellerData = await getUsersByRole(session?.user.token as any);
-        setSellerData(sellerData);
-        setPops(data);
+        if (session?.user.company_id == null) {
+          const data = await fetchPops(session?.user.token as any);
+          setPops(data);
+        } else {
+          const data = await fetchPopsList(
+            session?.user.token as any,
+            session?.user.company_id as string
+          );
+          setPops(data);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -92,7 +100,8 @@ const PopPage = () => {
         formData.identifier,
         formData.ubication,
         formData.status,
-        formData.seller
+        formData.seller,
+        session?.user.company_id as string
       );
       if (response) {
         const newPop: Pop = {
@@ -101,10 +110,15 @@ const PopPage = () => {
           ubication: formData.ubication,
           status: formData.status,
           updated_at: new Date().toISOString(),
-          name: "", // Add appropriate value
-          address: "", // Add appropriate value
+          name: "",
+          address: "",
           seller: "",
           seller_id: "",
+          company_id: "",
+          company: {
+            id: response.company_id,
+            name: response.company.name || "No asignado",
+          },
         };
         setPops([...pops, newPop]);
         setShowNotification(true);
@@ -134,15 +148,22 @@ const PopPage = () => {
   };
 
   const handleEditClick = (pop: Pop) => {
+    setFormData({
+      ...formData,
+      id: pop.id.toString(),
+      identifier: pop.identifier,
+      ubication: pop.ubication,
+      status: pop.status,
+      seller: pop.seller || "",
+      seller_id: pop.seller_id || "",
+    });
     setTypeRequest("edit");
     setIsModalOpen(true);
-    formData.id = pop.id.toString();
-    formData.identifier = pop.identifier;
-    formData.ubication = pop.ubication;
-    formData.status = pop.status;
   };
+
   const handleEditPop = async () => {
     try {
+      setIsModalOpen(false);
       setShowSpinner(true);
       const session = await getSession();
       const response = await updatePop(
@@ -201,7 +222,7 @@ const PopPage = () => {
               const session = await getSession();
               const response = await deletePop(session?.user.token as any, id);
               if (response === 200) {
-                setPops(pops.filter((pop) => pop.id !== id));
+                setPops((prevPops) => prevPops.filter((pop) => pop.id !== id));
                 setShowNotification(true);
                 setErrorMessage("Punto de venta eliminado correctamente");
                 setTypeMessage("success");
@@ -239,17 +260,26 @@ const PopPage = () => {
   };
 
   const handleOpenClick = async (pop: Pop) => {
+    setShowSpinner(true);
+    const session = await getSession();
+    const sellerData = await fetchUsersListByCompany(
+      session?.user.token as any,
+      pop.company_id as string
+    );
+    setSellerData(sellerData);
     setTypeRequest("open");
-    setIsModalOpen(true);
-    formData.id = pop.id.toString();
-    formData.identifier = pop.identifier;
-    formData.ubication = pop.ubication;
     setFormData({
       ...formData,
+      id: pop.id.toString(),
+      identifier: pop.identifier,
+      ubication: pop.ubication,
       status: "open",
       seller: "",
       seller_id: "",
     });
+
+    setIsModalOpen(true);
+    setShowSpinner(false);
   };
 
   const isSellerAssigned = (seller_id: string) => {
@@ -372,6 +402,12 @@ const PopPage = () => {
   const columns: Column<Pop>[] = React.useMemo(
     () => [
       {
+        Header: "Empresa",
+        Cell: ({ row }: { row: any }) => (
+          <div>{row.original.company.name || "No asignado"}</div>
+        ),
+      },
+      {
         Header: "Identificador",
         accessor: "identifier",
       },
@@ -398,7 +434,9 @@ const PopPage = () => {
       },
       {
         Header: "Vendedor",
-        accessor: "seller",
+        Cell: ({ row }: { row: any }) => (
+          <div>{row.original.seller || "No asignado"}</div>
+        ),
       },
       {
         Header: "Acciones",
@@ -553,16 +591,14 @@ const PopPage = () => {
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-6"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="size-5"
                 >
                   <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"
+                    fillRule="evenodd"
+                    d="M3.75 3A1.75 1.75 0 0 0 2 4.75v10.5c0 .966.784 1.75 1.75 1.75h12.5A1.75 1.75 0 0 0 18 15.25v-8.5A1.75 1.75 0 0 0 16.25 5h-4.836a.25.25 0 0 1-.177-.073L9.823 3.513A1.75 1.75 0 0 0 8.586 3H3.75ZM10 8a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0v-1.5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 10 8Z"
+                    clipRule="evenodd"
                   />
                 </svg>
               </button>
@@ -577,11 +613,13 @@ const PopPage = () => {
           >
             <thead className="text-xs text-gray-700 uppercase border-b border-t">
               {headerGroups.map((headerGroup) => {
+                // Correcto: se extrae la 'key' y se pasa explícitamente
                 const { key, ...restHeaderGroupProps } =
                   headerGroup.getHeaderGroupProps();
                 return (
                   <tr key={key} {...restHeaderGroupProps}>
                     {headerGroup.headers.map((column) => {
+                      // Correcto: se extrae la 'key' y se pasa explícitamente
                       const { key: columnKey, ...restColumnProps } =
                         column.getHeaderProps(column.getSortByToggleProps());
                       return (
@@ -610,16 +648,23 @@ const PopPage = () => {
             <tbody {...getTableBodyProps()}>
               {page.map((row) => {
                 prepareRow(row);
+                // CORRECCIÓN: Extraemos la 'key' y la pasamos directamente al <tr>
+                const { key, ...restRowProps } = row.getRowProps();
                 return (
                   <tr
-                    {...row.getRowProps()}
+                    key={key}
+                    {...restRowProps}
                     className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition"
                   >
-                    {row.cells.map((cell) => (
-                      <td {...cell.getCellProps()} className="px-4 py-2">
-                        {cell.render("Cell")}
-                      </td>
-                    ))}
+                    {row.cells.map((cell) => {
+                      // CORRECCIÓN: Extraemos la 'key' y la pasamos directamente al <td>
+                      const { key, ...restCellProps } = cell.getCellProps();
+                      return (
+                        <td key={key} {...restCellProps} className="px-4 py-2">
+                          {cell.render("Cell")}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
@@ -811,7 +856,7 @@ const PopPage = () => {
                     onChange={handleChange}
                     required
                     className="block w-full rounded-md border py-1.5"
-                    disabled={typeRequest === "open" ? true : false}
+                    //disabled={typeRequest === "open" ? true : false}
                   />
                 </div>
                 <div className="mb-6">

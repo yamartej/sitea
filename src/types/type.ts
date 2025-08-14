@@ -142,6 +142,8 @@ export type Pop = {
   id: number;
   name: string;
   address: string;
+  company_id: string;
+  company: Company;
 }
 
 export type ProductCardProps = {

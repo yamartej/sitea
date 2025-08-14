@@ -579,7 +579,8 @@ export const registerPop = async (
   identifier: string, 
   ubication: string, 
   status: string, 
-  seller: string) => {
+  seller: string,
+  company_id: string) => {
   try {
     const response = await axios.post(`${apiUrl}/pops`,
       {
@@ -587,6 +588,7 @@ export const registerPop = async (
         ubication,
         status,
         seller,
+        company_id,
       },
       {
         headers: {
@@ -604,10 +606,32 @@ export const registerPop = async (
     throw error;
   }
 };
-
-export const fetchPopsList = async (token: string) => {
+export const fetchPops = async (token: string) => {
   try {
       const response = await axios.get(`${apiUrl}/pops`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
+
+export const fetchPopsList = async (token: string, company_id: string) => {
+  try {
+      const response = await axios.get(`${apiUrl}/pops/by-company/${company_id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
