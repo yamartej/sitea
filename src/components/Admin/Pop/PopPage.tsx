@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { use } from "react";
 import Modal from "@/components/Common/Modal/ModalPage";
 import { useEffect, useState } from "react";
 import {
@@ -14,17 +14,21 @@ import {
   registerPopStatus,
   deletePopStatus,
   closePopStatus,
+  fetchUsersList,
 } from "@/app/api/admin/api";
 import { getSession } from "next-auth/react";
-import { Pop } from "@/types/type";
+import { Pop, Company } from "@/types/type";
 import Spinner from "@/components/Common/Spinner/SpinnerPage";
 import Notification from "@/components/Common/Notification/NotificationPage";
 import swal from "sweetalert2";
 import { useTable, usePagination, Column, useSortBy } from "react-table";
+import { Console } from "console";
 
 const PopPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [pops, setPops] = useState<Pop[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [showSpinner, setShowSpinner] = useState(false);
   const [typeRequest, setTypeRequest] = useState("add");
   const [showNotification, setShowNotification] = useState(false);
@@ -45,6 +49,7 @@ const PopPage = () => {
     seller: "",
     seller_id: "",
     date: "",
+    company_id: "",
   });
 
   useEffect(() => {
@@ -52,9 +57,15 @@ const PopPage = () => {
     const fetchPopList = async () => {
       try {
         const session = await getSession();
-        if (session?.user.company_id == null) {
+        setCompanyId(session?.user.company_id || null);
+        if (session?.user.company_id === null) {
           const data = await fetchPops(session?.user.token as any);
+          const usersData = await fetchUsersList(session?.user.token as any);
           setPops(data);
+          const companiesFromUsers = usersData
+            .filter((user: any) => user.company)
+            .map((user: any) => user.company);
+          setCompanies(companiesFromUsers);
         } else {
           const data = await fetchPopsList(
             session?.user.token as any,
@@ -95,13 +106,16 @@ const PopPage = () => {
     try {
       setShowSpinner(true);
       const session = await getSession();
+
       const response = await registerPop(
         session?.user.token as any,
         formData.identifier,
         formData.ubication,
         formData.status,
         formData.seller,
-        session?.user.company_id as string
+        formData.company_id
+          ? formData.company_id
+          : (session?.user.company_id as string)
       );
       if (response) {
         const newPop: Pop = {
@@ -156,6 +170,7 @@ const PopPage = () => {
       status: pop.status,
       seller: pop.seller || "",
       seller_id: pop.seller_id || "",
+      company_id: pop.company_id,
     });
     setTypeRequest("edit");
     setIsModalOpen(true);
@@ -172,7 +187,7 @@ const PopPage = () => {
         formData.identifier,
         formData.ubication,
         formData.status,
-        formData.seller
+        formData.seller_id
       );
       if (response.status === 200) {
         setPops(
@@ -246,6 +261,7 @@ const PopPage = () => {
       seller: "",
       seller_id: "",
       date: "",
+      company_id: "",
     });
   };
 
@@ -276,6 +292,7 @@ const PopPage = () => {
       status: "open",
       seller: "",
       seller_id: "",
+      company_id: pop.company_id,
     });
 
     setIsModalOpen(true);
@@ -336,9 +353,11 @@ const PopPage = () => {
   const handleClosePop = async (pop: Pop) => {
     swal
       .fire({
-        title: "¿Estás seguro?",
+        title: "¿Estás seguro de cerrar la caja?",
         text: "No podrás revertir esta acción",
         icon: "warning",
+        confirmButtonColor: "#72cb10",
+        cancelButtonColor: "#d33",
         showCancelButton: true,
         confirmButtonText: "Sí, cerrar",
         cancelButtonText: "Cancelar",
@@ -357,18 +376,17 @@ const PopPage = () => {
               (pop.seller_id = "")
             );
             if (response.status === 200) {
-              setPops(
-                pops.map((p) => {
-                  if (p.id === pop.id) {
-                    return {
-                      ...p,
-                      status: "closed",
-                      seller: "",
-                      seller_id: "",
-                    };
-                  }
-                  return p;
-                })
+              setPops((prevPops) =>
+                prevPops.map((popInfo) =>
+                  popInfo.id === response.data.id
+                    ? {
+                        ...popInfo,
+                        status: "closed",
+                        seller: "",
+                        seller_id: "",
+                      }
+                    : popInfo
+                )
               );
               setShowNotification(true);
               setErrorMessage("Punto de venta cerrado correctamente");
@@ -403,8 +421,9 @@ const PopPage = () => {
     () => [
       {
         Header: "Empresa",
-        Cell: ({ row }: { row: any }) => (
-          <div>{row.original.company.name || "No asignado"}</div>
+        accessor: "company",
+        Cell: ({ value }: { value: Company }) => (
+          <div>{value?.name || "No asignado"}</div>
         ),
       },
       {
@@ -841,6 +860,32 @@ const PopPage = () => {
           <div className="max-w-md mx-auto text-primary-contrast">
             <div className="relative">
               <div>
+                {!companyId && typeRequest === "add" && (
+                  <div className="mb-6">
+                    <label
+                      htmlFor="company_id"
+                      className="block mb-2 text-sm font-medium"
+                    >
+                      Empresa
+                    </label>
+                    <select
+                      id="company_id"
+                      name="company_id"
+                      value={formData.company_id || ""}
+                      onChange={handleChange}
+                      className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Selecciona una empresa</option>
+                      {/* Puedes reemplazar este array por tu lista real de empresas */}
+                      {companies.map((company) => (
+                        <option key={company.id} value={company.id}>
+                          {company.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="mb-6">
                   <label
                     htmlFor="identifier"
