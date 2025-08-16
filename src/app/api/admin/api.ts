@@ -488,12 +488,36 @@ export const fetchCustomersList = async (token: string) => {
     }      
 };
 
+export const fetchCustomersListByCompany = async (token: string, company_id: number) => {
+  try {
+      const response = await axios.get(`${apiUrl}/customers/get-customers-by-company/${company_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
+
 export const registerCustomer = async (
   token: string, 
   client_id: number,
   name: string,
   address: string,
   phone: number,
+  company_id: string
   ) => {
   try {
     const response = await axios.post(`${apiUrl}/customers`,
@@ -502,6 +526,7 @@ export const registerCustomer = async (
         name,
         address,
         phone,
+        company_id,
       },
       {
         headers: {

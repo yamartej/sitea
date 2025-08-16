@@ -113,6 +113,7 @@ export type Warehouse = {
   description: string;
   address: string;
   phone: string;
+  company: Company;
 }
 
 export type ErrorResponse = {

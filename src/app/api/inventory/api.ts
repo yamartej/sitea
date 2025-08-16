@@ -23,12 +23,36 @@ export const fetchWarehousesList = async (token: string) => {
         throw error; // Re-lanza el error si es necesario.
       }      
   };
+
+  export const fetchWarehousesListByCompany = async (company_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${apiUrl}/warehouses/get-by-company/${company_id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        return response.data;
+      } catch (error: any) {
+        if (error.response) {
+          // Error de respuesta del servidor.
+          console.error("Error en la API:", error.response.status, error.response.data);
+        } else if (error.request) {
+          // La solicitud se hizo, pero no se recibió respuesta.
+          console.error("Sin respuesta de la API:", error.request);
+        } else {
+          // Error al configurar la solicitud.
+          console.error("Error al configurar Axios:", error.message);
+        }
+        throw error; // Re-lanza el error si es necesario.
+      }      
+  };
   
   export const registerWarehouse = async (
     token: string, 
     name: string,
     description: string,
     address: string,
+    company_id: number | string,
     ) => {
     try {
       const response = await axios.post(`${apiUrl}/warehouses`,
@@ -36,6 +60,7 @@ export const fetchWarehousesList = async (token: string) => {
           name,
           description,
           address,
+          company_id
         },
         {
           headers: {
@@ -61,6 +86,7 @@ export const fetchWarehousesList = async (token: string) => {
     description: string,
     address: string,
     phone: number,
+    company_id: string,
   ) => {
     try {
       const response = await axios.put(
@@ -70,6 +96,7 @@ export const fetchWarehousesList = async (token: string) => {
           description,
           address,
           phone,
+          company_id,
         },
         {
           headers: {

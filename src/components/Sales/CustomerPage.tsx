@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   fetchCustomersList,
+  fetchCustomersListByCompany,
   registerCustomer,
   updateCustomer,
   deleteCustomer,
@@ -17,6 +18,7 @@ import swal from "sweetalert2";
 
 const CustomerPage = () => {
   const [userRol, setUserRol] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customersAux, setCustomersAux] = useState<Customer[]>([]);
   const [showRegister, setShowRegister] = useState(false);
@@ -32,6 +34,7 @@ const CustomerPage = () => {
     name: "",
     address: "",
     phone: "",
+    company_id: "",
   });
   const [errors, setErrors] = useState<{
     priceMessage: string | null;
@@ -50,10 +53,20 @@ const CustomerPage = () => {
           ? session.user.roles[0]
           : session?.user.roles ?? null
       );
+      setCompanyId(session?.user.company_id || null);
       try {
-        const data = await fetchCustomersList(session?.user.token as string);
-        setCustomers(data);
-        setCustomersAux(data);
+        if (!session?.user.company_id) {
+          const data = await fetchCustomersList(session?.user.token as string);
+          setCustomers(data);
+          setCustomersAux(data);
+        } else {
+          const data = await fetchCustomersListByCompany(
+            session?.user.token as string,
+            Number(session?.user.company_id)
+          );
+          setCustomers(data);
+          setCustomersAux(data);
+        }
       } catch (error) {
         console.error("Error fetching:", error);
         setErrorMessage("Error fetching");
@@ -105,7 +118,8 @@ const CustomerPage = () => {
             Number(formData.client_id),
             formData.name,
             formData.address,
-            Number(formData.phone)
+            Number(formData.phone),
+            companyId as any
           );
           if (response) {
             setCustomers([...customers, response]);
@@ -186,6 +200,7 @@ const CustomerPage = () => {
       client_id: customer.client_id,
       address: customer.address,
       phone: customer.phone,
+      company_id: customer.company_id,
     });
     setShowRegister(true);
     setTypeRequest("update");

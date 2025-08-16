@@ -11,6 +11,7 @@ import ProductTable from "./ProductTablePage";
 import QuantityInput from "./QuantityInput";
 import Notification from "@/components/Common/Notification/NotificationPage";
 import Spinner from "@/components/Common/Spinner/SpinnerPage";
+import Swal from "sweetalert2";
 
 const SalePage: React.FC = () => {
   const [clientId, setClientId] = useState("");
@@ -22,6 +23,7 @@ const SalePage: React.FC = () => {
     phone: "",
   });
   const [products, setProducts] = useState<any[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,7 @@ const SalePage: React.FC = () => {
     const fetchProducts = async () => {
       try {
         const session = await getSession();
+        setCompanyId(session?.user.company_id || null);
         if (session?.user.token) {
           const data = await fetchInventoriesList(session.user.token); // Ajusta la URL según tu API
           const sellerInfo = await getPopByUserId(
@@ -98,15 +101,19 @@ const SalePage: React.FC = () => {
   }, []);
 
   const handleClientSearch = async () => {
-    try {
-      if (!clientId) {
-        setError("Client ID is required");
-        setShowNotification(true);
-      } else {
+    if (!clientId) {
+      setError("Client ID is required");
+      setShowNotification(true);
+    } else {
+      try {
         setError("");
         const session = await getSession();
-        if (session?.user.token) {
-          const getClient = await getClientById(clientId, session.user.token);
+        const getClient = await getClientById(
+          clientId,
+          companyId as any,
+          session?.user.token as any
+        );
+        if (getClient && getClient.length > 0) {
           setClient({
             id: getClient[0].id,
             client_id: getClient[0].client_id,
@@ -115,11 +122,15 @@ const SalePage: React.FC = () => {
             phone: getClient[0].phone,
           });
         } else {
-          setError("No session token found");
+          Swal.fire({
+            icon: "error",
+            title: "Cliente no encontrado",
+            text: "Por favor, verifique la cédula de identidad.",
+          });
         }
+      } catch (err) {
+        setError("Error fetching client");
       }
-    } catch (err) {
-      setError("Error fetching client");
     }
   };
 
@@ -765,7 +776,27 @@ const SalePage: React.FC = () => {
         </div>
       ) : (
         <div>
-          <h1>No tiene caja asignada. Consulte al administrador</h1>
+          <div>
+            <div
+              className="flex items-center p-4 mb-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300 dark:border-yellow-800"
+              role="alert"
+            >
+              <svg
+                className="shrink-0 inline w-4 h-4 me-3"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+              </svg>
+              <span className="sr-only">Info</span>
+              <div>
+                <span className="font-medium">No tiene caja asignada!</span>{" "}
+                Consulte al administrador.
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>
