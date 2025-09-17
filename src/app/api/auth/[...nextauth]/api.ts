@@ -137,4 +137,21 @@ export const loginWithProvider = async (email: string) => {
   }
 };
 
+export const fetchCompaniesList = async (): Promise<boolean> => {
+  
+  try {
+    const response = await axios.get(`${apiUrl}/companies`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error al verificar el correo:", error);
+    return false;
+  }
+};
+
 

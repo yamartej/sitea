@@ -3,9 +3,13 @@ import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Notification from "./Common/Notification/NotificationPage";
 import { useRouter, useSearchParams } from "next/navigation";
-import { validateEmail } from "@/app/api/auth/[...nextauth]/api";
+import {
+  validateEmail,
+  fetchCompaniesList,
+} from "@/app/api/auth/[...nextauth]/api";
 import Link from "next/link";
 import Spinner from "./Common/Spinner/SpinnerPage";
+import { useCompanyStore } from "@/store/companyStore";
 
 const Login = () => {
   const router = useRouter();
@@ -48,6 +52,9 @@ const Login = () => {
         // Verifica si `result` es `undefined` y gestiona la respuesta
         if (result && result.ok) {
           // Redirige manualmente al dashboard
+          const response = await fetchCompaniesList();
+          // Guardar las compañías en Zustand
+          useCompanyStore.getState().setCompanies(response as any);
           router.push("/pages/dashboard");
         } else {
           // Manejo de error en caso de fallo de autenticación

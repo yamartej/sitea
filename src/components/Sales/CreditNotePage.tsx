@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  fetchCustomersList,
+  fetchCustomersListByCompany,
   creditCustomerRegister,
-  fetchCustomerCreditNoteList,
+  fetchCustomerCreditNoteListByCompany,
   removeCreditNote,
   updateCreditNote,
 } from "@/app/api/admin/api";
@@ -12,20 +12,13 @@ import { Customer, CustomerCreditNote } from "@/types/type";
 import Notification from "../Common/Notification/NotificationPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import React from "react";
-import {
-  useTable,
-  usePagination,
-  Column,
-  useSortBy,
-  useExpanded,
-} from "react-table";
+import { useTable, usePagination, Column, useSortBy } from "react-table";
 import Modal from "../Common/Modal/ModalPage";
 import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { es } from "date-fns/locale/es"; // Importa el locale español
 import Swal from "sweetalert2";
 import { format } from "date-fns";
-import { se } from "date-fns/locale";
 
 const CreditNotePage = () => {
   const [customersData, setCustomersData] = useState<Customer[]>([]);
@@ -52,17 +45,20 @@ const CreditNotePage = () => {
     amontError: null,
   });
   const [typeRequest, setTypeRequest] = useState("create");
+
   useEffect(() => {
     setShowSpinner(true);
     const fetchProducts = async () => {
       setShowSpinner(true);
       const session = await getSession();
       try {
-        const customersData = await fetchCustomersList(
-          session?.user.token as string
+        const customersData = await fetchCustomersListByCompany(
+          session?.user.token as string,
+          session?.user.company_id as string
         );
-        const customersInfo = await fetchCustomerCreditNoteList(
-          session?.user.token as string
+        const customersInfo = await fetchCustomerCreditNoteListByCompany(
+          session?.user.token as string,
+          session?.user.company_id as string
         );
         setCustomersData(customersData);
         setCustomersDataAux(customersData);
@@ -73,12 +69,6 @@ const CreditNotePage = () => {
         setShowNotification(true);
       } finally {
         setShowSpinner(false);
-        if (showNotification) {
-          const timer = setTimeout(() => {
-            setShowNotification(false);
-          }, 10000); // 10 segundos
-          return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-        }
       }
     };
     fetchProducts();
@@ -181,7 +171,6 @@ const CreditNotePage = () => {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    rows,
     prepareRow,
     page,
     canPreviousPage,
@@ -266,11 +255,12 @@ const CreditNotePage = () => {
         : "";
       if (typeRequest === "create") {
         const response = await creditCustomerRegister(
-          session?.user.token as any,
+          session?.user.token as string,
           customerId as number,
           Number(formDataCn.creditNoteAmount),
           formattedCreditNoteDate,
-          formDataCn.creditNoteDetail
+          formDataCn.creditNoteDetail,
+          session?.user.company_id as string
         );
 
         if (response) {
@@ -304,7 +294,7 @@ const CreditNotePage = () => {
         // Actualizar nota de crédito existente
         gotoPage(pageIndex + 1); // Asegurarse de que la página actual sea la correcta
         const response = await updateCreditNote(
-          session?.user.token as any,
+          session?.user.token as string,
           formDataCn.id as number,
           Number(formDataCn.creditNoteAmount),
           formattedCreditNoteDate,
@@ -349,7 +339,7 @@ const CreditNotePage = () => {
     }
   };
 
-  const handleRemoveCn = async (id: Number) => {
+  const handleRemoveCn = async (id: number) => {
     Swal.fire({
       title: `¿Desea eliminar la nota de crédito?`,
       icon: "warning",
@@ -363,7 +353,7 @@ const CreditNotePage = () => {
           setShowSpinner(true);
           const session = await getSession();
           const response = await removeCreditNote(
-            session?.user.token as any,
+            session?.user.token as string,
             id as number
           );
           if (response) {

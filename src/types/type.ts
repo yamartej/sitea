@@ -42,7 +42,7 @@ export type Permission = {
 }
 
 export type MenuItem = {
-  icon: any;
+  icon: string;
   id: number;
   name: string;
   url: string;
@@ -79,12 +79,12 @@ export type Product = {
   batches: Batch;
   selectedQuantity?: number;
   inventory: Inventory;
-  warehouseId?: Number;
+  warehouseId?: number;
   warehouseName: string;
-  price_shipping: Number;
-  final_cost: Number;
+  price_shipping: number;
+  final_cost: number;
   product: Product;
-  wholesale_final_cost: Number;
+  wholesale_final_cost: number;
 }
 
 export type Inventory = {
@@ -249,11 +249,11 @@ export type CustomerPaymentDetail = {
 }
 
 export type CustomerCreditNote = {
-  sale_id: Number;
-  customer_id: Number;
+  sale_id: number;
+  customer_id: number;
   customer_name: string;
-  total_amount: Number;
-  credit_note_date: String;
+  total_amount: number;
+  credit_note_date: string;
   credit_note_detail: string;
 }
 

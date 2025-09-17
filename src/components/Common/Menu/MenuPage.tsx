@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import { useMenu } from "@/context/MenuContext";
 import Spinner from "../Spinner/SpinnerPage";
-import React, { Children, useState } from "react";
+import React, { useState } from "react";
 import { Item, MenuMap, MenuItem, DropdownState } from "@/types/type";
 import {
   ChartPieIcon,
@@ -22,17 +23,20 @@ import {
   Bars3Icon,
 } from "@heroicons/react/24/solid";
 
+import { useCompanyStore } from "@/store/companyStore";
+
 const MenuPage = () => {
   const { data: session, status } = useSession();
   const userImage = session?.user.image || "/default-avatar.png";
   const userName = session?.user.name || "";
-  const userEmail = session?.user.email || "";
+  const company_id = session?.user.company_id || "";
   const { menuItems, loading } = useMenu();
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [dropdownStates, setDropdownStates] = useState<Record<number, boolean>>(
     {}
   );
+
+  const { companies } = useCompanyStore();
 
   const organizeMenu = (menuItems: MenuItem[]): MenuItem[] => {
     const menuMap: MenuMap = menuItems.reduce((acc, item) => {
@@ -80,10 +84,6 @@ const MenuPage = () => {
     StockIcon: NumberedListIcon,
   };
 
-  const toggleDropdownProfile = () => {
-    setIsDropdownVisible((prev) => !prev);
-  };
-
   const handleSignOut = () => {
     clearLocalStorage();
     signOut({
@@ -115,18 +115,13 @@ const MenuPage = () => {
     );
   }
 
-  const organizedItems = organizeMenu(menuItems as any);
+  const organizedItems = organizeMenu(menuItems as MenuItem[]);
 
   if (status === "unauthenticated") {
     signOut({
       callbackUrl: "/pages/login",
     });
   }
-
-  const closeMenu = () => {
-    setIsSidebarVisible(false); // Cerrar el menú lateral
-    //
-  };
 
   return (
     <>
@@ -144,10 +139,35 @@ const MenuPage = () => {
             <Bars3Icon className="w-6 h-6" />
           </button>
           <div className="flex items-center ml-auto">
-            <img
+            {!company_id && companies.length > 0 && (
+              <div className="mb-6">
+                <label
+                  htmlFor="company_id"
+                  className="block mb-2 text-sm font-medium"
+                ></label>
+                <select
+                  id="company_id"
+                  name="company_id"
+                  className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  required
+                >
+                  <option value="">Selecciona una empresa</option>
+                  {/* Puedes reemplazar este array por tu lista real de empresas */}
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <Image
               src={userImage}
+              width={32}
+              height={32}
               className="w-8 h-8 rounded-full"
               alt="user photo"
+              priority
             />
             <div className="flex items-center text-primary-contrast space-x-2">
               <span className="text-base font-semibold whitespace-nowrap">
@@ -182,7 +202,9 @@ const MenuPage = () => {
             {/* Parte superior del menú: Logo y botón de cerrar */}
             <div className="flex items-center justify-between mb-5">
               <Link href="/" className="flex items-center">
-                <img
+                <Image
+                  width={32}
+                  height={32}
                   src="/logo.png"
                   className="h-10 w-10 me-3 bg-white rounded-full"
                   alt="Logo"

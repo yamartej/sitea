@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { Permission, User } from "@/types/type";
+import { Permission } from "@/types/type";
 const apiUrl = process.env.NEXT_PUBLIC_URL_API;
 
 export const fetchUsersList = async (token: string) => {
@@ -136,6 +137,7 @@ export const registerUser = async (token: string, name: string, email: string, c
       }
     );
     return response.data; // Retornar solo los datos necesarios
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error en la respuesta de registro:", error);
     if (error.response && error.response.data && error.response.data.errors) {
@@ -488,7 +490,7 @@ export const fetchCustomersList = async (token: string) => {
     }      
 };
 
-export const fetchCustomersListByCompany = async (token: string, company_id: number) => {
+export const fetchCustomersListByCompany = async (token: string, company_id: string) => {
   try {
       const response = await axios.get(`${apiUrl}/customers/get-customers-by-company/${company_id}`, {
         headers: {
@@ -919,6 +921,29 @@ export const fetchCustomerCreditNoteList = async (token: string) => {
     }      
 };
 
+export const fetchCustomerCreditNoteListByCompany = async (token: string, company_id: string) => {
+  try {
+      const response = await axios.get(`${apiUrl}/sales/credit-note-list-by-company/${company_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        // Error de respuesta del servidor.
+        console.error("Error en la API:", error.response.status, error.response.data);
+      } else if (error.request) {
+        // La solicitud se hizo, pero no se recibió respuesta.
+        console.error("Sin respuesta de la API:", error.request);
+      } else {
+        // Error al configurar la solicitud.
+        console.error("Error al configurar Axios:", error.message);
+      }
+      throw error; // Re-lanza el error si es necesario.
+    }      
+};
+
 export const registerPay = async (
   token: string, 
   sale_id: number,
@@ -1054,7 +1079,8 @@ export const creditCustomerRegister = async (
   customer_id: number,
   amount: number,
   credit_note_date: string,
-  credit_note_detail: string
+  credit_note_detail: string,
+  company_id: string,
 ) => {
   try {
     const response = await axios.post(`${apiUrl}/sales/credit-customer-register`,
@@ -1062,7 +1088,8 @@ export const creditCustomerRegister = async (
         customer_id,
         amount,
         credit_note_date,
-        credit_note_detail,        
+        credit_note_detail,
+        company_id,     
       },
       {
         headers: {

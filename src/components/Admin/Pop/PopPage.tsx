@@ -1,7 +1,6 @@
 "use client";
-import React, { use } from "react";
 import Modal from "@/components/Common/Modal/ModalPage";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   fetchPops,
   registerPop,
@@ -9,20 +8,14 @@ import {
   updatePop,
   deletePop,
   fetchUsersListByCompany,
-  getUsersByRole,
-  fetchPopStatus,
-  registerPopStatus,
-  deletePopStatus,
-  closePopStatus,
   fetchUsersList,
 } from "@/app/api/admin/api";
 import { getSession } from "next-auth/react";
-import { Pop, Company } from "@/types/type";
+import { Pop, Company, User } from "@/types/type";
 import Spinner from "@/components/Common/Spinner/SpinnerPage";
 import Notification from "@/components/Common/Notification/NotificationPage";
 import swal from "sweetalert2";
 import { useTable, usePagination, Column, useSortBy } from "react-table";
-import { Console } from "console";
 
 const PopPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,16 +52,16 @@ const PopPage = () => {
         const session = await getSession();
         setCompanyId(session?.user.company_id || null);
         if (session?.user.company_id === null) {
-          const data = await fetchPops(session?.user.token as any);
-          const usersData = await fetchUsersList(session?.user.token as any);
+          const data = await fetchPops(session?.user.token as string);
+          const usersData = await fetchUsersList(session?.user.token as string);
           setPops(data);
           const companiesFromUsers = usersData
-            .filter((user: any) => user.company)
-            .map((user: any) => user.company);
+            .filter((user: User) => user.company)
+            .map((user: User) => user.company);
           setCompanies(companiesFromUsers);
         } else {
           const data = await fetchPopsList(
-            session?.user.token as any,
+            session?.user.token as string,
             session?.user.company_id as string
           );
           setPops(data);
@@ -108,7 +101,7 @@ const PopPage = () => {
       const session = await getSession();
 
       const response = await registerPop(
-        session?.user.token as any,
+        session?.user.token as string,
         formData.identifier,
         formData.ubication,
         formData.status,
@@ -182,7 +175,7 @@ const PopPage = () => {
       setShowSpinner(true);
       const session = await getSession();
       const response = await updatePop(
-        session?.user.token as any,
+        session?.user.token as string,
         Number(formData.id),
         formData.identifier,
         formData.ubication,
@@ -235,7 +228,10 @@ const PopPage = () => {
               setTypeMessage("error");
             } else {
               const session = await getSession();
-              const response = await deletePop(session?.user.token as any, id);
+              const response = await deletePop(
+                session?.user.token as string,
+                id
+              );
               if (response === 200) {
                 setPops((prevPops) => prevPops.filter((pop) => pop.id !== id));
                 setShowNotification(true);
@@ -279,7 +275,7 @@ const PopPage = () => {
     setShowSpinner(true);
     const session = await getSession();
     const sellerData = await fetchUsersListByCompany(
-      session?.user.token as any,
+      session?.user.token as string,
       pop.company_id as string
     );
     setSellerData(sellerData);
@@ -316,7 +312,7 @@ const PopPage = () => {
         setShowSpinner(true);
         const session = await getSession();
         const response = await updatePop(
-          session?.user.token as any,
+          session?.user.token as string,
           Number(formData.id),
           formData.identifier,
           formData.ubication,
@@ -368,7 +364,7 @@ const PopPage = () => {
             setShowSpinner(true);
             const session = await getSession();
             const response = await updatePop(
-              session?.user.token as any,
+              session?.user.token as string,
               pop.id,
               pop.identifier,
               pop.ubication,
@@ -453,13 +449,13 @@ const PopPage = () => {
       },
       {
         Header: "Vendedor",
-        Cell: ({ row }: { row: any }) => (
+        Cell: ({ row }: { row: import("react-table").Row<Pop> }) => (
           <div>{row.original.seller || "No asignado"}</div>
         ),
       },
       {
         Header: "Acciones",
-        Cell: ({ row }: { row: any }) => (
+        Cell: ({ row }: { row: import("react-table").Row<Pop> }) => (
           <div className="flex justify-center text-primary">
             <button onClick={() => handleEditClick(row.original)} className="">
               <svg
@@ -536,7 +532,6 @@ const PopPage = () => {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    rows,
     prepareRow,
     page, // Filas de la página actual
     canPreviousPage,

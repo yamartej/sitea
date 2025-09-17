@@ -1,15 +1,17 @@
-"use client"
+"use client";
 import { createContext, useContext, useState, useEffect } from "react";
 import { fetchMenuItems } from "@/app/api/menu/api";
-import { getSession } from 'next-auth/react';
-import { MenuItem, MenuContextType, Role} from "@/types/type";
+import { fetchUsersList } from "@/app/api/auth/[...nextauth]/api";
+import { getSession } from "next-auth/react";
+import { MenuItem, MenuContextType, Company } from "@/types/type";
 
 const MenuContext = createContext<MenuContextType | undefined>(undefined);
 
 export const MenuProvider = ({ children }: { children: React.ReactNode }) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
   useEffect(() => {
     const loadMenuItems = async () => {
       try {
@@ -18,6 +20,11 @@ export const MenuProvider = ({ children }: { children: React.ReactNode }) => {
         const roles = session?.user.roles || [];
         if (token) {
           const items = await fetchMenuItems(token as string, roles as any);
+          const users = await fetchUsersList(token as string);
+          const companiesFromUsers = users
+            .filter((user: any) => user.company)
+            .map((user: any) => user.company);
+          setCompanies(companiesFromUsers);
           setMenuItems(items);
           localStorage.setItem("menuItems", JSON.stringify(items)); // Guardar en localStorage
         }
