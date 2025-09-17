@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getSession } from "next-auth/react";
 import { CreditByCustomer } from "@/types/type";
 import {
-  fetchCretitListByCustomer,
+  fetchCretitListByCustomerByCompany,
   registerCustomerPay,
   removePaymentCustomerDetail,
 } from "@/app/api/admin/api";
@@ -39,12 +39,8 @@ const PaymentCustomerDetailPage = () => {
     paymentDate: new Date(),
     detail: "",
   });
-  const [errors, setErrors] = useState<{
-    amountInf: string | null;
-  }>({
-    amountInf: null,
-  });
   const [expandedSaleId, setExpandedSaleId] = useState<number | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState(0);
 
   useEffect(() => {
     setShowSpinner(true);
@@ -52,8 +48,9 @@ const PaymentCustomerDetailPage = () => {
       setShowSpinner(true);
       const session = await getSession();
       try {
-        const data = await fetchCretitListByCustomer(
-          session?.user.token as string
+        const data = await fetchCretitListByCustomerByCompany(
+          session?.user.token as string,
+          session?.user.company_id as string
         );
         const newData = data
           .map((data: CreditByCustomer) => {
@@ -74,13 +71,6 @@ const PaymentCustomerDetailPage = () => {
         setShowNotification(true);
       } finally {
         setShowSpinner(false);
-        if (showNotification) {
-          const timer = setTimeout(() => {
-            setShowNotification(false);
-          }, 10000); // 10 segundos
-
-          return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-        }
       }
     };
     fetchCustomers();
@@ -173,7 +163,6 @@ const PaymentCustomerDetailPage = () => {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    rows,
     prepareRow,
     page, // Filas de la página actual
     canPreviousPage,
@@ -195,6 +184,13 @@ const PaymentCustomerDetailPage = () => {
   );
   const handleEditQuota = (CreditByCustomer: CreditByCustomer) => {
     console.log("CreditByCustomer", CreditByCustomer);
+    //Obtener la suma de los pagos realizados
+    const totalPaid = CreditByCustomer.payments?.reduce(
+      (acc, payment) => acc + Number(payment.amount),
+      0
+    );
+    const debtToPay = CreditByCustomer.total_debt - (totalPaid || 0);
+    setPaymentAmount(debtToPay);
     setEditRowId(CreditByCustomer.customer_id);
     setFormData({
       id: CreditByCustomer.customer_id,
@@ -221,7 +217,7 @@ const PaymentCustomerDetailPage = () => {
       if (result.isConfirmed) {
         const session = await getSession();
         const response = await removePaymentCustomerDetail(
-          session?.user.token as any,
+          session?.user.token as string,
           items.id
         );
         if (response) {
@@ -253,17 +249,17 @@ const PaymentCustomerDetailPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsModalOpen(false);
-    setShowSpinner(true);
     try {
-      if (errors.amountInf) {
+      if (formData.amount > paymentAmount) {
         setShowNotification(true);
         setErrorMessage("El Monto es mayor a la deuda");
         setTypeMessage("error");
       } else {
+        setIsModalOpen(false);
+        setShowSpinner(true);
         const session = await getSession();
         const response = await registerCustomerPay(
-          session?.user.token as any,
+          session?.user.token as string,
           Number(formData.id),
           Number(formData.amount),
           format(formData.paymentDate, "yyyy-MM-dd"),
@@ -293,6 +289,7 @@ const PaymentCustomerDetailPage = () => {
           setShowNotification(true);
           setErrorMessage("El pago fue creado correctamente");
           setTypeMessage("success");
+          clearInputs();
         } else {
           setErrorMessage(response.message);
         }
@@ -300,7 +297,6 @@ const PaymentCustomerDetailPage = () => {
     } catch (errors) {
       console.error("Error:", errors);
     } finally {
-      clearInputs();
       setShowSpinner(false);
     }
   };
@@ -312,15 +308,6 @@ const PaymentCustomerDetailPage = () => {
       ...prevData,
       [name]: value,
     }));
-    if (name === "amount") {
-      const amount = parseFloat(value);
-      const totalDebt =
-        sales.find((sale) => sale.customer_id === editRowId)?.total_debt || 0;
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        amountInf: amount > totalDebt ? "El monto es mayor a la deuda" : null,
-      }));
-    }
   };
   const handleDateChange = (date: Date | null) => {
     if (date) {
@@ -336,9 +323,6 @@ const PaymentCustomerDetailPage = () => {
       amount: 0,
       paymentDate: new Date(),
       detail: "",
-    });
-    setErrors({
-      amountInf: null,
     });
   };
 
