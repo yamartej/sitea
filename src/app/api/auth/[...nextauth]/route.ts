@@ -1,86 +1,79 @@
-import NextAuth, { NextAuthOptions, DefaultSession, DefaultUser } from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
-import { validateEmail, login, verifyToken, refreshToken} from "./api";
+import {
+  validateEmail,
+  login,
+  loginWithProvider,
+  refreshToken
+} from "./api"; // Asegúrate que estos estén bien implementados
+
 import { JWT } from "next-auth/jwt";
 
-interface User {
-  email?: string | null;
+interface CustomUser {
+  id: string;
+  email: string;
+  token: string;
+  roles: string[];
+  company_id: string;
+  name?: string | null;
+  expires?: string | number;
+  email_verified_at?: string | null;
 }
 
+// 🔧 Extensión de tipos para NextAuth
 declare module "next-auth" {
   interface Session {
-    user: {
-      id: string;
-      token: string;
-      roles: string[];  // Agrega el tipo de roles que necesites
-      name?: string;
-      expires?: string;
-    } & DefaultSession["user"];
+    user: CustomUser;
   }
 
-  interface User extends DefaultUser {
-    id: string;
-    token: string;
-    roles: string[]; // Define los roles en el usuario
-    name?: string;
-    expires?: string;
-  }
+  interface User extends CustomUser {}
 }
 
 declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    token: string;
-    roles: string[]; // Asegúrate de definir roles aquí también
-    name?: string;
+  interface JWT extends CustomUser {
+    error?: string;
   }
 }
-
-interface CustomToken extends JWT {
-  id: string;
-  token: string;
-  roles: string[];
-  name: string;
-  expires: string;
-}
-
-
-
+// 📦 Configuración principal de NextAuth
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials || !credentials.email || !credentials.password) {
+        if (!credentials?.email || !credentials?.password) {
           throw new Error("Correo y contraseña son requeridos");
         }
 
-        const emailExists = await validateEmail(credentials?.email || "");
-        if (!emailExists) throw new Error("Correo no registrado o incorrecto");
-
-        const result = await login(credentials.email , credentials.password);
-
-        if (result) {
-          // Retorna el token y otros datos que quieras incluir en la sesión
-          return {
-            id: result.user.id.toString(),
-            email: result.user.email,
-            token: result.token,
-            roles: result.roles,
-            name: result.user.name,
-            expires: result.expiration,
-          };
+        const emailExists = await validateEmail(credentials.email);
+        if (!emailExists) {
+          throw new Error("Correo no registrado o incorrecto");
         }
-        return null;
-      }
+
+        const result = await login(credentials.email, credentials.password);
+        if (!result || !result.user) return null;
+
+        const user = result.user;
+
+        return {
+          id: user.id.toString(),
+          email: user.email,
+          token: result.token,
+          roles: result.roles,
+          company_id: user.company_id,
+          name: user.name,
+          expires: result.expiration,
+          email_verified_at: user.email_verified_at,
+        };
+      },
     }),
+
     GitHubProvider({
       clientId: process.env.GITHUB_ID ?? "",
       clientSecret: process.env.GITHUB_SECRET ?? "",
@@ -94,65 +87,93 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
     }),
   ],
+
   callbacks: {
-    async signIn({ user }: { user: User }) {
-      try {
-        if (!user.email) throw new Error("No email provided");
-        const emailExists = await validateEmail(user.email);
-        if (emailExists) {
-          return true;
-        } else {
-          console.warn("Correo no registrado:", user.email);
-          return `/?message=Correo no registrado o incorrecto`;
+    async signIn({ user }) {
+      if (!user.roles) {
+        const emailExists = await validateEmail(user.email || "");
+        if (!emailExists) {
+          return "/?message=Correo no registrado o incorrecto";
         }
-      } catch (error) {
-        console.error("Correo no registrado o incorrecto:", error);
-        return `/?message=Correo no registrado o incorrecto`;
+
+        const loginResult = await loginWithProvider(user.email || "");
+        console.log("loginResult=", loginResult);
+        if (!loginResult?.user.email_verified_at) {
+          return "/verify-pending";
+        }
+
+        Object.assign(user, {
+          id: loginResult.user.id.toString(),
+          token: loginResult.token,
+          roles: loginResult.roles,
+          company_id: loginResult.user.company_id,
+          name: loginResult.user.name,
+          expires: loginResult.expiration,
+          email_verified_at: loginResult.user.email_verified_at,
+        });
       }
+
+      return true;
     },
-    async session({ session, token }) {
-      // Convertir token a CustomToken usando "as"
-      const customToken = token as CustomToken;
-      session.user = { ...session.user, id: customToken.id, token: customToken.token, roles: customToken.roles, name: customToken.name, expires: customToken.expires};
-      return session;
-    },
+
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.token = user.token;
-        token.roles = user.roles;
-        token.name = user.name;
-        token.expires = user.expires;
+        return {
+          ...token,
+          id: user.id,
+          email: user.email,
+          token: user.token,
+          roles: user.roles,
+          company_id: user.company_id,
+          name: user.name,
+          expires: new Date(user.expires || Date.now() + 60 * 60 * 1000).getTime(),
+          email_verified_at: user.email_verified_at,
+        };
       }
-      console.log("token==" + token.token)
-      const isValid = await verifyToken(token.token);
-      console.log("isValid==" + isValid)
-      if (isValid) {
-        const expirationTimestamp = new Date(token.expires as string).getTime() / 1000; 
-        const currentTime = Math.floor(Date.now() / 1000); 
-        if (expirationTimestamp - currentTime < 120) { 
-          const newToken = await refreshToken(token.token);
-          console.log("newToken==" + newToken)
-          if (newToken) { 
-            token.token = newToken.token;
-            token.expires = newToken.expiration; 
-          } 
-          else { 
-            throw new Error("Unable to refresh token"); 
-          } 
+      // Refrescar proactivamente el token si faltan menos de 5 minutos para expirar
+      const FIVE_MINUTES = 5 * 60 * 1000;
+      const expiresAt = Number(token.expires);
+      const now = Date.now();
+      const timeLeft = expiresAt - now;
+      const shouldRefresh = timeLeft < FIVE_MINUTES;
+      if (shouldRefresh) {
+        const newToken = await refreshToken(token.token);
+        if (newToken) {
+          token.token = newToken.token;
+          token.expires = new Date(newToken.expiration).getTime();
+        } else {
+          throw new Error("Unable to refresh token");
         }
       }
       return token;
     },
+
+    async session({ session, token }) {
+      session.user = {
+        id: token.id,
+        email: token.email!,
+        token: token.token,
+        roles: token.roles,
+        company_id: token.company_id,
+        name: token.name,
+        expires: token.expires,
+        email_verified_at: token.email_verified_at,
+      };
+      return session;
+    },
   },
+
+  session: {
+    strategy: "jwt",
+    maxAge: 60 * 60, // 1 hora
+  },
+
   pages: {
-    signIn: "/",  // Página de inicio de sesión
-    error: "/",   // Página de error en caso de fallos
-    newUser: "/dashboard",  // Redirección tras registro exitoso
+    signIn: "/",
+    error: "/auth/error", // Puedes personalizar esto
   },
-  session: { 
-    maxAge: 15 * 60, // 15 minutos en segundos 
-  },
+
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);

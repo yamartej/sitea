@@ -1,9 +1,9 @@
-import LoginPage from "@/components/LoginPage"
+import LoginPage from "@/components/LoginPage";
 
 export default function Home() {
   return (
-    <div>
-      <LoginPage/>  
+    <div className="bg-image-full-sreen">
+      <LoginPage />
     </div>
   );
 }

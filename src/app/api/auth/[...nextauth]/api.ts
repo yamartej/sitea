@@ -31,7 +31,34 @@ export const login = async (email: string, password: string) => {
   }
 };
 
-export const register = async (name: string, email: string, password: string, password_confirmation: string) => {
+export const resendVerification = async (
+  token: string, 
+  email: string
+) => {
+  try {
+    const response = await axios.post(`${apiUrl}/email/verification-notification`, 
+      {
+        email,
+        },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    return response;
+  } catch (error) {
+    console.error("Error al enenviar correo:", error);
+    throw error;
+  }
+};
+
+export const register = async (
+  name: string, 
+  email: string, 
+  password: string, 
+  password_confirmation: string,
+) => {
   try {
     const response = await axios.post(`${apiUrl}/register`,
       {
@@ -91,11 +118,40 @@ export const refreshToken = async (token: string) => {
         Authorization: `Bearer ${token}`, // Agrega el token en el header
       },
     }); 
-    console.log("Response Refresh==" + response.data)
     return response.data; 
   } catch (error) { 
     console.error('Error refreshing token:', error); 
     return null; 
   } 
 };
+
+export const loginWithProvider = async (email: string) => {
+  try {
+    const response = await axios.post(`${apiUrl}/login-provider`, {
+      email
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al iniciar sesión:", error);
+    throw error;
+  }
+};
+
+export const fetchCompaniesList = async (): Promise<boolean> => {
+  
+  try {
+    const response = await axios.get(`${apiUrl}/companies`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error al verificar el correo:", error);
+    return false;
+  }
+};
+
 

@@ -2,23 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
 
 @layer utilities {
   .text-balance {
@@ -61,3 +44,116 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+.bg-gradient-primary {
+  background: linear-gradient(to right, #72cb10, #a9e159);
+  color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+  border-color: #72cb10;
+}
+.bg-primary {
+  background-color: #72cb10;
+  color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+  border-color: #72cb10; /* Asegura que el borde sea del mismo color que el fondo */
+}
+.bg-menu{
+  background-image: url('/background-fc.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bg-btn-menu{
+  background-color: #ffffff;
+  color: #72cb10;;
+}
+.bg-btn-menu-active{
+  background-color: #f2e269;
+  color: #434343;;
+}
+.bg-btn-menu-active:hover{
+  background-color: #72cb10;
+  color: #ffffff;;
+}
+.bg-btn-menu:hover{
+ background-color: #a9e159;
+  color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+}
+.bg-primary-menu {
+  background-color: #72cb10;
+  color: white; /* Asegura que el texto sea blanco para buena legibilidad */
+  border-color: #72cb10; /* Asegura que el borde sea del mismo color que el fondo */
+}
+
+.bg-primary:hover {
+  background-color: #a9e159; /* Un tono más oscuro para el hover */
+  color: white;
+}
+
+.text-primary {
+  color: #72cb10;
+}
+.text-primary:hover {
+  color: #b9cbd4; /* Un tono más oscuro para el hover */
+}
+
+.bg-menu-primary {
+  background-color: #ffffff;
+  color: #72cb10; /* Asegura que el texto sea blanco para buena legibilidad */
+}
+.btn-attr-sing-out {
+  width: 100%;
+  text-align: left;
+}
+
+.text-primary-contrast {
+  color: #434343; /* Asegura que el texto sea blanco para buena legibilidad */
+}
+
+.bg-add-options {
+  background-color: #f2e269;
+  border-color: #f2e269; /* Asegura que el borde sea del mismo color que el fondo */
+  color: #878937;
+}
+
+.bg-card-green {
+  background-color: #ecece8;
+  color: #2c2d2f;
+}
+
+.bg-add-options:hover {
+  background-color: #be9e48; /* Un tono más oscuro para el hover */
+  color: white;
+}
+
+.bg-remove-list {
+  background-color: #ce2029;
+  border-color: #ce2029; /* Asegura que el borde sea del mismo color que el fondo */
+  color: white;
+}
+.bg-remove-list:hover {
+  background-color: #cd5c5c; /* Un tono más oscuro para el hover */
+  color: white;
+}
+
+.text-edit{
+  color: #a7b811;
+}
+
+.text-edit:hover{
+  color: #6e5b28;
+}
+
+.text-cancel{
+  color: #d71212;
+}
+
+.text-cancel:hover{
+  color: #864e42;
+}
+
+.bg-image-full-sreen {
+  background-image: url('/background-fc.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100vw;
+  height: 100vh;
+}
