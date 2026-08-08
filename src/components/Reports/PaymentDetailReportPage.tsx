@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getSession } from "next-auth/react";
 import {
-  fetchPeymentDetailList,
+  fetchPeymentDetailListByCompany,
   fetchPaymentListByDate,
 } from "@/app/api/admin/api";
 import { PaymentDetailReport } from "@/types/type";
@@ -32,8 +32,7 @@ const PaymentDetailReportPage = () => {
   const [showSpinner, setShowSpinner] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [typeMessage, setTypeMessage] = useState<"error" | "success">("error");
-
+  const [typeMessage, setTypeMessage] = useState("error");
   const [formData, setFormData] = useState<{
     startDate: Date | null;
     endDate: Date | null;
@@ -47,13 +46,10 @@ const PaymentDetailReportPage = () => {
       setShowSpinner(true);
       try {
         const session = await getSession();
-        const token = session?.user?.token;
-
-        if (!token) {
-          throw new Error("Token no encontrado");
-        }
-
-        const data = await fetchPeymentDetailList(token);
+        const data = await fetchPeymentDetailListByCompany(
+          session?.user.token as string,
+          session?.user.company_id as string
+        );
         setPaymentDetails(data);
         setPaymentDetailsAux(data);
       } catch (error) {
@@ -110,7 +106,6 @@ const PaymentDetailReportPage = () => {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    rows,
     prepareRow,
     page, // Filas de la página actual
     canPreviousPage,

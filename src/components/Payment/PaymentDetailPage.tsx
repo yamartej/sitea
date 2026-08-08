@@ -59,13 +59,6 @@ const PaymentDetailPage = () => {
         setShowNotification(true);
       } finally {
         setShowSpinner(false);
-        if (showNotification) {
-          const timer = setTimeout(() => {
-            setShowNotification(false);
-          }, 10000); // 10 segundos
-
-          return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-        }
       }
     };
     fetchCustomers();
@@ -150,7 +143,6 @@ const PaymentDetailPage = () => {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    rows,
     prepareRow,
     page, // Filas de la página actual
     canPreviousPage,
@@ -181,7 +173,7 @@ const PaymentDetailPage = () => {
 
     const totalAmount = sale.total_amount;
     const totalPaid = sale.payment_details.reduce((sum, payment) => {
-      return sum + parseFloat(payment.amount);
+      return sum + parseFloat(payment.amount.toString());
     }, 0);
     setBalance(totalAmount - totalPaid);
     setEditRowId(sale.id);
@@ -200,7 +192,7 @@ const PaymentDetailPage = () => {
       } else {
         const session = await getSession();
         const response = await registerPay(
-          session?.user.token as any,
+          session?.user.token as string,
           Number(formData.id),
           Number(formData.amount),
           format(formData.paymentDate, "yyyy-MM-dd"),
@@ -263,7 +255,7 @@ const PaymentDetailPage = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         const session = await getSession();
-        const response = await removePayment(session?.user.token as any, id);
+        const response = await removePayment(session?.user.token as string, id);
         if (response) {
           setShowNotification(true);
           setErrorMessage("Pago eliminado correctamente");

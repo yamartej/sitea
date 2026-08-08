@@ -21,9 +21,7 @@ const CustomerPage = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customersAux, setCustomersAux] = useState<Customer[]>([]);
-  const [showRegister, setShowRegister] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
-  const [btnAction, setBtnAction] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [typeMessage, setTypeMessage] = useState("error");
@@ -35,11 +33,6 @@ const CustomerPage = () => {
     address: "",
     phone: "",
     company_id: "",
-  });
-  const [errors, setErrors] = useState<{
-    priceMessage: string | null;
-  }>({
-    priceMessage: null,
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -62,7 +55,7 @@ const CustomerPage = () => {
         } else {
           const data = await fetchCustomersListByCompany(
             session?.user.token as string,
-            Number(session?.user.company_id)
+            session?.user.company_id as string
           );
           setCustomers(data);
           setCustomersAux(data);
@@ -73,13 +66,6 @@ const CustomerPage = () => {
         setShowNotification(true);
       } finally {
         setShowSpinner(false);
-        if (showNotification) {
-          const timer = setTimeout(() => {
-            setShowNotification(false);
-          }, 10000); // 10 segundos
-
-          return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-        }
       }
     };
     fetchCustomers();
@@ -114,12 +100,12 @@ const CustomerPage = () => {
       if (typeRequest === "create") {
         if (typeRequest === "create") {
           const response = await registerCustomer(
-            session?.user.token as any,
+            session?.user.token as string,
             Number(formData.client_id),
             formData.name,
             formData.address,
             Number(formData.phone),
-            companyId as any
+            companyId as string
           );
           if (response) {
             setCustomers([...customers, response]);
@@ -132,7 +118,7 @@ const CustomerPage = () => {
         }
       } else {
         const response = await updateCustomer(
-          session?.user.token as any,
+          session?.user.token as string,
           Number(formData.id),
           Number(formData.client_id),
           formData.name,
@@ -202,7 +188,6 @@ const CustomerPage = () => {
       phone: customer.phone,
       company_id: customer.company_id,
     });
-    setShowRegister(true);
     setTypeRequest("update");
     setIsModalOpen(true);
   };
@@ -223,7 +208,10 @@ const CustomerPage = () => {
         if (result.isConfirmed) {
           setShowSpinner(true);
           const session = await getSession();
-          const response = await deleteCustomer(session?.user.token as any, id);
+          const response = await deleteCustomer(
+            session?.user.token as string,
+            id
+          );
           if (response === 204) {
             setCustomers((customers) =>
               customers.filter((customer) => customer.id !== id)
@@ -313,7 +301,6 @@ const CustomerPage = () => {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    rows,
     prepareRow,
     page, // Filas de la página actual
     canPreviousPage,
@@ -470,10 +457,15 @@ const CustomerPage = () => {
               return (
                 <tr
                   {...row.getRowProps()}
+                  key={row.id}
                   className="odd:bg-white bg-gray-100 hover:bg-gray-100 transition"
                 >
                   {row.cells.map((cell) => (
-                    <td {...cell.getCellProps()} className="px-4 py-2">
+                    <td
+                      {...cell.getCellProps()}
+                      key={cell.column.id}
+                      className="px-4 py-2"
+                    >
                       {cell.render("Cell")}
                     </td>
                   ))}
@@ -632,7 +624,6 @@ const CustomerPage = () => {
           <button
             type="submit"
             className="w-full rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white"
-            disabled={!!btnAction}
           >
             {buttonText}
           </button>
