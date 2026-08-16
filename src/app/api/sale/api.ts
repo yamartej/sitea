@@ -1,9 +1,43 @@
 import axios from "axios";
+import { CartItem } from "@/types/type";
 const apiUrl = process.env.NEXT_PUBLIC_URL_API;
 
+const handleApiError = (
+  error: unknown,
+  context: string
+): never => {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      console.error(
+        `${context}:`,
+        error.response.status,
+        error.response.data
+      );
+
+      if (error.response.data?.errors) {
+        throw error.response.data.errors;
+      }
+    } else if (error.request) {
+      console.error(
+        `${context} - Sin respuesta de la API:`,
+        error.request
+      );
+    } else {
+      console.error(
+        `${context} - Error al configurar Axios:`,
+        error.message
+      );
+    }
+  } else {
+    console.error(`${context} - Error inesperado:`, error);
+  }
+
+  throw error;
+};
+
 export const getClientById = async (
-  client_id: string, 
-  company_id: string, 
+  client_id: string,
+  company_id: string,
   token: string
 ) => {
   try {
@@ -19,30 +53,20 @@ export const getClientById = async (
       }
     );
     return response.data;
-  } catch (error: any) {
-    if (error.response) {
-      // Error de respuesta del servidor.
-      console.error("Error en la API:", error.response.status, error.response.data);
-    } else if (error.request) {
-      // La solicitud se hizo, pero no se recibió respuesta.
-      console.error("Sin respuesta de la API:", error.request);
-    } else {
-      // Error al configurar la solicitud.
-      console.error("Error al configurar Axios:", error.message);
+  } catch (error: unknown) {
+      handleApiError(error, "Error al consultar cliente");
     }
-    throw error; // Re-lanza el error si es necesario.
-  }      
 };
 
   export const registerSale = async (
-    token: string, 
-    client_id: string, 
-    seller_id: string, 
-    pop_id: string, 
-    total: number, 
-    carts: any[], 
+    token: string,
+    client_id: string,
+    seller_id: string,
+    pop_id: string,
+    total: number,
+    carts: CartItem[],
     type_of_sale: string,
-  ) => { 
+  ) => {
     try {
       const response = await axios.post(`${apiUrl}/sales`,
         {
@@ -60,21 +84,11 @@ export const getClientById = async (
           },
         }
       );
-        return response.data; 
+        return response.data;
       }
-      catch (error: any) {
-        if (error.response) {
-          // Error de respuesta del servidor.
-          console.error("Error en la API:", error.response.status, error.response.data);
-        } else if (error.request) {
-          // La solicitud se hizo, pero no se recibió respuesta.
-          console.error("Sin respuesta de la API:", error.request);
-        } else {
-          // Error al configurar la solicitud.
-          console.error("Error al configurar Axios:", error.message);
-        }
-        throw error; // Re-lanza el error si es necesario.
-      } 
+      catch (error: unknown) {
+        handleApiError(error, "Error al registrar venta");
+      }
   }
   export const fetchSaleslist = async (token: string) => {
   try {
@@ -84,19 +98,9 @@ export const getClientById = async (
         },
       });
       return response.data;
-    } catch (error: any) {
-      if (error.response) {
-        // Error de respuesta del servidor.
-        console.error("Error en la API:", error.response.status, error.response.data);
-      } else if (error.request) {
-        // La solicitud se hizo, pero no se recibió respuesta.
-        console.error("Sin respuesta de la API:", error.request);
-      } else {
-        // Error al configurar la solicitud.
-        console.error("Error al configurar Axios:", error.message);
-      }
-      throw error; // Re-lanza el error si es necesario.
-    }      
+    } catch (error: unknown) {
+      handleApiError(error, "Error al consultar ventas");
+    }
   };
 
   export const fetchSaleslistByCompany = async (token: string, company_id: string) => {
@@ -107,21 +111,11 @@ export const getClientById = async (
         },
       });
       return response.data;
-    } catch (error: any) {
-      if (error.response) {
-        // Error de respuesta del servidor.
-        console.error("Error en la API:", error.response.status, error.response.data);
-      } else if (error.request) {
-        // La solicitud se hizo, pero no se recibió respuesta.
-        console.error("Sin respuesta de la API:", error.request);
-      } else {
-        // Error al configurar la solicitud.
-        console.error("Error al configurar Axios:", error.message);
-      }
-      throw error; // Re-lanza el error si es necesario.
-    }      
+    } catch (error: unknown) {
+      handleApiError(error, "Error al consultar ventas por empresa");
+    }
   };
-  
+
   export const updateSaleDetails = async (
     token: string,
     id: number,
@@ -147,12 +141,8 @@ export const getClientById = async (
         }
       );
       return response.status; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error('Error en la respuesta del Update:', error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
-      }
-      throw error;
+    } catch (error: unknown) {
+      handleApiError(error, "Error al actualizar detalle de venta");
     }
   };
 
@@ -167,11 +157,7 @@ export const getClientById = async (
         }
       );
       return response; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error("Error en la respuesta:", error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
-      }
-      throw error;
+    } catch (error: unknown) {
+      handleApiError(error, "Error al eliminar detalle de venta");
     }
   }

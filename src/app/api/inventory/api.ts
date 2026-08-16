@@ -1,5 +1,37 @@
 import axios from "axios";
 const apiUrl = process.env.NEXT_PUBLIC_URL_API;
+const handleApiError = (
+  error: unknown,
+  context: string
+): never => {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      console.error(
+        `${context}:`,
+        error.response.status,
+        error.response.data
+      );
+
+      if (error.response.data?.errors) {
+        throw error.response.data.errors;
+      }
+    } else if (error.request) {
+      console.error(
+        `${context} - Sin respuesta de la API:`,
+        error.request
+      );
+    } else {
+      console.error(
+        `${context} - Error al configurar Axios:`,
+        error.message
+      );
+    }
+  } else {
+    console.error(`${context} - Error inesperado:`, error);
+  }
+
+  throw error;
+};
 
 export const fetchWarehousesList = async (token: string) => {
     try {
@@ -9,19 +41,9 @@ export const fetchWarehousesList = async (token: string) => {
           },
         });
         return response.data;
-      } catch (error: any) {
-        if (error.response) {
-          // Error de respuesta del servidor.
-          console.error("Error en la API:", error.response.status, error.response.data);
-        } else if (error.request) {
-          // La solicitud se hizo, pero no se recibió respuesta.
-          console.error("Sin respuesta de la API:", error.request);
-        } else {
-          // Error al configurar la solicitud.
-          console.error("Error al configurar Axios:", error.message);
-        }
-        throw error; // Re-lanza el error si es necesario.
-      }      
+      } catch (error: unknown) {
+        handleApiError(error, "Error al consultar almacenes");
+      }
   };
 
   export const fetchWarehousesListByCompany = async (company_id: string, token: string) => {
@@ -32,23 +54,13 @@ export const fetchWarehousesList = async (token: string) => {
           },
         });
         return response.data;
-      } catch (error: any) {
-        if (error.response) {
-          // Error de respuesta del servidor.
-          console.error("Error en la API:", error.response.status, error.response.data);
-        } else if (error.request) {
-          // La solicitud se hizo, pero no se recibió respuesta.
-          console.error("Sin respuesta de la API:", error.request);
-        } else {
-          // Error al configurar la solicitud.
-          console.error("Error al configurar Axios:", error.message);
-        }
-        throw error; // Re-lanza el error si es necesario.
-      }      
+      } catch (error: unknown) {
+        handleApiError(error, "Error al consultar almacenes por empresa");
+      }
   };
-  
+
   export const registerWarehouse = async (
-    token: string, 
+    token: string,
     name: string,
     description: string,
     address: string,
@@ -70,15 +82,11 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response.data; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error("Error en la respuesta de registro:", error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    } catch (error: unknown) {
+        handleApiError(error, "Error al registrar almacén");
       }
-      throw error;
-    }
   };
-  
+
   export const updateWarehouse = async (
     token: string,
     id: number,
@@ -106,15 +114,11 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response.status; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error('Error en la respuesta del Update:', error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    } catch (error: unknown) {
+        handleApiError(error, "Error al actualizar almacén");
       }
-      throw error;
-    }
   };
-  
+
   export const deleteWarehouses = async (token: string, id: number) => {
     try {
       const response = await axios.delete(`${apiUrl}/warehouses/${id}`,
@@ -126,13 +130,9 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response.status; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error("Error en la respuesta:", error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    } catch (error: unknown) {
+        handleApiError(error, "Error al eliminar almacén");
       }
-      throw error;
-    }
   };
 
   export const fetchInventoriesList = async (token: string) => {
@@ -143,23 +143,13 @@ export const fetchWarehousesList = async (token: string) => {
           },
         });
         return response.data;
-      } catch (error: any) {
-        if (error.response) {
-          // Error de respuesta del servidor.
-          console.error("Error en la API:", error.response.status, error.response.data);
-        } else if (error.request) {
-          // La solicitud se hizo, pero no se recibió respuesta.
-          console.error("Sin respuesta de la API:", error.request);
-        } else {
-          // Error al configurar la solicitud.
-          console.error("Error al configurar Axios:", error.message);
-        }
-        throw error; // Re-lanza el error si es necesario.
-      }      
+      }catch (error: unknown) {
+        handleApiError(error, "Error al consultar inventario");
+      }
   };
-  
+
   export const saveInventory = async (
-    token: string, 
+    token: string,
     warehouse_id: string,
     new_product_ids: {
       id: number,
@@ -169,7 +159,7 @@ export const fetchWarehousesList = async (token: string) => {
       id: number,
       quantity: number,
     }[],
-    
+
     ) => {
     try {
       const response = await axios.post(`${apiUrl}/inventory/saveInventoryProducts`,
@@ -186,17 +176,13 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error("Error en la respuesta de registro:", error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    } catch (error: unknown) {
+        handleApiError(error, "Error al guardar inventario");
       }
-      throw error;
-    }
   };
 
   export const removeAssignedInventory = async (
-    token: string, 
+    token: string,
     product_ids: {
       id: number
     }[],
@@ -214,15 +200,11 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error("Error en la respuesta de registro:", error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    }catch (error: unknown) {
+        handleApiError(error, "Error al remover inventario asignado");
       }
-      throw error;
-    }
   };
-  
+
   export const updateInventory = async (
     token: string,
     id: number,
@@ -246,15 +228,11 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response.status; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error('Error en la respuesta del Update:', error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    } catch (error: unknown) {
+        handleApiError(error, "Error al actualizar inventario");
       }
-      throw error;
-    }
   };
-  
+
   export const deleteInventory = async (token: string, id: number) => {
     try {
       const response = await axios.delete(`${apiUrl}/inventory/${id}`,
@@ -266,13 +244,9 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response.status; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error("Error en la respuesta:", error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    } catch (error: unknown) {
+        handleApiError(error, "Error al eliminar inventario");
       }
-      throw error;
-    }
   };
 
   export const fetchProductsAvailable = async (token: string) => {
@@ -283,19 +257,9 @@ export const fetchWarehousesList = async (token: string) => {
           },
         });
         return response.data;
-      } catch (error: any) {
-        if (error.response) {
-          // Error de respuesta del servidor.
-          console.error("Error en la API:", error.response.status, error.response.data);
-        } else if (error.request) {
-          // La solicitud se hizo, pero no se recibió respuesta.
-          console.error("Sin respuesta de la API:", error.request);
-        } else {
-          // Error al configurar la solicitud.
-          console.error("Error al configurar Axios:", error.message);
-        }
-        throw error; // Re-lanza el error si es necesario.
-      }      
+      } catch (error: unknown) {
+        handleApiError(error, "Error al consultar productos disponibles");
+      }
   };
 
   export const fetchBatchesListReceived = async (token: string) => {
@@ -306,19 +270,9 @@ export const fetchWarehousesList = async (token: string) => {
           },
         });
         return response.data;
-      } catch (error: any) {
-        if (error.response) {
-          // Error de respuesta del servidor.
-          console.error("Error en la API:", error.response.status, error.response.data);
-        } else if (error.request) {
-          // La solicitud se hizo, pero no se recibió respuesta.
-          console.error("Sin respuesta de la API:", error.request);
-        } else {
-          // Error al configurar la solicitud.
-          console.error("Error al configurar Axios:", error.message);
-        }
-        throw error; // Re-lanza el error si es necesario.
-      }      
+      } catch (error: unknown) {
+        handleApiError(error, "Error al consultar lotes recibidos");
+      }
   };
 
   export const updateFinalCost = async (
@@ -326,7 +280,7 @@ export const fetchWarehousesList = async (token: string) => {
     id: number,
     final_cost: number,
     wholesale_final_cost: number,
-    
+
   ) => {
     try {
       const response = await axios.put(
@@ -344,11 +298,7 @@ export const fetchWarehousesList = async (token: string) => {
         }
       );
       return response.status; // Retornar solo los datos necesarios
-    } catch (error: any) {
-      console.error('Error en la respuesta del Update:', error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        throw error.response.data.errors;
+    } catch (error: unknown) {
+        handleApiError(error, "Error al actualizar costo final");
       }
-      throw error;
-    }
   };

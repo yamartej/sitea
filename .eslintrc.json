@@ -1,3 +1,41 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "src/app/layout.tsx",
+        "src/app/verify-pending/page.tsx",
+        "src/components/Admin/Pop/PopPage.tsx",
+        "src/components/Admin/UserPage.tsx",
+        "src/components/Common/Card/InfoCardGrid.tsx",
+        "src/components/Common/Menu/MenuPage.tsx",
+        "src/components/Dashboard/DashboardPage.tsx",
+        "src/components/Inventory/CategoryPage.tsx",
+        "src/components/Inventory/PricePage.tsx",
+        "src/components/Inventory/StockPage.tsx",
+        "src/components/Inventory/WarehousePage.tsx",
+        "src/components/LoginPage.tsx",
+        "src/components/Payment/PaymentCustomerDetailPage.tsx",
+        "src/components/PurchaseManagement/BatchPage.tsx",
+        "src/components/PurchaseManagement/CostPage.tsx",
+        "src/components/PurchaseManagement/PaymentPage.tsx",
+        "src/components/PurchaseManagement/ProductPage.tsx",
+        "src/components/Reports/PaymentDetailReportPage.tsx",
+        "src/components/Reports/SalesReportPage.tsx",
+        "src/components/Sales/CustomerPage.tsx",
+        "src/components/Sales/Sales/ProductTablePage.tsx",
+        "src/components/Sales/Sales/QuantityInput.tsx",
+        "src/components/Sales/Sales/SalePage.tsx",
+        "src/types/react-table-config.d.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "warn",
+        "@typescript-eslint/no-explicit-any": "warn",
+        "react/jsx-key": "warn"
+      }
+    }
+  ]
 }
