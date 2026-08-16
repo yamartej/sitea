@@ -74,13 +74,15 @@ export const register = async (
       }
     );
     return response.data; // Retornar solo los datos necesarios
-  } catch (error: any) {
-    console.error("Error en la respuesta de registro:", error);
-    if (error.response && error.response.data && error.response.data.errors) {
-      throw error.response.data.errors;
-    }
-    throw error;
+  } catch (error: unknown) {
+  console.error("Error en la respuesta de registro:", error);
+
+  if (axios.isAxiosError(error) && error.response?.data?.errors) {
+    throw error.response.data.errors;
   }
+
+  throw error;
+}
 };
 
 export const fetchUsersList = async (token: string) => {

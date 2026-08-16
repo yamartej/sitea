@@ -23,7 +23,8 @@ export const fetchMenuItems = async (
     );
 
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
+  if (axios.isAxiosError(error)) {
     if (error.response) {
       console.error(
         "Error en la API:",
@@ -35,7 +36,10 @@ export const fetchMenuItems = async (
     } else {
       console.error("Error al configurar Axios:", error.message);
     }
-
-    throw error;
+  } else {
+    console.error("Error inesperado:", error);
   }
+
+  throw error;
+}
 };
