@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useEffect, useState } from "react"; 
 import { fetchBatchesWithProducts, fetchCategoriesList, registerProduct, updateProduct, deleteProduct, updateBatchProduct} from "@/app/api/admin/api";
 import { fetchBatchesList } from "@/app/api/purchase/api";
@@ -94,7 +94,7 @@ const ProductPage = () => {
                 accessor: 'name',
             },            
             {
-                Header: 'Descripción',
+                Header: 'DescripciÃ³n',
                 accessor: 'description',
             },
             {
@@ -102,7 +102,7 @@ const ProductPage = () => {
                 accessor: 'status',
             },
             {
-                Header: 'Fecha de creación',
+                Header: 'Fecha de creaciÃ³n',
                 accessor: 'order_creation_date',
                 Cell: ({ value }) => new Date(value).toLocaleDateString(),
             },
@@ -135,7 +135,7 @@ const ProductPage = () => {
             headerGroups,
             rows,
             prepareRow,
-            page, // Filas de la página actual
+            page, // Filas de la pÃ¡gina actual
             canPreviousPage,
             canNextPage,
             pageOptions,
@@ -147,11 +147,11 @@ const ProductPage = () => {
             {
                 columns,
                 data: batchesWithProducts,
-                initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por página
+                initialState: { pageIndex: 0, pageSize: 10 }, // Mostrar 10 registros por pÃ¡gina
             },
-            useSortBy, // Agregar el plugin de ordenación
+            useSortBy, // Agregar el plugin de ordenaciÃ³n
             useExpanded,
-            usePagination, // Agregar el plugin de paginación
+            usePagination, // Agregar el plugin de paginaciÃ³n
         );
     
     const [cards, setCards] = useState([
@@ -204,7 +204,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 Number(formData.batch),
                 );
                 if (response && response.product.id) {
-                    // Buscar el nombre de la categoría correspondiente
+                    // Buscar el nombre de la categorÃ­a correspondiente
                     const category = categories.find((category) => category.id === Number(formData.category));
                                             
                     // Agregar el nuevo producto al estado
@@ -213,6 +213,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                     prevBatches.map((batch) => {
                         if (batch.id === Number(formData.batch)) {
                         const newProduct: Product = {
+                            ...response.product,
                             id: response.product.id,
                             name: formData.name,
                             description: formData.description,
@@ -220,8 +221,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                             quantity: Number(formData.quantity),
                             category_id: Number(formData.category),
                             batch_id: Number(formData.batch),
-                            warehouseName: '',
-                            price_shipping: 0,
+                            warehouseName: response.product.warehouseName ?? '',
+                            price_shipping: response.product.price_shipping ?? 0,
                         };
 
                         return {
@@ -246,10 +247,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                     setErrorMessage("El registro fue agregado exitosamente");
                     setShowSpinner(false);
                 } else {
-                    console.error("El ID del producto no está definido en la respuesta:", response);
+                    console.error("El ID del producto no estÃ¡ definido en la respuesta:", response);
                     setShowNotification(true);
                     setTypeMessage("error");
-                    setErrorMessage("El ID del producto no está definido en la respuesta:");
+                    setErrorMessage("El ID del producto no estÃ¡ definido en la respuesta:");
                     setShowSpinner(false);
                 }
             }else{
@@ -333,7 +334,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             [name]: value 
         });
 
-        // Validación en tiempo real de las contraseñas
+        // ValidaciÃ³n en tiempo real de las contraseÃ±as
         if (name === "price") {
             const regex = /^[0-9]*\.?[0-9]*$/; 
             if (regex.test(value)) { 
@@ -350,20 +351,20 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
     const handleRemoveProduct =  async(product:Product) =>{
         const result = await Swal.fire({
-                    title: '¿Estás seguro de eliminar este producto?',
-                    text: "No podrás revertir esto",
+                    title: 'Â¿EstÃ¡s seguro de eliminar este producto?',
+                    text: "No podrÃ¡s revertir esto",
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#72cb10',
                     cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, eliminar!'
+                    confirmButtonText: 'SÃ­, eliminar!'
                 });
                 if (result.isConfirmed) {
                     setShowSpinner(true);
                     const session = await getSession(); 
                     const response = await deleteProduct(session?.user.token as string, product.id);
                     if(response === 204){
-                         // Filtrar también la lista de usuarios mostrada en la tabla
+                         // Filtrar tambiÃ©n la lista de usuarios mostrada en la tabla
                         setBatchesWithProducts((prevBatches) =>
                             prevBatches.map((batch) => {
                                 if (batch.id === Number(product.batch_id)) {
@@ -431,7 +432,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 )} 
             </div>
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">Gestión de Compras</h1>
+                <h1 className="text-2xl font-bold">GestiÃ³n de Compras</h1>
                 
             </div>
             <div>
@@ -461,9 +462,9 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                                                 <span>
                                                     {column.isSorted
                                                         ? column.isSortedDesc
-                                                            ? " ↓"
-                                                            : " ↑"
-                                                        : " ↓↑"
+                                                            ? " â†“"
+                                                            : " â†‘"
+                                                        : " â†“â†‘"
                                                     }
                                                 </span>
                                             )}
@@ -489,7 +490,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                                             : 'odd:bg-white bg-gray-100 hover:bg-gray-100'
                                     }`}
                                     onClick={() => {
-                                        // Solo sumar si la fila no está expandida (para evitar doble suma al cerrar)
+                                        // Solo sumar si la fila no estÃ¡ expandida (para evitar doble suma al cerrar)
                                         if (!row.isExpanded) handleExpandRow(row);
                                     }}
                                 >
@@ -505,14 +506,14 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                                 {row.isExpanded && (
                                     <tr className="bg-yellow-300">
                                         <td colSpan={row.cells.length} className="px-4 py-2 text-sm text-gray-600">
-                                            {/* Aquí va el detalle de la compra, por ejemplo una lista de productos */}
+                                            {/* AquÃ­ va el detalle de la compra, por ejemplo una lista de productos */}
                                             <table className="w-full text-sm text-left text-gray-600 border border-gray-200">
                                                 <thead className="bg-gray-100 text-gray-700">
                                                     <tr>
                                                         <th className="px-4 py-2 border">Nombre</th>
                                                         <th className="px-4 py-2 border">price</th>
                                                         <th className="px-4 py-2 border">Cantidad</th>
-                                                        <th className="px-4 py-2 border">Acción</th>
+                                                        <th className="px-4 py-2 border">AcciÃ³n</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -558,7 +559,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             <form onSubmit={handleSubmit} className="text-primary-contrast">
                 <div className="grid gap-6 mb-6 md:grid-cols-1">
                     <div>
-                        <label htmlFor="company" className="block mb-2 text-sm font-medium">Nombre de la Categoría</label>
+                        <label htmlFor="company" className="block mb-2 text-sm font-medium">Nombre de la CategorÃ­a</label>
                         <select
                             id="category"
                             name="category"
@@ -568,7 +569,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                             required
                             >
                                 <option value="">
-                                    Selecciona una Categoría
+                                    Selecciona una CategorÃ­a
                                 </option>
                                 {categories?.map((item) => (
                                     <option key={item.id} value={item.id}>
@@ -595,7 +596,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                         </div>
                         <div>
                             <label htmlFor="description" className="block mb-2 text-sm font-medium dark:text-white">
-                                Descripción 
+                                DescripciÃ³n 
                             </label>
                             <input
                             id="description"
