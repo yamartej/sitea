@@ -1,9 +1,9 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { Product } from "@/types/type"; // Asegúrate de que este archivo exista y exporte el tipo Product
+import React, { useCallback, useEffect, useState } from "react";
+import { Inventory, Product, Warehouse } from "@/types/type"; // Asegúrate de que este archivo exista y exporte el tipo Product
 import { getSession } from "next-auth/react";
 import {
-  fetchProductsAvailable,
+  fetchInventoryAvailability,
   fetchInventoriesList,
   fetchWarehousesList,
   saveInventory,
@@ -29,84 +29,60 @@ const StockPage = () => {
     { id: number; quantity: number }[]
   >([]);
   const [selectedProductsW, setSelectedProductsW] = useState<
-    { id: number; quantity: number }[]
+    { id: number; quantity: number; warehouse_id: number }[]
   >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [warehouses, setWarehouses] = useState<any[]>([]); // Cambia 'any' por el tipo adecuado
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [formData, setFormData] = useState({
     warehouseId: "",
     warehouseName: "",
   });
   const [typeMessage, setTypeMessage] = useState("error");
 
+  const loadInventoryData = useCallback(async (token: string) => {
+    const [availableProducts, inventoryBalances, dataWarehouses] =
+      await Promise.all([
+        fetchInventoryAvailability(token),
+        fetchInventoriesList(token),
+        fetchWarehousesList(token),
+      ]);
+
+    const unassigned = (availableProducts as Product[])
+      .map((product) => {
+        const availableQuantity =
+          product.unallocated_quantity ?? product.quantity;
+
+        return {
+          ...product,
+          quantity: Number(availableQuantity),
+          selectedQuantity: Number(availableQuantity),
+        };
+      })
+      .filter((product) => product.quantity > 0);
+
+    const assigned = (inventoryBalances as Inventory[])
+      .filter((inventory) => Number(inventory.quantity) > 0)
+      .map((inventory) => ({
+        ...inventory.product,
+        quantity: Number(inventory.quantity),
+        inventory,
+        inventories: [inventory],
+        warehouseId: Number(inventory.warehouse_id),
+        warehouseName: inventory.warehouse?.name || "Sin asignar",
+      }));
+
+    setWarehouses(dataWarehouses as Warehouse[]);
+    setProducts(unassigned);
+    setAssignedProducts(assigned);
+  }, []);
+
   useEffect(() => {
     const fetchInventories = async () => {
       setShowSpinner(true);
       const session = await getSession();
+
       try {
-        const dataProducts = await fetchProductsAvailable(
-          session?.user.token as string
-        );
-        const dataWarehouses = await fetchWarehousesList(
-          session?.user.token as string
-        );
-
-        // Separar productos asignados y no asignados
-        const unassigned = dataProducts
-          .map((product: Product) => {
-            const assignedQuantity = product.inventory?.quantity || 0;
-            const warehouseId = product.inventory?.warehouse_id;
-
-            const remainingQuantity = product.quantity - assignedQuantity;
-
-            // Solo incluir productos no asignados si NO tienen almacén asignado
-            if (
-              (!warehouseId || warehouseId === null) &&
-              remainingQuantity > 0
-            ) {
-              return {
-                ...product,
-                quantity: remainingQuantity,
-              };
-            }
-
-            return null;
-          })
-          .filter(
-            (product: Product | null): product is Product => product !== null
-          );
-
-        const assigned = dataProducts
-          .map((product: Product) => {
-            const assignedQuantity = product.inventory?.quantity || 0;
-            const warehouseId = product.inventory?.warehouse_id;
-
-            if (assignedQuantity > 0 && warehouseId) {
-              const warehouse = dataWarehouses.find(
-                (w: { id: number; name: string }) =>
-                  Number(w.id) === Number(warehouseId)
-              );
-
-              return {
-                ...product,
-                quantity: assignedQuantity,
-                warehouseName: warehouse ? warehouse.name : "Sin asignar",
-              };
-            }
-            return null; // Excluir productos sin cantidad asignada o sin almacén
-          })
-          .filter(
-            (product: Product | null): product is Product => product !== null
-          );
-
-        setWarehouses(dataWarehouses);
-        setProducts(
-          unassigned.map((product: Product) => ({
-            ...product,
-            selectedQuantity: product.quantity, // Inicializar con la cantidad disponible
-          }))
-        );
-        setAssignedProducts(assigned);
+        await loadInventoryData(session?.user.token as string);
       } catch (error) {
         console.error("Error fetching:", error);
         setErrorMessage("Error fetching");
@@ -115,8 +91,9 @@ const StockPage = () => {
         setShowSpinner(false);
       }
     };
+
     fetchInventories();
-  }, []);
+  }, [loadInventoryData]);
 
   useEffect(() => {
     if (showNotification) {
@@ -194,12 +171,15 @@ const StockPage = () => {
             <input
               type="checkbox"
               checked={selectedProductsW.some(
-                (item) => item.id === row.original.id
+                (item) =>
+                  item.id === row.original.id &&
+                  item.warehouse_id === Number(row.original.warehouseId)
               )}
               onChange={() =>
                 handleSelectProductsAssigned(
                   row.original.id,
-                  row.original.selectedQuantity || row.original.quantity
+                  row.original.selectedQuantity || row.original.quantity,
+                  Number(row.original.warehouseId)
                 )
               }
             />
@@ -281,7 +261,13 @@ const StockPage = () => {
   };
 
   const handleRemoveWarehouse = async () => {
-    console.log("Remover Almacen");
+    if (selectedProductsW.length === 0) {
+      setTypeMessage("error");
+      setErrorMessage("Seleccione al menos un producto asignado");
+      setShowNotification(true);
+      return;
+    }
+
     const result = await Swal.fire({
       title: "¿Estás seguro de Remover Alamacen?",
       text: "No podrás revertir esto!",
@@ -291,61 +277,38 @@ const StockPage = () => {
       cancelButtonColor: "#d33",
       confirmButtonText: "Sí, eliminarlo!",
     });
-    if (result.isConfirmed) {
-      setShowSpinner(true);
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    setShowSpinner(true);
+
+    try {
       const session = await getSession();
+      const token = session?.user.token as string;
+
       const response = await removeAssignedInventory(
-        session?.user.token as string,
+        token,
         selectedProductsW.map((product) => ({
           id: product.id,
+          warehouse_id: product.warehouse_id,
         }))
       );
+
       if (response) {
-        const selectedIds = selectedProductsW.map((p) => p.id);
-        const selectedMap = new Map(selectedProductsW.map((p) => [p.id, p]));
-
-        // 1. Actualizar el array de products
-        const updatedProducts = products.map((product) => {
-          if (selectedIds.includes(product.id)) {
-            const selected = selectedMap.get(product.id);
-            return {
-              ...product,
-              selectedQuantity: product.quantity + (selected?.quantity || 0),
-              quantity: product.quantity + (selected?.quantity || 0),
-            };
-          }
-          return product;
-        });
-
-        // 2. Agregar los productos que estaban solo en assignedProducts (no en products)
-        assignedProducts.forEach((product) => {
-          const isSelected = selectedIds.includes(product.id);
-          const existsInProducts = products.some((p) => p.id === product.id);
-
-          if (isSelected && !existsInProducts) {
-            const selected = selectedMap.get(product.id);
-            updatedProducts.push({
-              ...product,
-              quantity: selected?.quantity || product.quantity,
-            });
-          }
-        });
-
-        // 3. Remover los seleccionados del estado assignedProducts
-        const updatedAssigned = assignedProducts.filter(
-          (product) => !selectedIds.includes(product.id)
-        );
-
-        // 4. Actualizar los estados
-        setProducts(updatedProducts);
-        setAssignedProducts(updatedAssigned);
-
+        await loadInventoryData(token);
+        setSelectedProductsW([]);
         setShowNotification(true);
         setTypeMessage("success");
         setErrorMessage("Se removió el almacen exitosamente");
-        setShowSpinner(false);
       }
-    } else {
+    } catch (error) {
+      console.error("Error removing inventory:", error);
+      setTypeMessage("error");
+      setErrorMessage("Error al remover el almacen");
+      setShowNotification(true);
+    } finally {
       setShowSpinner(false);
     }
   };
@@ -363,16 +326,24 @@ const StockPage = () => {
     });
   };
 
-  const handleSelectProductsAssigned = (id: number, quantity: number) => {
+  const handleSelectProductsAssigned = (
+    id: number,
+    quantity: number,
+    warehouse_id: number
+  ) => {
     setSelectedProductsW((prevSelected) => {
-      const exists = prevSelected.find((item) => item.id === id);
+      const exists = prevSelected.find(
+        (item) => item.id === id && item.warehouse_id === warehouse_id
+      );
+
       if (exists) {
-        // Si ya está seleccionado, lo eliminamos
-        return prevSelected.filter((item) => item.id !== id);
-      } else {
-        // Si no está seleccionado, lo agregamos con la cantidad actual
-        return [...prevSelected, { id, quantity }];
+        return prevSelected.filter(
+          (item) =>
+            !(item.id === id && item.warehouse_id === warehouse_id)
+        );
       }
+
+      return [...prevSelected, { id, quantity, warehouse_id }];
     });
   };
 
@@ -404,8 +375,9 @@ const StockPage = () => {
         assignedProducts.map((product) => ({
           id: product.id,
           quantity: product.selectedQuantity || product.quantity,
+          warehouse_id: Number(product.warehouseId),
         }))
-      ); // Seleccionar todos con sus cantidades actuales
+      ); // Seleccionar todos con producto + almacén
     }
   };
 
@@ -439,7 +411,7 @@ const StockPage = () => {
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
-      warehouseName: selectedWarehouse.name,
+      warehouseName: selectedWarehouse?.name || "",
     }));
   };
 
@@ -447,104 +419,37 @@ const StockPage = () => {
     e.preventDefault();
     setShowSpinner(true);
     setIsModalOpen(false);
-    const session = await getSession();
+
     try {
-      //Validar si existe en el inventario un producto asignado en un almacen para actulizar el producto.
-      const commonProducts = selectedProducts.filter((sp) =>
-        assignedProducts.some((ap) => ap.id === sp.id)
-      );
-      //Validar que productos no estan asignados para realizar un registro desde cero
-      const differenceProducts = selectedProducts.filter(
-        (sp) => !assignedProducts.some((ap) => ap.id === sp.id)
-      );
+      const session = await getSession();
+      const token = session?.user.token as string;
 
       const response = await saveInventory(
-        session?.user.token as string,
+        token,
         formData.warehouseId,
-        differenceProducts.map((product) => ({
-          id: product.id,
-          quantity: product.quantity,
-        })),
-        commonProducts.map((product) => ({
+        [],
+        selectedProducts.map((product) => ({
           id: product.id,
           quantity: product.quantity,
         }))
       );
+
       if (response) {
-        console.log("Asignación exitosa:", response);
-        // Actualizar las listas de productos
-        setProducts(
-          (prevProducts) =>
-            prevProducts
-              .map((product) => {
-                const selectedProduct = selectedProducts.find(
-                  (item) => item.id === product.id
-                );
-                if (selectedProduct) {
-                  const remainingQuantity =
-                    product.quantity - selectedProduct.quantity;
-                  return remainingQuantity > 0
-                    ? {
-                        ...product,
-                        quantity: remainingQuantity,
-                        selectedQuantity: remainingQuantity,
-                      }
-                    : undefined; // Cambiar null por undefined
-                }
-                return product;
-              })
-              .filter((product): product is Product => product !== undefined) // Filtrar valores undefined
-        );
+        await loadInventoryData(token);
 
-        //Agrega los nuevos productos a la tabla
-        setAssignedProducts((prevAssigned) =>
-          prevAssigned.concat(
-            differenceProducts.map((product) => {
-              const originalProduct = products.find((p) => p.id === product.id);
-              return {
-                ...originalProduct,
-                warehouseId: Number(formData.warehouseId),
-                warehouseName: formData.warehouseName,
-                quantity: product.quantity,
-              } as Product;
-            })
-          )
-        );
-
-        //Actualiza el inventario existente
-        setAssignedProducts((prevProducts) =>
-          prevProducts.map((product) => {
-            const commonProduct = commonProducts.find(
-              (p) => p.id === product.id
-            );
-            if (commonProduct) {
-              return {
-                ...product,
-                quantity: product.quantity + commonProduct.quantity,
-              };
-            }
-            return product;
-          })
-        );
-
-        // Limpiar selección y formulario
         setSelectedProducts([]);
         setFormData({
           warehouseId: "",
           warehouseName: "",
         });
 
-        // Mostrar notificación de éxito
         setTypeMessage("success");
         setErrorMessage("Asignación exitosa");
         setShowNotification(true);
-
-        setTimeout(() => {
-          setShowNotification(false);
-        }, 10000); // 10 segundos
       }
     } catch (error) {
       console.error("Error:", error);
+      setTypeMessage("error");
       setErrorMessage("Error al asignar el almacen");
       setShowNotification(true);
     } finally {
