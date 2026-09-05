@@ -78,9 +78,19 @@ export type Product = {
   batch_id: number;
   batches: Batch;
   selectedQuantity?: number;
-  inventory: Inventory;
+
+  // Legacy single-balance compatibility. New inventory screens should
+  // prefer inventories[].
+  inventory?: Inventory;
+
+  // Canonical Phase 2E multi-warehouse inventory projection.
+  inventories?: Inventory[];
+  legacy_quantity?: number;
+  inventory_total_quantity?: number;
+  unallocated_quantity?: number;
+
   warehouseId?: number;
-  warehouseName: string;
+  warehouseName?: string;
   price_shipping: number;
   final_cost: number;
   product: Product;

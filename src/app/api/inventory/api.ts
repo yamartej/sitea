@@ -184,7 +184,8 @@ export const fetchWarehousesList = async (token: string) => {
   export const removeAssignedInventory = async (
     token: string,
     product_ids: {
-      id: number
+      id: number;
+      warehouse_id?: number;
     }[],
     ) => {
     try {
@@ -249,6 +250,20 @@ export const fetchWarehousesList = async (token: string) => {
       }
   };
 
+  export const fetchInventoryAvailability = async (token: string) => {
+    try {
+        const response = await axios.get(`${apiUrl}/products/available`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        return response.data;
+      } catch (error: unknown) {
+        handleApiError(error, "Error al consultar disponibilidad de inventario");
+      }
+  };
+
+  // Legacy cost-management helper. PricePage still consumes /products/with-costs.
   export const fetchProductsAvailable = async (token: string) => {
     try {
         const response = await axios.get(`${apiUrl}/products/with-costs`, {
