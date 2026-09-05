@@ -63,7 +63,6 @@ export const getClientById = async (
     client_id: string,
     seller_id: string,
     pop_id: string,
-    total: number,
     carts: CartItem[],
     type_of_sale: string,
   ) => {
@@ -73,8 +72,11 @@ export const getClientById = async (
           client_id,
           seller_id,
           pop_id,
-          total,
-          carts,
+          carts: carts.map((item) => ({
+            productId: item.productId,
+            warehouse_id: item.warehouse_id,
+            quantity: item.quantity,
+          })),
           type_of_sale,
         },
         {

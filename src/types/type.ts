@@ -139,11 +139,13 @@ export type ErrorResponse = {
 }
 
 export type CartItem = {
-  productId: number;
-  name: string;
-  price: number;
-  quantity: number;
-}
+    productId: number;
+    warehouse_id: number;
+    warehouseName?: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }
 
 export type Pop = {
   ubication: string;

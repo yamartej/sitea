@@ -4,7 +4,7 @@ import { CartItem } from '@/types/type';
 interface ProductTableProps {
     cart: CartItem[];
     onEdit: (productId: number) => void;
-    onDelete: (productId: number) => void;
+    onDelete: (productId: number, warehouseId: number) => void;
 }
 
 const ProductTable: React.FC<ProductTableProps> = ({ cart, onEdit, onDelete }) => {
@@ -13,7 +13,7 @@ const ProductTable: React.FC<ProductTableProps> = ({ cart, onEdit, onDelete }) =
             <table className="min-w-full border-collapse border border-gray-300 text-left">
                 <thead>
                     <tr className="bg-gray-200">
-                        <th className="px-4 py-2 border border-gray-300">Item</th>
+                        <th className="px-4 py-2 border border-gray-300">Item</th>                        <th className="px-4 py-2 border border-gray-300">Almacén</th>
                         <th className="px-4 py-2 border border-gray-300">Descripción</th>
                         <th className="px-4 py-2 border border-gray-300">Cantidad</th>
                         <th className="px-4 py-2 border border-gray-300">Precio</th>
@@ -23,14 +23,14 @@ const ProductTable: React.FC<ProductTableProps> = ({ cart, onEdit, onDelete }) =
                 </thead>
                 <tbody>
                     {cart.map(item => (
-                        <tr key={item.productId} className="bg-white hover:bg-gray-100 transition">
-                            <td className="px-4 py-2 border border-gray-300">{item.productId}</td>
+                        <tr key={`${item.productId}:${item.warehouse_id}`} className="bg-white hover:bg-gray-100 transition">
+                            <td className="px-4 py-2 border border-gray-300">{item.productId}</td>                            <td className="px-4 py-2 border border-gray-300">{item.warehouseName || `#${item.warehouse_id}`}</td>
                             <td className="px-4 py-2 border border-gray-300">{item.name}</td>
                             <td className="px-4 py-2 border border-gray-300">{item.quantity}</td>
                             <td className="px-4 py-2 border border-gray-300">{item.price}</td>
                             <td className="px-4 py-2 border border-gray-300">{Number(item.price * item.quantity).toFixed(2)}</td>
                             <td className="px-4 py-2 border border-gray-300 text-center">
-                                <button className="ml-2 text-red-600 hover:underline" onClick={() => onDelete(item.productId)}>
+                                <button className="ml-2 text-red-600 hover:underline" onClick={() => onDelete(item.productId, item.warehouse_id)}>
                                     Eliminar
                                 </button>
                             </td>

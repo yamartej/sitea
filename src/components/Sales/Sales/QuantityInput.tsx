@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
 interface QuantityInputProps {
-  productId: number;
+  itemKey: string;
   maxQuantity: number;
-  onQuantityChange: (productId: number, value: number) => void;
+  onQuantityChange: (itemKey: string, value: number) => void;
   reset: boolean;
   disabled: boolean | any; // Añadimos una prop para deshabilitar el input
 }
 
-const QuantityInput: React.FC<QuantityInputProps> = ({ productId, maxQuantity, onQuantityChange, reset, disabled }) => {
+const QuantityInput: React.FC<QuantityInputProps> = ({ itemKey, maxQuantity, onQuantityChange, reset, disabled }) => {
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ const QuantityInput: React.FC<QuantityInputProps> = ({ productId, maxQuantity, o
   const handleDecrement = () => {
     setQuantity((prevQuantity) => {
       const newQuantity = Math.max(prevQuantity - 1, 1);
-      onQuantityChange(productId, newQuantity);
+      onQuantityChange(itemKey, newQuantity);
       return newQuantity;
     });
   };
@@ -28,7 +28,7 @@ const QuantityInput: React.FC<QuantityInputProps> = ({ productId, maxQuantity, o
   const handleIncrement = () => {
     setQuantity((prevQuantity) => {
       const newQuantity = Math.min(prevQuantity + 1, maxQuantity);
-      onQuantityChange(productId, newQuantity);
+      onQuantityChange(itemKey, newQuantity);
       return newQuantity;
     });
   };
@@ -36,7 +36,7 @@ const QuantityInput: React.FC<QuantityInputProps> = ({ productId, maxQuantity, o
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Math.max(1, Math.min(maxQuantity, parseInt(e.target.value) || 1));
     setQuantity(value);
-    onQuantityChange(productId, value);
+    onQuantityChange(itemKey, value);
   };
 
   return (

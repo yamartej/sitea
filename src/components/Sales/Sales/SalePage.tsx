@@ -32,7 +32,7 @@ const SalePage: React.FC = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [typeMessage, setTypeMessage] = useState("error");
   const [btnAction, setBtnAction] = useState(false);
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
   const [resetQuantities, setResetQuantities] = useState(false);
   const [sellerName, setSellerName] = useState("");
   const [machineName, setMachineName] = useState("");
@@ -134,35 +134,74 @@ const SalePage: React.FC = () => {
     }
   };
 
-  const getMaxQuantity = (productId: number, totalQuantity: number) => {
-    const cartItem = cart.find((item) => item.productId === productId);
+  const inventoryKey = (productId: number, warehouseId: number) =>
+    `${productId}:${warehouseId}`;
+
+  const getMaxQuantity = (
+    productId: number,
+    warehouseId: number,
+    totalQuantity: number
+  ) => {
+    const cartItem = cart.find(
+      (item) =>
+        item.productId === productId &&
+        item.warehouse_id === warehouseId
+    );
     return cartItem ? totalQuantity - cartItem.quantity : totalQuantity;
   };
 
-  const handleAddToCart = (product: Product, quantity: number) => {
+  const handleAddToCart = (inventoryRow: any, quantity: number) => {
+    const product = inventoryRow.product as Product;
+    const warehouseId = Number(inventoryRow.warehouse_id);
+    const warehouseName =
+      inventoryRow.warehouse?.name || `#${warehouseId}`;
+
     setCart((prevCart) => {
       const existingItem = prevCart.find(
-        (item) => item.productId === product.id
+        (item) =>
+          item.productId === product.id &&
+          item.warehouse_id === warehouseId
       );
-      const price =
-        quantity >= 3
-          ? Number(product.wholesale_final_cost)
-          : Number(product.final_cost);
+
+      let nextCart: CartItem[];
+
       if (existingItem) {
-        return prevCart.map((item) =>
-          item.productId === product.id
+        nextCart = prevCart.map((item) =>
+          item.productId === product.id &&
+          item.warehouse_id === warehouseId
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
-        return [
+        nextCart = [
           ...prevCart,
-          { productId: product.id, name: product.name, price: price, quantity },
+          {
+            productId: product.id,
+            warehouse_id: warehouseId,
+            warehouseName,
+            name: product.name,
+            price: Number(product.final_cost),
+            quantity,
+          },
         ];
       }
+
+      const totalProductQuantity = nextCart
+        .filter((item) => item.productId === product.id)
+        .reduce((total, item) => total + item.quantity, 0);
+
+      const price =
+        totalProductQuantity >= 3
+          ? Number(product.wholesale_final_cost)
+          : Number(product.final_cost);
+
+      return nextCart.map((item) =>
+        item.productId === product.id
+          ? { ...item, price }
+          : item
+      );
     });
   };
-
   const filteredProducts = products.filter(
     (product) =>
       product.product.name &&
@@ -180,17 +219,47 @@ const SalePage: React.FC = () => {
     // Lógica para editar el producto en el carrito
   };
 
-  const handleDelete = (productId: number) => {
-    setCart(cart.filter((item) => item.productId !== productId));
+  const handleDelete = (productId: number, warehouseId: number) => {
+    setCart((prevCart) => {
+      const nextCart = prevCart.filter(
+        (item) =>
+          !(
+            item.productId === productId &&
+            item.warehouse_id === warehouseId
+          )
+      );
+
+      const product = products.find(
+        (row) => row.product_id === productId
+      )?.product as Product | undefined;
+
+      if (!product) {
+        return nextCart;
+      }
+
+      const totalProductQuantity = nextCart
+        .filter((item) => item.productId === productId)
+        .reduce((total, item) => total + item.quantity, 0);
+
+      const price =
+        totalProductQuantity >= 3
+          ? Number(product.wholesale_final_cost)
+          : Number(product.final_cost);
+
+      return nextCart.map((item) =>
+        item.productId === productId
+          ? { ...item, price }
+          : item
+      );
+    });
   };
 
-  const handleQuantityChange = (productId: number, value: number) => {
+  const handleQuantityChange = (itemKey: string, value: number) => {
     setQuantities((prevQuantities) => ({
       ...prevQuantities,
-      [productId]: value,
+      [itemKey]: value,
     }));
   };
-
   useEffect(() => {
     if (!isModalOpen) {
       setResetQuantities(true);
@@ -200,19 +269,10 @@ const SalePage: React.FC = () => {
     }
   }, [isModalOpen]);
 
-  const updateInventory = (cart: CartItem[]) => {
-    const updatedProducts = [...products]; // Copia del estado actual de los productos
-    cart.forEach((item) => {
-      const productIndex = updatedProducts.findIndex(
-        (product) => product.product_id === item.productId
-      );
-      if (productIndex !== -1) {
-        updatedProducts[productIndex].quantity -= item.quantity;
-      }
-    });
-    setProducts(updatedProducts); // Actualizar el estado de los productos
+  const refreshInventory = async (token: string) => {
+    const data = await fetchInventoriesList(token);
+    setProducts(data);
   };
-
   const handleSelectTypeSale = () => {
     setIsModalConfirmOpen(true);
   };
@@ -221,7 +281,6 @@ const SalePage: React.FC = () => {
     try {
       setBtnAction(true);
       setLoading(true);
-      setLoading(true);
       const session = await getSession();
       if (session?.user.token) {
         const response = await registerSale(
@@ -229,15 +288,13 @@ const SalePage: React.FC = () => {
           client.id,
           seller.seller_id,
           seller.id,
-          totalAmount,
           cart,
           typeOfSale
         );
         if (response) {
-          //actualizar estado de inventario
+          await refreshInventory(session.user.token);
           setLoading(false);
           setIsModalConfirmOpen(false);
-          updateInventory(cart);
           setShowNotification(true);
           setTypeMessage("success");
           setError("Venta realizada con éxito");
@@ -260,11 +317,11 @@ const SalePage: React.FC = () => {
     } catch (err) {
       setTypeMessage("error");
       setError("Error al realizar la venta");
+    } finally {
+      setLoading(false);
+      setBtnAction(false);
     }
-
-    setBtnAction(false);
   };
-
   const handletypeOfSaleChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -419,7 +476,7 @@ const SalePage: React.FC = () => {
               <div className="border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700 p-4 flex flex-col justify-between flex-grow">
                 <div>
                   <p>
-                    <strong>Subtotal:</strong> ${totalAmount.toFixed(2)}
+                    <strong>Total estimado:</strong> ${totalAmount.toFixed(2)}
                   </p>
                   <p>
                     <strong>IVA (16%):</strong> 20 $
@@ -474,12 +531,15 @@ const SalePage: React.FC = () => {
             <div className="block md:hidden mt-2 space-y-4">
               {cart.map((item) => (
                 <div
-                  key={item.productId}
+                  key={`${item.productId}:${item.warehouse_id}`}
                   className="p-4 bg-white rounded-lg shadow border border-gray-300"
                 >
                   <p>
                     <span className="font-semibold">Descripción:</span>{" "}
                     {item.name}
+                  </p>                  <p>
+                    <span className="font-semibold">Almacén:</span>{" "}
+                    {item.warehouseName || `#${item.warehouse_id}`}
                   </p>
                   <p>
                     <span className="font-semibold">Cantidad:</span>{" "}
@@ -495,7 +555,7 @@ const SalePage: React.FC = () => {
                   <div className="mt-2 flex justify-end space-x-2">
                     <button
                       className="text-red-600 hover:underline"
-                      onClick={() => handleDelete(item.productId)}
+                      onClick={() => handleDelete(item.productId, item.warehouse_id)}
                     >
                       Eliminar
                     </button>
@@ -562,7 +622,9 @@ const SalePage: React.FC = () => {
                 <table className="min-w-full border-collapse border border-gray-300 text-left">
                   <thead>
                     <tr className="bg-gray-200">
-                      <th className="px-4 py-2 border border-gray-300">Item</th>
+                      <th className="px-4 py-2 border border-gray-300">Item</th>                      <th className="px-4 py-2 border border-gray-300">
+                        Almacén
+                      </th>
                       <th className="px-4 py-2 border border-gray-300">
                         Precio
                       </th>
@@ -581,10 +643,13 @@ const SalePage: React.FC = () => {
                     {filteredProducts?.map((product: any) => {
                       const maxQuantity = getMaxQuantity(
                         product.product_id,
+                        product.warehouse_id,
                         product.quantity
                       );
                       const cartItem = cart.find(
-                        (item) => item.productId === product.product_id
+                        (item) =>
+                          item.productId === product.product_id &&
+                          item.warehouse_id === product.warehouse_id
                       );
                       const isDisabled = !!(
                         cartItem && cartItem.quantity >= product.quantity
@@ -592,11 +657,14 @@ const SalePage: React.FC = () => {
 
                       return (
                         <tr
-                          key={product.product_id}
+                          key={`${product.product_id}:${product.warehouse_id}`}
                           className="bg-white hover:bg-gray-100 transition"
                         >
                           <td className="px-4 py-2 border border-gray-300">
                             {product.product.name}
+                          </td>                          <td className="px-4 py-2 border border-gray-300">
+                            {product.warehouse?.name ||
+                              `#${product.warehouse_id}`}
                           </td>
                           <td className="px-4 py-2 border border-gray-300">
                             {product.product.final_cost}
@@ -606,7 +674,7 @@ const SalePage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2 border border-gray-300">
                             <QuantityInput
-                              productId={product.product_id}
+                              itemKey={inventoryKey(product.product_id, product.warehouse_id)}
                               maxQuantity={maxQuantity}
                               onQuantityChange={handleQuantityChange}
                               reset={resetQuantities}
@@ -619,8 +687,13 @@ const SalePage: React.FC = () => {
                               className="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary rounded"
                               onClick={() =>
                                 handleAddToCart(
-                                  product.product,
-                                  quantities[product.product_id] || 1
+                                  product,
+                                  quantities[
+                                    inventoryKey(
+                                      product.product_id,
+                                      product.warehouse_id
+                                    )
+                                  ] || 1
                                 )
                               }
                               disabled={isDisabled}
@@ -639,23 +712,30 @@ const SalePage: React.FC = () => {
             <div className="block md:hidden mt-2 space-y-4">
               {filteredProducts?.map((product: any) => {
                 const maxQuantity = getMaxQuantity(
-                  product.product_id,
-                  product.quantity
-                );
+                        product.product_id,
+                        product.warehouse_id,
+                        product.quantity
+                      );
                 const cartItem = cart.find(
-                  (item) => item.productId === product.product_id
-                );
+                        (item) =>
+                          item.productId === product.product_id &&
+                          item.warehouse_id === product.warehouse_id
+                      );
                 const isDisabled =
                   cartItem && cartItem.quantity >= product.quantity;
 
                 return (
                   <div
-                    key={product.product_id}
+                    key={`${product.product_id}:${product.warehouse_id}`}
                     className="p-4 bg-white rounded-lg shadow border border-gray-300"
                   >
                     <p>
                       <span className="font-semibold">Descripción:</span>{" "}
                       {product.product.name}
+                    </p>                    <p>
+                      <span className="font-semibold">Almacén:</span>{" "}
+                      {product.warehouse?.name ||
+                        `#${product.warehouse_id}`}
                     </p>
                     <p>
                       <span className="font-semibold">Precio:</span>{" "}
@@ -666,7 +746,7 @@ const SalePage: React.FC = () => {
                       {product.quantity}
                     </p>
                     <QuantityInput
-                      productId={product.product_id}
+                      itemKey={inventoryKey(product.product_id, product.warehouse_id)}
                       maxQuantity={maxQuantity}
                       onQuantityChange={handleQuantityChange}
                       reset={resetQuantities}
@@ -677,9 +757,14 @@ const SalePage: React.FC = () => {
                       className="p-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                       onClick={() =>
                         handleAddToCart(
-                          product.product,
-                          quantities[product.product_id] || 1
-                        )
+                                  product,
+                                  quantities[
+                                    inventoryKey(
+                                      product.product_id,
+                                      product.warehouse_id
+                                    )
+                                  ] || 1
+                                )
                       }
                       disabled={isDisabled}
                     >
@@ -694,7 +779,12 @@ const SalePage: React.FC = () => {
                       </button>
                       <button
                         className="text-red-600 hover:underline"
-                        onClick={() => handleDelete(product.product_id)}
+                        onClick={() =>
+                          handleDelete(
+                            product.product_id,
+                            product.warehouse_id
+                          )
+                        }
                       >
                         Eliminar
                       </button>
