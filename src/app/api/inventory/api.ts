@@ -264,9 +264,13 @@ export const fetchWarehousesList = async (token: string) => {
   };
 
   // Legacy cost-management helper. PricePage still consumes /products/with-costs.
-  export const fetchProductsAvailable = async (token: string) => {
+  export const fetchProductsAvailable = async (
+    token: string,
+    company_id?: string | number | null,
+  ) => {
     try {
         const response = await axios.get(`${apiUrl}/products/with-costs`, {
+          params: company_id ? { company_id } : undefined,
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -277,9 +281,13 @@ export const fetchWarehousesList = async (token: string) => {
       }
   };
 
-  export const fetchBatchesListReceived = async (token: string) => {
+  export const fetchBatchesListReceived = async (
+    token: string,
+    company_id?: string | number | null,
+  ) => {
     try {
         const response = await axios.get(`${apiUrl}/batches/getBatchesReceived`, {
+          params: company_id ? { company_id } : undefined,
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -296,6 +304,8 @@ export const fetchWarehousesList = async (token: string) => {
     final_cost: number,
     wholesale_final_cost: number,
 
+  company_id?: string | number | null,
+
   ) => {
     try {
       const response = await axios.put(
@@ -304,6 +314,7 @@ export const fetchWarehousesList = async (token: string) => {
           id,
           final_cost,
           wholesale_final_cost,
+        company_id: company_id ?? undefined,
         },
         {
           headers: {

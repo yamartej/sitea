@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { getSession } from "next-auth/react";
-import { Batch, Product } from "@/types/type";
+import { Batch, Product, Company } from "@/types/type";
 import Notification from "../Common/Notification/NotificationPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import { useTable, usePagination, Column, useSortBy } from "react-table";
@@ -10,11 +10,15 @@ import {
   updateFinalCost,
 } from "@/app/api/inventory/api";
 import Modal from "../Common/Modal/ModalPage";
+import { fetchCompaniesList } from "@/app/api/admin/api";
 
 const PricePage = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsAux, setProductsAux] = useState<Product[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
   const [showSpinner, setShowSpinner] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
@@ -29,24 +33,35 @@ const PricePage = () => {
     const PriceManegement = async () => {
       setShowSpinner(true);
       const session = await getSession();
+      const token = session?.user.token as string;
+      const ownCompanyId = session?.user.company_id || null;
+
+      setCompanyId(ownCompanyId);
+
       try {
-        const dataProducts = await fetchProductsAvailable(
-          session?.user.token as string
-        );
-        setProducts(dataProducts);
-        setProductsAux(dataProducts);
-        // Obtener lista de lotes únicos
-        const uniqueBatches = dataProducts.reduce(
-          (acc: Batch[], product: Product) => {
-            const batch = product.batches;
-            if (!acc.some((b: Batch) => b.id === batch.id)) {
-              acc.push(batch);
-            }
-            return acc;
-          },
-          []
-        );
-        setBatches(uniqueBatches);
+        if (ownCompanyId) {
+          const dataProducts = await fetchProductsAvailable(token, ownCompanyId);
+          setProducts(dataProducts);
+          setProductsAux(dataProducts);
+
+          const uniqueBatches = dataProducts.reduce(
+            (acc: Batch[], product: Product) => {
+              const batch = product.batches;
+              if (!acc.some((b: Batch) => b.id === batch.id)) {
+                acc.push(batch);
+              }
+              return acc;
+            },
+            []
+          );
+          setBatches(uniqueBatches);
+        } else {
+          const companyData = await fetchCompaniesList(token);
+          setCompanies(companyData);
+          setProducts([]);
+          setProductsAux([]);
+          setBatches([]);
+        }
       } catch (error) {
         console.error("Error fetching:", error);
         setErrorMessage("Error fetching");
@@ -58,8 +73,55 @@ const PricePage = () => {
     PriceManegement();
   }, []);
 
-  const columns = React.useMemo<Column<Product>[]>(
-    () => [
+  const activeCompanyId = companyId || selectedCompanyId || null;
+
+  const handleCompanyChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const nextCompanyId = e.target.value;
+    setSelectedCompanyId(nextCompanyId);
+    setSelectedBatchId(null);
+    setIsModalOpen(false);
+
+    if (!nextCompanyId) {
+      setProducts([]);
+      setProductsAux([]);
+      setBatches([]);
+      return;
+    }
+
+    const session = await getSession();
+    try {
+      setShowSpinner(true);
+      const dataProducts = await fetchProductsAvailable(
+        session?.user.token as string,
+        nextCompanyId
+      );
+      setProducts(dataProducts);
+      setProductsAux(dataProducts);
+
+      const uniqueBatches = dataProducts.reduce(
+        (acc: Batch[], product: Product) => {
+          const batch = product.batches;
+          if (!acc.some((b: Batch) => b.id === batch.id)) {
+            acc.push(batch);
+          }
+          return acc;
+        },
+        []
+      );
+      setBatches(uniqueBatches);
+    } catch (error) {
+      console.error("Error fetching company prices:", error);
+      setErrorMessage("Error cargando precios de la empresa");
+      setTypeMessage("error");
+      setShowNotification(true);
+    } finally {
+      setShowSpinner(false);
+    }
+  };
+
+  const columns = React.useMemo<Column<Product>[]>(    () => [
       {
         Header: "Nombre",
         accessor: "name",
@@ -167,11 +229,19 @@ const PricePage = () => {
     try {
       setShowSpinner(true);
       const session = await getSession();
+      if (!activeCompanyId) {
+        setErrorMessage("Selecciona una empresa antes de actualizar");
+        setShowNotification(true);
+        setTypeMessage("error");
+        setShowSpinner(false);
+        return;
+      }
       const response = await updateFinalCost(
         session?.user.token as any,
         Number(editRowId),
         Number(editedCost),
-        Number(whosaleEditedCost)
+        Number(whosaleEditedCost),
+      activeCompanyId
       );
       if (response) {
         setProducts((prev) =>
@@ -258,6 +328,30 @@ const PricePage = () => {
           />
         )}
       </div>
+
+      {!companyId && (
+        <div className="mt-4 text-primary-contrast">
+          <label
+            htmlFor="price_company_id"
+            className="block mb-2 text-sm font-medium"
+          >
+            Empresa
+          </label>
+          <select
+            id="price_company_id"
+            value={selectedCompanyId}
+            onChange={handleCompanyChange}
+            className="border rounded p-2 w-full md:w-80"
+          >
+            <option value="">Selecciona una empresa</option>
+            {companies.map((company) => (
+              <option key={company.id} value={company.id}>
+                {company.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">

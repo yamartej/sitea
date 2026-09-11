@@ -1,9 +1,9 @@
-﻿"use client"
+"use client"
 import { useEffect, useState } from "react"; 
-import { fetchBatchesWithProducts, fetchCategoriesList, registerProduct, updateProduct, deleteProduct, updateBatchProduct} from "@/app/api/admin/api";
+import { fetchBatchesWithProducts, fetchCategoriesList, fetchCompaniesList, registerProduct, updateProduct, deleteProduct, updateBatchProduct} from "@/app/api/admin/api";
 import { fetchBatchesList } from "@/app/api/purchase/api";
 import { getSession } from 'next-auth/react';
-import { Batch, Category, Product, BatchesWithProduct} from "@/types/type";
+import { Batch, Category, Product, BatchesWithProduct, Company } from "@/types/type";
 import Notification from "../Common/Notification/NotificationPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import Swal from "sweetalert2";
@@ -16,6 +16,9 @@ const ProductPage = () => {
     const [batchesWithProducts, setBatchesWithProducts] = useState<BatchesWithProduct[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [batches, setBatches] = useState<Batch[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [companyId, setCompanyId] = useState<string | null>(null);
+    const [selectedCompanyId, setSelectedCompanyId] = useState("");
     const [showSpinner, setShowSpinner] = useState(false);
     const [showNotification, setShowNotification] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
@@ -39,36 +42,73 @@ const ProductPage = () => {
               });
         const [btnAction, setBtnAction] = useState(false);
     const [loteName, setLoteName] = useState("")
-    useEffect(() => { 
-        setShowSpinner(true);
-        const fetchProducts  = async () => { 
+    useEffect(() => {
+        const fetchProducts = async () => {
             setShowSpinner(true);
-            const session = await getSession(); 
+            const session = await getSession();
+            const token = session?.user.token as string;
+            const ownCompanyId = session?.user.company_id || null;
+
+            setCompanyId(ownCompanyId);
+
             try {
-                const data = await fetchBatchesWithProducts(session?.user.token as string);
-                const dataCategories = await fetchCategoriesList(session?.user.token as string);
-                const dataBatches = await fetchBatchesList(session?.user.token as string);
-                setBatchesWithProducts(data); 
+                const dataCategories = await fetchCategoriesList(token);
                 setCategories(dataCategories);
-                setBatches(dataBatches);
-                
+
+                if (ownCompanyId) {
+                    const data = await fetchBatchesWithProducts(token, ownCompanyId);
+                    const dataBatches = await fetchBatchesList(token, ownCompanyId);
+                    setBatchesWithProducts(data);
+                    setBatches(dataBatches);
+                } else {
+                    const companyData = await fetchCompaniesList(token);
+                    setCompanies(companyData);
+                    setBatchesWithProducts([]);
+                    setBatches([]);
+                }
             } catch (error) {
                 console.error("Error fetching:", error);
                 setErrorMessage("Error fetching");
                 setShowNotification(true);
-            }
-            finally{
+            } finally {
                 setShowSpinner(false);
-                if (showNotification) {
-                    const timer = setTimeout(() => {
-                        setShowNotification(false);
-                    }, 10000); // 10 segundos
-                    return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-                }
             }
-        }; 
-        fetchProducts (); 
+        };
+
+        fetchProducts();
     }, []);
+
+    const handleCompanyChange = async (
+        e: React.ChangeEvent<HTMLSelectElement>
+    ) => {
+        const nextCompanyId = e.target.value;
+        setSelectedCompanyId(nextCompanyId);
+        setIsModalOpen(false);
+        setEditRowId(null);
+
+        if (!nextCompanyId) {
+            setBatchesWithProducts([]);
+            setBatches([]);
+            return;
+        }
+
+        const session = await getSession();
+        try {
+            setShowSpinner(true);
+            const token = session?.user.token as string;
+            const data = await fetchBatchesWithProducts(token, nextCompanyId);
+            const dataBatches = await fetchBatchesList(token, nextCompanyId);
+            setBatchesWithProducts(data);
+            setBatches(dataBatches);
+        } catch (error) {
+            console.error("Error fetching company products:", error);
+            setErrorMessage("Error cargando datos de la empresa");
+            setTypeMessage("error");
+            setShowNotification(true);
+        } finally {
+            setShowSpinner(false);
+        }
+    };
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -193,6 +233,14 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         try {
             setShowSpinner(true);
             const session = await getSession();
+            const tenantCompanyId = companyId || selectedCompanyId;
+            if (!tenantCompanyId) {
+                setShowNotification(true);
+                setTypeMessage("error");
+                setErrorMessage("Selecciona una empresa antes de guardar");
+                setShowSpinner(false);
+                return;
+            }
             if(typeRequest === "create"){
                 const response = await registerProduct(
                 session?.user.token as any,
@@ -202,6 +250,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 Number(formData.category),
                 Number(formData.quantity),
                 Number(formData.batch),
+                tenantCompanyId,
                 );
                 if (response && response.product.id) {
                     // Buscar el nombre de la categorÃ­a correspondiente
@@ -263,6 +312,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                     Number(formData.category),
                     Number(formData.quantity),
                     Number(formData.batch),
+                tenantCompanyId,
                 );
                 if (response){
                     // Actualizar el producto en el estado
@@ -362,7 +412,19 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 if (result.isConfirmed) {
                     setShowSpinner(true);
                     const session = await getSession(); 
-                    const response = await deleteProduct(session?.user.token as string, product.id);
+                    const tenantCompanyId = companyId || selectedCompanyId;
+                    if (!tenantCompanyId) {
+                        setShowNotification(true);
+                        setTypeMessage("error");
+                        setErrorMessage("Selecciona una empresa antes de eliminar");
+                        setShowSpinner(false);
+                        return;
+                    }
+                    const response = await deleteProduct(
+                        session?.user.token as string,
+                        product.id,
+                        tenantCompanyId
+                    );
                     if(response === 204){
                          // Filtrar tambiÃ©n la lista de usuarios mostrada en la tabla
                         setBatchesWithProducts((prevBatches) =>
@@ -435,6 +497,30 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 <h1 className="text-2xl font-bold">GestiÃ³n de Compras</h1>
                 
             </div>
+            {!companyId && (
+                <div className="mb-4 text-primary-contrast">
+                    <label
+                        htmlFor="product_company_id"
+                        className="block mb-2 text-sm font-medium"
+                    >
+                        Empresa
+                    </label>
+                    <select
+                        id="product_company_id"
+                        value={selectedCompanyId}
+                        onChange={handleCompanyChange}
+                        className="border rounded p-2 w-full md:w-80"
+                    >
+                        <option value="">Selecciona una empresa</option>
+                        {companies.map((company) => (
+                            <option key={company.id} value={company.id}>
+                                {company.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
             <div>
                 <InfoCardGrid cards={cards}/>
             </div>
