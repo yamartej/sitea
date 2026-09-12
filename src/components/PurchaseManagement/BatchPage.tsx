@@ -70,8 +70,13 @@ const BatchPage = () => {
 
   const activeCompanyId = companyId || selectedCompanyId || null;
 
-  const handleCompanyChange = async (
-    e: React.ChangeEvent<HTMLSelectElement>
+  const isWritableCompanyRecord = (
+    recordCompanyId: string | number | null | undefined
+  ) =>
+    Boolean(activeCompanyId) &&
+    String(recordCompanyId) === String(activeCompanyId);
+
+  const handleCompanyChange = async (    e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const nextCompanyId = e.target.value;
     setSelectedCompanyId(nextCompanyId);
@@ -151,9 +156,14 @@ const BatchPage = () => {
         Cell: ({ row }) => (
           <div className="flex justify-center space-x-2">
             <button
-              className="text-primary"
+              className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => handleEditClick(row.original)}
-            >
+              disabled={!isWritableCompanyRecord(row.original.company_id)}
+              title={
+                isWritableCompanyRecord(row.original.company_id)
+                  ? "Editar lote"
+                  : "Registro legacy de solo lectura"
+              }            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
@@ -165,9 +175,14 @@ const BatchPage = () => {
               </svg>
             </button>
             <button
-              className="text-primary"
+              className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => handleDelete(row.original.id)}
-            >
+              disabled={!isWritableCompanyRecord(row.original.company_id)}
+              title={
+                isWritableCompanyRecord(row.original.company_id)
+                  ? "Eliminar lote"
+                  : "Registro legacy de solo lectura"
+              }            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
@@ -213,6 +228,13 @@ const BatchPage = () => {
   );
 
   const handleEditClick = (batch: Batch) => {
+    if (!isWritableCompanyRecord(batch.company_id)) {
+      setShowNotification(true);
+      setErrorMessage("Este lote legacy es de solo lectura");
+      setTypeMessage("error");
+      return;
+    }
+
     setFormData({
       name: batch.name,
       description: batch.description,
@@ -226,6 +248,14 @@ const BatchPage = () => {
   };
 
   const handleDelete = async (id: number) => {
+    const batch = batchs.find((item) => item.id === id);
+    if (!batch || !isWritableCompanyRecord(batch.company_id)) {
+      setShowNotification(true);
+      setErrorMessage("Este lote legacy es de solo lectura");
+      setTypeMessage("error");
+      return;
+    }
+
     Swal.fire({
       title: "¿Estás seguro de que deseas eliminar este lote?",
       text: "No podrás revertir esto.",
@@ -575,14 +605,24 @@ const BatchPage = () => {
             <div className="mt-2 flex justify-end space-x-2">
               <button
                 onClick={() => handleEditClick(batch)}
-                className="text-blue-600 hover:underline"
-              >
+                disabled={!isWritableCompanyRecord(batch.company_id)}
+                title={
+                  isWritableCompanyRecord(batch.company_id)
+                    ? "Editar lote"
+                    : "Registro legacy de solo lectura"
+                }
+                className="text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"              >
                 Editar
               </button>
               <button
                 onClick={() => handleDelete(batch.id)}
-                className="text-red-600 hover:underline"
-              >
+                disabled={!isWritableCompanyRecord(batch.company_id)}
+                title={
+                  isWritableCompanyRecord(batch.company_id)
+                    ? "Eliminar lote"
+                    : "Registro legacy de solo lectura"
+                }
+                className="text-red-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"              >
                 Eliminar
               </button>
             </div>

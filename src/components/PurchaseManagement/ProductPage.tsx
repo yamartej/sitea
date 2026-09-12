@@ -78,8 +78,15 @@ const ProductPage = () => {
         fetchProducts();
     }, []);
 
-    const handleCompanyChange = async (
-        e: React.ChangeEvent<HTMLSelectElement>
+    const activeCompanyId = companyId || selectedCompanyId || null;
+
+    const isWritableCompanyRecord = (
+        recordCompanyId: string | number | null | undefined
+    ) =>
+        Boolean(activeCompanyId) &&
+        String(recordCompanyId) === String(activeCompanyId);
+
+    const handleCompanyChange = async (        e: React.ChangeEvent<HTMLSelectElement>
     ) => {
         const nextCompanyId = e.target.value;
         setSelectedCompanyId(nextCompanyId);
@@ -148,23 +155,35 @@ const ProductPage = () => {
             },
             {
                 Header: 'Acciones',
-                Cell: ({ row }) => (
-                    <div className="flex justify-center space-x-2">
-                        <button title="Agregar Producto" onClick={() => handleAddProduct(row.original)} 
-                            className="text-primary">
+                Cell: ({ row }) => {
+                    const isWritableBatch = isWritableCompanyRecord(
+                        row.original.company_id
+                    );
+
+                    return (
+                        <div className="flex justify-center space-x-2">
+                            <button
+                                title={
+                                    isWritableBatch
+                                        ? "Agregar Producto"
+                                        : "Registro legacy de solo lectura"
+                                }
+                                onClick={() => handleAddProduct(row.original)}
+                                disabled={!isWritableBatch}
+                                className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                     <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z" clipRule="evenodd" />
                                 </svg>
 
                         </button>
-                        
-                        
-                    </div>
-                ),
+                            </div>
+                    );
+                },
             },
             
         ],
-        [batchesWithProducts]
+        [batchesWithProducts, activeCompanyId]
     );
 
 
@@ -213,6 +232,13 @@ const ProductPage = () => {
     };
 
     const handleAddProduct = ( batchesWithProduct : BatchesWithProduct) => {
+        if (!isWritableCompanyRecord(batchesWithProduct.company_id)) {
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Este lote legacy es de solo lectura");
+            return;
+        }
+
         setIsModalOpen(true);
         setLoteName(batchesWithProduct.name);
         setFormData({
@@ -400,6 +426,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     };
 
     const handleRemoveProduct =  async(product:Product) =>{
+        if (!isWritableCompanyRecord(product.company_id)) {
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Este producto legacy es de solo lectura");
+            return;
+        }
+
         const result = await Swal.fire({
                     title: 'Â¿EstÃ¡s seguro de eliminar este producto?',
                     text: "No podrÃ¡s revertir esto",
@@ -453,6 +486,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 }
         }
     const handleEditClick = (product: Product) => {
+        if (!isWritableCompanyRecord(product.company_id)) {
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Este producto legacy es de solo lectura");
+            return;
+        }
+
         setIsModalOpen(true);
         setTypeRequest("update");
         setEditRowId(String(product.id));
@@ -609,14 +649,30 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                                                             <td className="px-4 py-2 border">{item.price}</td>
                                                             <td className="px-4 py-2 border">{item.quantity}</td>
                                                             <td className="px-4 py-2 border">
-                                                                <button title="Editar Producto" onClick={() => handleRemoveProduct(item)}
-                                                                    className="text-primary mr-2">
+                                                                <button
+                                                                    title={
+                                                                        isWritableCompanyRecord(item.company_id)
+                                                                            ? "Eliminar Producto"
+                                                                            : "Registro legacy de solo lectura"
+                                                                    }
+                                                                    onClick={() => handleRemoveProduct(item)}
+                                                                    disabled={!isWritableCompanyRecord(item.company_id)}
+                                                                    className="text-primary mr-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                >
                                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                                                         <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
                                                                     </svg>
                                                                 </button>
-                                                                <button title="Editar Producto" onClick={() => handleEditClick(item)} 
-                                                                    className="text-primary mr-2">
+                                                                <button
+                                                                    title={
+                                                                        isWritableCompanyRecord(item.company_id)
+                                                                            ? "Editar Producto"
+                                                                            : "Registro legacy de solo lectura"
+                                                                    }
+                                                                    onClick={() => handleEditClick(item)}
+                                                                    disabled={!isWritableCompanyRecord(item.company_id)}
+                                                                    className="text-primary mr-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                                                             <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
                                                                             <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />

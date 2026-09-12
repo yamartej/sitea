@@ -75,8 +75,13 @@ const PricePage = () => {
 
   const activeCompanyId = companyId || selectedCompanyId || null;
 
-  const handleCompanyChange = async (
-    e: React.ChangeEvent<HTMLSelectElement>
+  const isWritableCompanyRecord = (
+    recordCompanyId: string | number | null | undefined
+  ) =>
+    Boolean(activeCompanyId) &&
+    String(recordCompanyId) === String(activeCompanyId);
+
+  const handleCompanyChange = async (    e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const nextCompanyId = e.target.value;
     setSelectedCompanyId(nextCompanyId);
@@ -164,6 +169,9 @@ const PricePage = () => {
         Cell: ({ row }: { row: { original: Product } }) => {
           const { id, final_cost, wholesale_final_cost } = row.original;
           const isEditing = editRowId === id;
+          const isWritableProduct = isWritableCompanyRecord(
+            row.original.batches?.company_id
+          );
 
           const handleClick = () =>
             handleEditClick(
@@ -174,7 +182,16 @@ const PricePage = () => {
 
           return (
             <div className="flex space-x-2 justify-center">
-              <button className="text-edit" onClick={handleClick}>
+              <button
+                className="text-edit disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={handleClick}
+                disabled={!isWritableProduct}
+                title={
+                  isWritableProduct
+                    ? "Editar precio"
+                    : "Registro legacy de solo lectura"
+                }
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"
@@ -190,7 +207,7 @@ const PricePage = () => {
         },
       },
     ],
-    [products, editRowId, editedCost, whosaleEditedCost]
+    [products, editRowId, editedCost, whosaleEditedCost, activeCompanyId]
   );
 
   // 1. Obtén gotoPage del hook useTable:

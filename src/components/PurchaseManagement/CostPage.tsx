@@ -72,8 +72,13 @@ const CostPage = () => {
 
     const activeCompanyId = companyId || selectedCompanyId || null;
 
-    const handleCompanyChange = async (
-        e: React.ChangeEvent<HTMLSelectElement>
+    const isWritableCompanyRecord = (
+        recordCompanyId: string | number | null | undefined
+    ) =>
+        Boolean(activeCompanyId) &&
+        String(recordCompanyId) === String(activeCompanyId);
+
+    const handleCompanyChange = async (        e: React.ChangeEvent<HTMLSelectElement>
     ) => {
         const nextCompanyId = e.target.value;
         setSelectedCompanyId(nextCompanyId);
@@ -134,9 +139,14 @@ const CostPage = () => {
                 Cell: ({ row }) => (
                     <div className="flex gap-x-2">
                         <button
-                            className="text-primary"
+                            className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
                             onClick={() => handleEditCost(row.original)}
-
+                            disabled={!isWritableCompanyRecord(row.original.batch?.company_id)}
+                            title={
+                                isWritableCompanyRecord(row.original.batch?.company_id)
+                                    ? "Editar costo"
+                                    : "Registro legacy de solo lectura"
+                            }
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                 <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
@@ -144,9 +154,14 @@ const CostPage = () => {
                             </svg>
                         </button>
                         <button
-                            className="text-primary"
+                            className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
                             onClick={() => handleRemoveCost(row.original.id)}
-                        >
+                            disabled={!isWritableCompanyRecord(row.original.batch?.company_id)}
+                            title={
+                                isWritableCompanyRecord(row.original.batch?.company_id)
+                                    ? "Eliminar costo"
+                                    : "Registro legacy de solo lectura"
+                            }                        >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                 <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
                             </svg>
@@ -302,6 +317,14 @@ const CostPage = () => {
     };
 
     const handleRemoveCost = async (id: number) => {
+        const cost = costs.find((item) => item.id === id);
+        if (!cost || !isWritableCompanyRecord(cost.batch?.company_id)) {
+            setErrorMessage("Este costo legacy es de solo lectura");
+            setTypeMessage("error");
+            setShowNotification(true);
+            return;
+        }
+
         const result = await Swal.fire({
             title: '¿Estás seguro?',
             text: "No podrás revertir esto.",
@@ -347,6 +370,13 @@ const CostPage = () => {
     };
 
     const handleEditCost = (cost: Cost) => {
+        if (!isWritableCompanyRecord(cost.batch?.company_id)) {
+            setErrorMessage("Este costo legacy es de solo lectura");
+            setTypeMessage("error");
+            setShowNotification(true);
+            return;
+        }
+
         setFormData({
             amount: Number(cost.amount).toString(), // Convertir a string para el input
             description: cost.description,
@@ -515,9 +545,30 @@ const CostPage = () => {
                         <p>
                             <span className="font-semibold">Descripción:</span> {cost.description}</p>
                         <div className="mt-2 flex justify-end space-x-2">
-                            <button onClick={() => handleEditCost(cost)} className="text-blue-600 hover:underline">Editar</button>
-                            <button onClick={() => handleRemoveCost(cost.id)} className="text-red-600 hover:underline">Eliminar</button>
-                        </div>
+                            <button
+                                onClick={() => handleEditCost(cost)}
+                                disabled={!isWritableCompanyRecord(cost.batch?.company_id)}
+                                title={
+                                    isWritableCompanyRecord(cost.batch?.company_id)
+                                        ? "Editar costo"
+                                        : "Registro legacy de solo lectura"
+                                }
+                                className="text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                            >
+                                Editar
+                            </button>
+                            <button
+                                onClick={() => handleRemoveCost(cost.id)}
+                                disabled={!isWritableCompanyRecord(cost.batch?.company_id)}
+                                title={
+                                    isWritableCompanyRecord(cost.batch?.company_id)
+                                        ? "Eliminar costo"
+                                        : "Registro legacy de solo lectura"
+                                }
+                                className="text-red-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                            >
+                                Eliminar
+                            </button>                        </div>
                     </div>
                 ))}
             </div>
@@ -573,7 +624,7 @@ const CostPage = () => {
                                 <option value="">
                                     Selecciona un Lote
                                 </option>
-                                {batches?.map((item) => (
+                                {batches?.filter((item) => isWritableCompanyRecord(item.company_id)).map((item) => (
                                     <option key={item.id} value={item.id}>
                                         {item.name} - {item.description}
                                     </option>
