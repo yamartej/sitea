@@ -1,9 +1,9 @@
-﻿"use client"
+"use client"
 import { useEffect, useState } from "react"; 
-import { fetchBatchesWithProducts, fetchCategoriesList, registerProduct, updateProduct, deleteProduct, updateBatchProduct} from "@/app/api/admin/api";
+import { fetchBatchesWithProducts, fetchCategoriesList, fetchCompaniesList, registerProduct, updateProduct, deleteProduct, updateBatchProduct} from "@/app/api/admin/api";
 import { fetchBatchesList } from "@/app/api/purchase/api";
 import { getSession } from 'next-auth/react';
-import { Batch, Category, Product, BatchesWithProduct} from "@/types/type";
+import { Batch, Category, Product, BatchesWithProduct, Company } from "@/types/type";
 import Notification from "../Common/Notification/NotificationPage";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import Swal from "sweetalert2";
@@ -16,6 +16,9 @@ const ProductPage = () => {
     const [batchesWithProducts, setBatchesWithProducts] = useState<BatchesWithProduct[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [batches, setBatches] = useState<Batch[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [companyId, setCompanyId] = useState<string | null>(null);
+    const [selectedCompanyId, setSelectedCompanyId] = useState("");
     const [showSpinner, setShowSpinner] = useState(false);
     const [showNotification, setShowNotification] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
@@ -39,36 +42,80 @@ const ProductPage = () => {
               });
         const [btnAction, setBtnAction] = useState(false);
     const [loteName, setLoteName] = useState("")
-    useEffect(() => { 
-        setShowSpinner(true);
-        const fetchProducts  = async () => { 
+    useEffect(() => {
+        const fetchProducts = async () => {
             setShowSpinner(true);
-            const session = await getSession(); 
+            const session = await getSession();
+            const token = session?.user.token as string;
+            const ownCompanyId = session?.user.company_id || null;
+
+            setCompanyId(ownCompanyId);
+
             try {
-                const data = await fetchBatchesWithProducts(session?.user.token as string);
-                const dataCategories = await fetchCategoriesList(session?.user.token as string);
-                const dataBatches = await fetchBatchesList(session?.user.token as string);
-                setBatchesWithProducts(data); 
+                const dataCategories = await fetchCategoriesList(token);
                 setCategories(dataCategories);
-                setBatches(dataBatches);
-                
+
+                if (ownCompanyId) {
+                    const data = await fetchBatchesWithProducts(token, ownCompanyId);
+                    const dataBatches = await fetchBatchesList(token, ownCompanyId);
+                    setBatchesWithProducts(data);
+                    setBatches(dataBatches);
+                } else {
+                    const companyData = await fetchCompaniesList(token);
+                    setCompanies(companyData);
+                    setBatchesWithProducts([]);
+                    setBatches([]);
+                }
             } catch (error) {
                 console.error("Error fetching:", error);
                 setErrorMessage("Error fetching");
                 setShowNotification(true);
-            }
-            finally{
+            } finally {
                 setShowSpinner(false);
-                if (showNotification) {
-                    const timer = setTimeout(() => {
-                        setShowNotification(false);
-                    }, 10000); // 10 segundos
-                    return () => clearTimeout(timer); // Limpia el temporizador al desmontar o cambiar
-                }
             }
-        }; 
-        fetchProducts (); 
+        };
+
+        fetchProducts();
     }, []);
+
+    const activeCompanyId = companyId || selectedCompanyId || null;
+
+    const isWritableCompanyRecord = (
+        recordCompanyId: string | number | null | undefined
+    ) =>
+        Boolean(activeCompanyId) &&
+        String(recordCompanyId) === String(activeCompanyId);
+
+    const handleCompanyChange = async (        e: React.ChangeEvent<HTMLSelectElement>
+    ) => {
+        const nextCompanyId = e.target.value;
+        setSelectedCompanyId(nextCompanyId);
+        setIsModalOpen(false);
+        setEditRowId(null);
+
+        if (!nextCompanyId) {
+            setBatchesWithProducts([]);
+            setBatches([]);
+            return;
+        }
+
+        const session = await getSession();
+        try {
+            setShowSpinner(true);
+            const token = session?.user.token as string;
+            const data = await fetchBatchesWithProducts(token, nextCompanyId);
+            const dataBatches = await fetchBatchesList(token, nextCompanyId);
+            setBatchesWithProducts(data);
+            setBatches(dataBatches);
+        } catch (error) {
+            console.error("Error fetching company products:", error);
+            setErrorMessage("Error cargando datos de la empresa");
+            setTypeMessage("error");
+            setShowNotification(true);
+        } finally {
+            setShowSpinner(false);
+        }
+    };
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -108,23 +155,35 @@ const ProductPage = () => {
             },
             {
                 Header: 'Acciones',
-                Cell: ({ row }) => (
-                    <div className="flex justify-center space-x-2">
-                        <button title="Agregar Producto" onClick={() => handleAddProduct(row.original)} 
-                            className="text-primary">
+                Cell: ({ row }) => {
+                    const isWritableBatch = isWritableCompanyRecord(
+                        row.original.company_id
+                    );
+
+                    return (
+                        <div className="flex justify-center space-x-2">
+                            <button
+                                title={
+                                    isWritableBatch
+                                        ? "Agregar Producto"
+                                        : "Registro legacy de solo lectura"
+                                }
+                                onClick={() => handleAddProduct(row.original)}
+                                disabled={!isWritableBatch}
+                                className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                     <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z" clipRule="evenodd" />
                                 </svg>
 
                         </button>
-                        
-                        
-                    </div>
-                ),
+                            </div>
+                    );
+                },
             },
             
         ],
-        [batchesWithProducts]
+        [batchesWithProducts, activeCompanyId]
     );
 
 
@@ -173,6 +232,13 @@ const ProductPage = () => {
     };
 
     const handleAddProduct = ( batchesWithProduct : BatchesWithProduct) => {
+        if (!isWritableCompanyRecord(batchesWithProduct.company_id)) {
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Este lote legacy es de solo lectura");
+            return;
+        }
+
         setIsModalOpen(true);
         setLoteName(batchesWithProduct.name);
         setFormData({
@@ -193,6 +259,14 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         try {
             setShowSpinner(true);
             const session = await getSession();
+            const tenantCompanyId = companyId || selectedCompanyId;
+            if (!tenantCompanyId) {
+                setShowNotification(true);
+                setTypeMessage("error");
+                setErrorMessage("Selecciona una empresa antes de guardar");
+                setShowSpinner(false);
+                return;
+            }
             if(typeRequest === "create"){
                 const response = await registerProduct(
                 session?.user.token as any,
@@ -202,6 +276,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 Number(formData.category),
                 Number(formData.quantity),
                 Number(formData.batch),
+                tenantCompanyId,
                 );
                 if (response && response.product.id) {
                     // Buscar el nombre de la categorÃ­a correspondiente
@@ -263,6 +338,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                     Number(formData.category),
                     Number(formData.quantity),
                     Number(formData.batch),
+                tenantCompanyId,
                 );
                 if (response){
                     // Actualizar el producto en el estado
@@ -350,6 +426,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     };
 
     const handleRemoveProduct =  async(product:Product) =>{
+        if (!isWritableCompanyRecord(product.company_id)) {
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Este producto legacy es de solo lectura");
+            return;
+        }
+
         const result = await Swal.fire({
                     title: 'Â¿EstÃ¡s seguro de eliminar este producto?',
                     text: "No podrÃ¡s revertir esto",
@@ -362,7 +445,19 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 if (result.isConfirmed) {
                     setShowSpinner(true);
                     const session = await getSession(); 
-                    const response = await deleteProduct(session?.user.token as string, product.id);
+                    const tenantCompanyId = companyId || selectedCompanyId;
+                    if (!tenantCompanyId) {
+                        setShowNotification(true);
+                        setTypeMessage("error");
+                        setErrorMessage("Selecciona una empresa antes de eliminar");
+                        setShowSpinner(false);
+                        return;
+                    }
+                    const response = await deleteProduct(
+                        session?.user.token as string,
+                        product.id,
+                        tenantCompanyId
+                    );
                     if(response === 204){
                          // Filtrar tambiÃ©n la lista de usuarios mostrada en la tabla
                         setBatchesWithProducts((prevBatches) =>
@@ -391,6 +486,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 }
         }
     const handleEditClick = (product: Product) => {
+        if (!isWritableCompanyRecord(product.company_id)) {
+            setShowNotification(true);
+            setTypeMessage("error");
+            setErrorMessage("Este producto legacy es de solo lectura");
+            return;
+        }
+
         setIsModalOpen(true);
         setTypeRequest("update");
         setEditRowId(String(product.id));
@@ -435,6 +537,30 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 <h1 className="text-2xl font-bold">GestiÃ³n de Compras</h1>
                 
             </div>
+            {!companyId && (
+                <div className="mb-4 text-primary-contrast">
+                    <label
+                        htmlFor="product_company_id"
+                        className="block mb-2 text-sm font-medium"
+                    >
+                        Empresa
+                    </label>
+                    <select
+                        id="product_company_id"
+                        value={selectedCompanyId}
+                        onChange={handleCompanyChange}
+                        className="border rounded p-2 w-full md:w-80"
+                    >
+                        <option value="">Selecciona una empresa</option>
+                        {companies.map((company) => (
+                            <option key={company.id} value={company.id}>
+                                {company.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
             <div>
                 <InfoCardGrid cards={cards}/>
             </div>
@@ -523,14 +649,30 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                                                             <td className="px-4 py-2 border">{item.price}</td>
                                                             <td className="px-4 py-2 border">{item.quantity}</td>
                                                             <td className="px-4 py-2 border">
-                                                                <button title="Editar Producto" onClick={() => handleRemoveProduct(item)}
-                                                                    className="text-primary mr-2">
+                                                                <button
+                                                                    title={
+                                                                        isWritableCompanyRecord(item.company_id)
+                                                                            ? "Eliminar Producto"
+                                                                            : "Registro legacy de solo lectura"
+                                                                    }
+                                                                    onClick={() => handleRemoveProduct(item)}
+                                                                    disabled={!isWritableCompanyRecord(item.company_id)}
+                                                                    className="text-primary mr-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                >
                                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                                                         <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
                                                                     </svg>
                                                                 </button>
-                                                                <button title="Editar Producto" onClick={() => handleEditClick(item)} 
-                                                                    className="text-primary mr-2">
+                                                                <button
+                                                                    title={
+                                                                        isWritableCompanyRecord(item.company_id)
+                                                                            ? "Editar Producto"
+                                                                            : "Registro legacy de solo lectura"
+                                                                    }
+                                                                    onClick={() => handleEditClick(item)}
+                                                                    disabled={!isWritableCompanyRecord(item.company_id)}
+                                                                    className="text-primary mr-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
                                                                             <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z" />
                                                                             <path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z" />

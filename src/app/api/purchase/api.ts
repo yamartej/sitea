@@ -34,9 +34,13 @@ const handleApiError = (
   throw error;
 };
 
-export const fetchBatchesList = async (token: string) => {
+export const fetchBatchesList = async (
+  token: string,
+  company_id?: string | number | null,
+) => {
     try {
         const response = await axios.get(`${apiUrl}/batches`, {
+          params: company_id ? { company_id } : undefined,
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -54,6 +58,7 @@ export const fetchBatchesList = async (token: string) => {
     quantity: number,
     status: string,
     order_creation_date: string,
+    company_id?: string | number | null,
     ) => {
     try {
       const response = await axios.post(`${apiUrl}/batches`,
@@ -63,6 +68,7 @@ export const fetchBatchesList = async (token: string) => {
           quantity,
           status,
           order_creation_date,
+        company_id: company_id ?? undefined,
         },
         {
           headers: {
@@ -77,10 +83,15 @@ export const fetchBatchesList = async (token: string) => {
       }
   };
 
-  export const deleteBatch = async (token: string, id: number) => {
+  export const deleteBatch = async (
+    token: string,
+    id: number,
+    company_id?: string | number | null,
+  ) => {
     try {
       const response = await axios.delete(`${apiUrl}/batches/${id}`,
         {
+          params: company_id ? { company_id } : undefined,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -101,6 +112,7 @@ export const fetchBatchesList = async (token: string) => {
     quantity: number,
     status: string,
     order_creation_date: string,
+  company_id?: string | number | null,
   ) => {
     try {
       const response = await axios.put(
@@ -111,6 +123,7 @@ export const fetchBatchesList = async (token: string) => {
           quantity,
           status,
           order_creation_date,
+        company_id: company_id ?? undefined,
         },
         {
           headers: {
@@ -125,9 +138,13 @@ export const fetchBatchesList = async (token: string) => {
       }
   };
 
-export const fetchCostsList = async (token: string) => {
+export const fetchCostsList = async (
+  token: string,
+  company_id?: string | number | null,
+) => {
     try {
         const response = await axios.get( `${apiUrl}/costs`, {
+          params: company_id ? { company_id } : undefined,
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -143,13 +160,15 @@ export const fetchCostsList = async (token: string) => {
         amount: number,
         batch_id: number,
         description: string,
+    company_id?: string | number | null,
     ) => {
     try {
       const response = await axios.post(`${apiUrl}/costs`,
         {
             amount,
             batch_id,
-            description
+            description,
+        company_id: company_id ?? undefined,
         },
         {
           headers: {
@@ -164,10 +183,15 @@ export const fetchCostsList = async (token: string) => {
       }
   }
 
-  export const removeCost = async (token: string, id: number) => {
+  export const removeCost = async (
+    token: string,
+    id: number,
+    company_id?: string | number | null,
+  ) => {
     try {
       const response = await axios.delete(`${apiUrl}/costs/${id}`,
         {
+          params: company_id ? { company_id } : undefined,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -186,6 +210,7 @@ export const updateCost = async (
         amount: number,
         batch_id: number,
         description: string,
+    company_id?: string | number | null,
     ) => {
         try {
         const response = await axios.put(
@@ -193,7 +218,8 @@ export const updateCost = async (
             {
             amount,
             batch_id,
-            description
+            description,
+            company_id: company_id ?? undefined,
             },
             {
             headers: {

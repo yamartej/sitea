@@ -1,7 +1,7 @@
 "use client";
 import Spinner from "../Common/Spinner/SpinnerPage";
 import React, { useEffect, useState } from "react";
-import { Batch } from "@/types/type";
+import { Batch, Company } from "@/types/type";
 import { getSession } from "next-auth/react";
 import {
   fetchBatchesList,
@@ -18,10 +18,14 @@ import Notification from "../Common/Notification/NotificationPage";
 import Swal from "sweetalert2";
 import { useTable, usePagination, Column, useSortBy } from "react-table";
 import InfoCardGrid from "../Common/Card/InfoCardGrid";
+import { fetchCompaniesList } from "@/app/api/admin/api";
 
 const BatchPage = () => {
   const [showSpinner, setShowSpinner] = useState(false);
   const [batchs, setBatchs] = useState<Batch[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,9 +45,20 @@ const BatchPage = () => {
     const fetchBatch = async () => {
       setShowSpinner(true);
       const session = await getSession();
+      const token = session?.user.token as string;
+      const ownCompanyId = session?.user.company_id || null;
+
+      setCompanyId(ownCompanyId);
+
       try {
-        const response = await fetchBatchesList(session?.user.token as string);
-        setBatchs(response);
+        if (ownCompanyId) {
+          const response = await fetchBatchesList(token, ownCompanyId);
+          setBatchs(response);
+        } else {
+          const companyData = await fetchCompaniesList(token);
+          setCompanies(companyData);
+          setBatchs([]);
+        }
       } catch (error) {
         console.error("Error fetching batch data:", error);
       } finally {
@@ -52,6 +67,45 @@ const BatchPage = () => {
     };
     fetchBatch();
   }, []);
+
+  const activeCompanyId = companyId || selectedCompanyId || null;
+
+  const isWritableCompanyRecord = (
+    recordCompanyId: string | number | null | undefined
+  ) =>
+    Boolean(activeCompanyId) &&
+    String(recordCompanyId) === String(activeCompanyId);
+
+  const handleCompanyChange = async (    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const nextCompanyId = e.target.value;
+    setSelectedCompanyId(nextCompanyId);
+    setIsModalOpen(false);
+    setIsEditing(false);
+    setEditingBatchId(null);
+
+    if (!nextCompanyId) {
+      setBatchs([]);
+      return;
+    }
+
+    const session = await getSession();
+    try {
+      setShowSpinner(true);
+      const response = await fetchBatchesList(
+        session?.user.token as string,
+        nextCompanyId
+      );
+      setBatchs(response);
+    } catch (error) {
+      console.error("Error fetching company batches:", error);
+      setShowNotification(true);
+      setErrorMessage("Error cargando lotes de la empresa");
+      setTypeMessage("error");
+    } finally {
+      setShowSpinner(false);
+    }
+  };
 
   useEffect(() => {
     if (showNotification) {
@@ -102,9 +156,14 @@ const BatchPage = () => {
         Cell: ({ row }) => (
           <div className="flex justify-center space-x-2">
             <button
-              className="text-primary"
+              className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => handleEditClick(row.original)}
-            >
+              disabled={!isWritableCompanyRecord(row.original.company_id)}
+              title={
+                isWritableCompanyRecord(row.original.company_id)
+                  ? "Editar lote"
+                  : "Registro legacy de solo lectura"
+              }            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
@@ -116,9 +175,14 @@ const BatchPage = () => {
               </svg>
             </button>
             <button
-              className="text-primary"
+              className="text-primary disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => handleDelete(row.original.id)}
-            >
+              disabled={!isWritableCompanyRecord(row.original.company_id)}
+              title={
+                isWritableCompanyRecord(row.original.company_id)
+                  ? "Eliminar lote"
+                  : "Registro legacy de solo lectura"
+              }            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
@@ -136,7 +200,7 @@ const BatchPage = () => {
         ),
       },
     ],
-    []
+    [batchs, activeCompanyId]
   );
 
   const {
@@ -164,6 +228,13 @@ const BatchPage = () => {
   );
 
   const handleEditClick = (batch: Batch) => {
+    if (!isWritableCompanyRecord(batch.company_id)) {
+      setShowNotification(true);
+      setErrorMessage("Este lote legacy es de solo lectura");
+      setTypeMessage("error");
+      return;
+    }
+
     setFormData({
       name: batch.name,
       description: batch.description,
@@ -177,6 +248,14 @@ const BatchPage = () => {
   };
 
   const handleDelete = async (id: number) => {
+    const batch = batchs.find((item) => item.id === id);
+    if (!batch || !isWritableCompanyRecord(batch.company_id)) {
+      setShowNotification(true);
+      setErrorMessage("Este lote legacy es de solo lectura");
+      setTypeMessage("error");
+      return;
+    }
+
     Swal.fire({
       title: "¿Estás seguro de que deseas eliminar este lote?",
       text: "No podrás revertir esto.",
@@ -188,7 +267,17 @@ const BatchPage = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         const session = await getSession();
-        const response = await deleteBatch(session?.user.token as any, id);
+        if (!activeCompanyId) {
+          setShowNotification(true);
+          setErrorMessage("Selecciona una empresa antes de eliminar");
+          setTypeMessage("error");
+          return;
+        }
+        const response = await deleteBatch(
+          session?.user.token as string,
+          id,
+          activeCompanyId
+        );
         if (response === 200) {
           setShowNotification(true);
           setErrorMessage("Punto de venta eliminado correctamente");
@@ -219,6 +308,13 @@ const BatchPage = () => {
     setShowSpinner(true);
     setIsModalOpen(false);
     const session = await getSession();
+    if (!activeCompanyId) {
+      setShowNotification(true);
+      setErrorMessage("Selecciona una empresa antes de guardar");
+      setTypeMessage("error");
+      setShowSpinner(false);
+      return;
+    }
     try {
       if (isEditing && editingBatchId !== null) {
         // Actualizar lote existente
@@ -229,7 +325,8 @@ const BatchPage = () => {
           formData.description,
           parseInt(formData.quantity, 10),
           formData.status,
-          format(formData.order_creation_date, "yyyy-MM-dd")
+          format(formData.order_creation_date, "yyyy-MM-dd"),
+        activeCompanyId
         );
         if (response) {
           setBatchs((prevBatch) =>
@@ -261,7 +358,8 @@ const BatchPage = () => {
           formData.description,
           parseInt(formData.quantity, 10),
           formData.status,
-          format(formData.order_creation_date, "yyyy-MM-dd")
+          format(formData.order_creation_date, "yyyy-MM-dd"),
+        activeCompanyId
         );
         if (response) {
           setBatchs((prevBatch) => [
@@ -351,6 +449,30 @@ const BatchPage = () => {
           />
         )}
       </div>
+      {!companyId && (
+        <div className="mt-4 text-primary-contrast">
+          <label
+            htmlFor="batch_company_id"
+            className="block mb-2 text-sm font-medium"
+          >
+            Empresa
+          </label>
+          <select
+            id="batch_company_id"
+            value={selectedCompanyId}
+            onChange={handleCompanyChange}
+            className="border rounded p-2 w-full md:w-80"
+          >
+            <option value="">Selecciona una empresa</option>
+            {companies.map((company) => (
+              <option key={company.id} value={company.id}>
+                {company.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div>
         <div className="flex justify-between items-center mt-4 text-xs text-primary-contrast">
           <div className="">
@@ -381,7 +503,9 @@ const BatchPage = () => {
               onClick={() => {
                 handleAddBatch();
               }}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary"
+              disabled={!activeCompanyId}
+              title={!activeCompanyId ? "Selecciona una empresa" : "Agregar lote"}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary disabled:opacity-50"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -481,14 +605,24 @@ const BatchPage = () => {
             <div className="mt-2 flex justify-end space-x-2">
               <button
                 onClick={() => handleEditClick(batch)}
-                className="text-blue-600 hover:underline"
-              >
+                disabled={!isWritableCompanyRecord(batch.company_id)}
+                title={
+                  isWritableCompanyRecord(batch.company_id)
+                    ? "Editar lote"
+                    : "Registro legacy de solo lectura"
+                }
+                className="text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"              >
                 Editar
               </button>
               <button
                 onClick={() => handleDelete(batch.id)}
-                className="text-red-600 hover:underline"
-              >
+                disabled={!isWritableCompanyRecord(batch.company_id)}
+                title={
+                  isWritableCompanyRecord(batch.company_id)
+                    ? "Eliminar lote"
+                    : "Registro legacy de solo lectura"
+                }
+                className="text-red-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"              >
                 Eliminar
               </button>
             </div>

@@ -319,9 +319,13 @@ export const deleteCategory = async (token: string, id: number) => {
   }
 };
 
-export const fetchBatchesWithProducts = async (token: string) => {
+export const fetchBatchesWithProducts = async (
+  token: string,
+  company_id?: string | number | null,
+) => {
   try {
       const response = await axios.get(`${apiUrl}/batches/get-batches-with-products`, {
+        params: company_id ? { company_id } : undefined,
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -350,6 +354,7 @@ export const registerProduct = async (
   category_id: number, 
   quantity: number,
   batch_id: number,
+  company_id?: string | number | null,
   ) => {
   try {
     const response = await axios.post(`${apiUrl}/products`,
@@ -360,6 +365,7 @@ export const registerProduct = async (
         category_id,
         quantity,
         batch_id,
+      company_id: company_id ?? undefined,
       },
       {
         headers: {
@@ -387,6 +393,7 @@ export const updateProduct = async (
   category_id: number,
   quantity: number,
   batch_id: number,
+company_id?: string | number | null,
 ) => {
   try {
     const response = await axios.put(
@@ -398,6 +405,7 @@ export const updateProduct = async (
         category_id,
         quantity,
         batch_id,
+      company_id: company_id ?? undefined,
       },
       {
         headers: {
@@ -416,10 +424,15 @@ export const updateProduct = async (
   }
 };
 
-export const deleteProduct = async (token: string, id: number) => {
+export const deleteProduct = async (
+  token: string,
+  id: number,
+  company_id?: string | number | null,
+) => {
   try {
     const response = await axios.delete(`${apiUrl}/products/${id}`,
       {
+        params: company_id ? { company_id } : undefined,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -442,6 +455,7 @@ export const updateBatchProduct = async (
     id: number;
   }[],
   batch_id: string,
+company_id?: string | number | null,
 ) => {
   try {
     const response = await axios.put(
@@ -449,6 +463,7 @@ export const updateBatchProduct = async (
       {
         batch_id,
         product_ids,
+      company_id: company_id ?? undefined,
       },
       {
         headers: {

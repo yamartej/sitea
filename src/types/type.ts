@@ -69,6 +69,7 @@ export type Category = {
 
 export type Product = {
   id: number;
+  company_id?: string | number | null;
   name: string;
   description: string;
   price: number;
@@ -177,6 +178,7 @@ export type PopStatus = {
 
 export type Batch = {
   id: number;
+  company_id?: string | number | null;
   name: string;
   description: string;
   quantity: number;
@@ -241,6 +243,7 @@ export type CreditByCustomer = {
 
 export type BatchesWithProduct = {
   id: number;
+  company_id?: string | number | null;
   name: string;
   description: string;
   quantity: number;
