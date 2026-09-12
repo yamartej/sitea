@@ -170,7 +170,7 @@ const CostPage = () => {
                 ),
             },
         ],
-        [costs]
+        [costs, activeCompanyId]
     );
 
     const {

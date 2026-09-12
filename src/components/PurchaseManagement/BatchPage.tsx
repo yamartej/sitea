@@ -200,7 +200,7 @@ const BatchPage = () => {
         ),
       },
     ],
-    []
+    [batchs, activeCompanyId]
   );
 
   const {
