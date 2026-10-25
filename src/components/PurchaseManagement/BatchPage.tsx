@@ -366,6 +366,7 @@ const BatchPage = () => {
             ...prevBatch,
             {
               id: response.id,
+              company_id: response.company_id,
               name: formData.name,
               description: formData.description,
               quantity: parseInt(formData.quantity, 10),
