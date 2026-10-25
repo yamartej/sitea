@@ -184,6 +184,7 @@ export type Batch = {
   quantity: number;
   status: string;
   order_creation_date: string;
+  costs?: Cost[];
 }
 
 export type Cost = {
