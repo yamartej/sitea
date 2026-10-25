@@ -5,7 +5,7 @@ import { getClientById, registerSale } from "@/app/api/sale/api";
 import { fetchCustomersList } from "@/app/api/admin/api";
 import { getPopByUserId } from "@/app/api/admin/api";
 import { Product, CartItem, Customer } from "@/types/type";
-import { fetchInventoriesList } from "@/app/api/inventory/api";
+import { fetchSellableInventoriesList } from "@/app/api/inventory/api";
 import Modal from "@/components/Common/Modal/ModalPage";
 import ProductTable from "./ProductTablePage";
 import QuantityInput from "./QuantityInput";
@@ -48,7 +48,7 @@ const SalePage: React.FC = () => {
         const session = await getSession();
         setCompanyId(session?.user.company_id || null);
         if (session?.user.token) {
-          const data = await fetchInventoriesList(session.user.token); // Ajusta la URL según tu API
+          const data = await fetchSellableInventoriesList(session.user.token); // Ajusta la URL según tu API
           const sellerInfo = await getPopByUserId(
             session.user.token,
             Number(session.user.id)
@@ -270,7 +270,7 @@ const SalePage: React.FC = () => {
   }, [isModalOpen]);
 
   const refreshInventory = async (token: string) => {
-    const data = await fetchInventoriesList(token);
+    const data = await fetchSellableInventoriesList(token);
     setProducts(data);
   };
   const handleSelectTypeSale = () => {
@@ -479,7 +479,7 @@ const SalePage: React.FC = () => {
                     <strong>Total estimado:</strong> ${totalAmount.toFixed(2)}
                   </p>
                   <p>
-                    <strong>IVA (16%):</strong> 20 $
+                    <strong>IVA:</strong> Pendiente de cálculo fiscal
                   </p>
                 </div>
 
@@ -738,8 +738,8 @@ const SalePage: React.FC = () => {
                         `#${product.warehouse_id}`}
                     </p>
                     <p>
-                      <span className="font-semibold">Precio:</span>{" "}
-                      {product.product.price}
+                      <span className="font-semibold">Precio de venta:</span>{" "}
+                      {Number(product.product.final_cost).toFixed(2)}
                     </p>
                     <p>
                       <span className="font-semibold">Disponibilidad:</span>{" "}
