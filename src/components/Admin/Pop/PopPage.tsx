@@ -121,10 +121,10 @@ const PopPage = () => {
           address: "",
           seller: "",
           seller_id: "",
-          company_id: "",
+          company_id: String(response.company_id),
           company: {
             id: response.company_id,
-            name: response.company.name || "No asignado",
+            name: response.company?.name || "No asignado",
           },
         };
         setPops([...pops, newPop]);
@@ -273,26 +273,52 @@ const PopPage = () => {
 
   const handleOpenClick = async (pop: Pop) => {
     setShowSpinner(true);
-    const session = await getSession();
-    const sellerData = await fetchUsersListByCompany(
-      session?.user.token as string,
-      pop.company_id as string
-    );
-    setSellerData(sellerData);
-    setTypeRequest("open");
-    setFormData({
-      ...formData,
-      id: pop.id.toString(),
-      identifier: pop.identifier,
-      ubication: pop.ubication,
-      status: "open",
-      seller: "",
-      seller_id: "",
-      company_id: pop.company_id,
-    });
+    try {
+      const companyId = String(pop.company_id || pop.company?.id || "");
+      if (!companyId) {
+        setTypeMessage("error");
+        setErrorMessage("Esta caja no tiene una empresa asociada");
+        setShowNotification(true);
+        return;
+      }
 
-    setIsModalOpen(true);
-    setShowSpinner(false);
+      const session = await getSession();
+      if (!session?.user.token) {
+        setTypeMessage("error");
+        setErrorMessage("Inicia sesión para abrir la caja");
+        setShowNotification(true);
+        return;
+      }
+
+      const companyUsers = await fetchUsersListByCompany(
+        session.user.token,
+        companyId
+      );
+      setSellerData(Array.isArray(companyUsers) ? companyUsers : []);
+      setTypeRequest("open");
+      setFormData({
+        ...formData,
+        id: pop.id.toString(),
+        identifier: pop.identifier,
+        ubication: pop.ubication,
+        status: "open",
+        seller: "",
+        seller_id: "",
+        company_id: companyId,
+      });
+
+      setIsModalOpen(true);
+    } catch (error: any) {
+      console.error("Error al consultar usuarios de la caja:", error);
+      setTypeMessage("error");
+      setErrorMessage(
+        error?.response?.data?.message ||
+          "No se pudieron cargar los usuarios de la empresa"
+      );
+      setShowNotification(true);
+    } finally {
+      setShowSpinner(false);
+    }
   };
 
   const isSellerAssigned = (seller_id: string) => {
