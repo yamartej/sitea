@@ -107,6 +107,8 @@ const PermissionPage = () => {
       }
 
       await saveDataPermissions(session.user.token, permissionsArray);
+      // Refresh the current user's navigation after permissions are saved.
+      window.dispatchEvent(new Event("totalplus:permissions-updated"));
       setShowNotification(true);
       setTypeMessage("success");
       setErrorMessage("Permisos actualizados correctamente"); 
