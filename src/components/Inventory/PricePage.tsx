@@ -86,6 +86,7 @@ const PricePage = () => {
     setSearchTerm("");
     setIsModalOpen(false);
     setProducts([]);
+    gotoPage(0);
 
     if (!nextCompanyId) {
       setProductsAux([]);
@@ -140,6 +141,7 @@ const PricePage = () => {
     setSelectedBatchId(batchId);
     setSearchTerm("");
     setProducts(filterByBatchAndSearch(batchId, ""));
+    gotoPage(0);
   };
 
   const columns = React.useMemo<Column<Product>[]>(    () => [
