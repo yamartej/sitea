@@ -41,10 +41,13 @@ const PricePage = () => {
       try {
         if (ownCompanyId) {
           const dataProducts = await fetchProductsAvailable(token, ownCompanyId);
-          setProducts(dataProducts);
-          setProductsAux(dataProducts);
+          const receivedProducts = (dataProducts as Product[]).filter(
+            (product) => product.batches?.status === "received"
+          );
+          setProducts(receivedProducts);
+          setProductsAux(receivedProducts);
 
-          const uniqueBatches = dataProducts.reduce(
+          const uniqueBatches = receivedProducts.reduce(
             (acc: Batch[], product: Product) => {
               const batch = product.batches;
               if (!acc.some((b: Batch) => b.id === batch.id)) {
@@ -102,10 +105,13 @@ const PricePage = () => {
         session?.user.token as string,
         nextCompanyId
       );
-      setProducts(dataProducts);
-      setProductsAux(dataProducts);
+      const receivedProducts = (dataProducts as Product[]).filter(
+        (product) => product.batches?.status === "received"
+      );
+      setProducts(receivedProducts);
+      setProductsAux(receivedProducts);
 
-      const uniqueBatches = dataProducts.reduce(
+      const uniqueBatches = receivedProducts.reduce(
         (acc: Batch[], product: Product) => {
           const batch = product.batches;
           if (!acc.some((b: Batch) => b.id === batch.id)) {
@@ -559,7 +565,7 @@ const PricePage = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Actualizar Almacen"
+        title="Configurar precios de venta"
       >
         <form
           onSubmit={(e) => {
@@ -580,7 +586,10 @@ const PricePage = () => {
                 name="wholesale"
                 value={whosaleEditedCost}
                 onChange={(e) => setWhosaleEditedCost(e.target.value)}
-                type="text"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
                 className="block w-full rounded-md border py-1.5"
               />
             </div>
@@ -593,11 +602,14 @@ const PricePage = () => {
                 Precio al Detal
               </label>
               <input
-                id="wholesale"
-                name="wholesale"
+                id="retail"
+                name="retail"
                 value={editedCost}
                 onChange={(e) => setEditedCost(e.target.value)}
-                type="text"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
                 className="block w-full rounded-md border py-1.5"
               />
             </div>
