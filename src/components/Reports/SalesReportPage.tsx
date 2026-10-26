@@ -74,8 +74,12 @@ const SalesReportPage = () => {
         accessor: (row) => row.customer.name,
       },
       {
-        Header: "Monto Total",
-        accessor: (row) => row.total_amount || "Sin Nombre",
+        Header: "Monto registrado",
+        accessor: (row) => Number(row.total_amount).toFixed(2),
+      },
+      {
+        Header: "Estado",
+        accessor: (row) => row.voided_at ? "Anulada" : "Vigente",
       },
       {
         Header: "Tipo de Venta",
@@ -232,7 +236,9 @@ const SalesReportPage = () => {
                     className={`transition ${
                       row.original.id === editRowId
                         ? "bg-yellow-300 border-l-4 border-yellow-500"
-                        : "odd:bg-white bg-gray-100 hover:bg-gray-100"
+                        : row.original.voided_at
+                          ? "bg-gray-200 text-gray-600"
+                          : "odd:bg-white bg-gray-100 hover:bg-gray-100"
                     }`}
                   >
                     {row.cells.map((cell) => {
@@ -259,9 +265,15 @@ const SalesReportPage = () => {
 
                         <div>
                           <strong className="block mb-2 text-center">
-                            Historial de Pagos:
+                            Detalles de la venta
                           </strong>
-                          {row.original.details?.length > 0 ? (
+                          {row.original.voided_at && (
+                            <p className="mb-2">
+                              Venta anulada. El importe mostrado es histórico,
+                              no una venta vigente.
+                            </p>
+                          )}
+                          {(row.original.all_details ?? row.original.details)?.length > 0 ? (
                             <div className="overflow-x-auto">
                               <table className="w-full text-sm text-left text-gray-600 border border-gray-200">
                                 <thead className="bg-gray-100 text-gray-700">
@@ -272,20 +284,25 @@ const SalesReportPage = () => {
                                     <th className="px-4 py-2 border">
                                       Cantidad
                                     </th>
+                                    <th className="px-4 py-2 border">
+                                      Estado del detalle
+                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {Array.isArray(row.original.details) &&
-                                    row.original.details.map((item, i) => (
-                                      <tr key={i} className="bg-white">
-                                        <td className="px-4 py-2 border">
-                                          {item.product.name}
-                                        </td>
-                                        <td className="px-4 py-2 border">
-                                          {item.quantity}
-                                        </td>
-                                      </tr>
-                                    ))}
+                                  {(row.original.all_details ?? row.original.details).map((item) => (
+                                    <tr key={item.id} className="bg-white">
+                                      <td className="px-4 py-2 border">
+                                        {item.product?.name ?? "Producto histórico"}
+                                      </td>
+                                      <td className="px-4 py-2 border">
+                                        {item.quantity}
+                                      </td>
+                                      <td className="px-4 py-2 border">
+                                        {item.removed_at ? "Retirado" : "Registrado"}
+                                      </td>
+                                    </tr>
+                                  ))}
                                 </tbody>
                               </table>
                             </div>
