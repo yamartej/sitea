@@ -1,0 +1,31 @@
+name: TotalPlus QA frontend build
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  next-build:
+    if: github.event_name == 'pull_request' && github.head_ref == 'reengineering/phase0-2-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_URL_API: 'http://127.0.0.1:8000/api'
+      NEXTAUTH_URL: 'http://localhost:3001'
+      NEXTAUTH_SECRET: 'ci-ephemeral-not-a-production-secret'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check TypeScript types
+        run: npx tsc --noEmit
+      - name: Build frontend
+        run: npm run build
