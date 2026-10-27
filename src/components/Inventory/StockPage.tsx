@@ -459,6 +459,12 @@ const StockPage = () => {
 
   return (
     <div>
+      <div className="flex justify-end py-2">
+        <a href="/pages/purchase-receipts"
+           className="inline-block rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
+          Recepción de órdenes de compra
+        </a>
+      </div>
       <div>
         {showSpinner && (
           <div className="spinner-container">
