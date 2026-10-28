@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
-import { getSession } from "next-auth/react";
+import { Phase3CompanyPicker, describePhase3Error, usePhase3Company } from "./Phase3Company";
 import {
   listReceivingData,
   listPurchaseReceipts,
@@ -14,19 +14,10 @@ import {
   ReceivingWarehouse,
 } from "@/app/api/purchase/receipts";
 
-const describeError = (error: unknown): string => {
-  if (axios.isAxiosError(error)) {
-    const message = error.response?.data?.message;
-    if (typeof message === "string") return message;
-    if (error.response?.status === 403) return "No dispone de permisos para esta operación.";
-    if (!error.response) return "Sin respuesta del servidor. Consulte el historial antes de reintentar.";
-  }
-  return "No se pudo completar la operación. Consulte el historial antes de reintentar.";
-};
-
 export default function PurchaseReceiptsPage() {
-  const [token, setToken] = useState("");
-  const [companyId, setCompanyId] = useState<number | null>(null);
+  const {
+    token, companyId, setCompanyId, globalUser, companies, companyError, loadingCompany,
+  } = usePhase3Company();
   const [orders, setOrders] = useState<PurchaseOrderRecord[]>([]);
   const [lines, setLines] = useState<PurchaseOrderLineRecord[]>([]);
   const [products, setProducts] = useState<ReceivingProduct[]>([]);
@@ -42,42 +33,43 @@ export default function PurchaseReceiptsPage() {
   const pendingKey = useRef<string | null>(null);
 
   useEffect(() => {
+    setOrderId(null);
+    setWarehouseId("");
+    setReceipts([]);
+    setQuantities({});
+    setSuccess("");
+    pendingKey.current = null;
+    if (!companyId || !token) {
+      setOrders([]);
+      setLines([]);
+      setProducts([]);
+      setWarehouses([]);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
-
     const load = async () => {
+      setLoading(true);
+      setError("");
       try {
-        const session = await getSession();
-        if (!session?.user?.token || !session.user.company_id) {
-          throw new Error("Se requiere una sesión vinculada a una empresa.");
-        }
-
-        const resolvedCompany = Number(session.user.company_id);
-        if (!Number.isInteger(resolvedCompany) || resolvedCompany <= 0) {
-          throw new Error("La empresa de la sesión no es válida.");
-        }
-
-        const data = await listReceivingData(session.user.token, resolvedCompany);
+        const data = await listReceivingData(token, companyId);
         if (!active) return;
-
-        setToken(session.user.token);
-        setCompanyId(resolvedCompany);
         setOrders(data.orders);
         setLines(data.lines);
         setWarehouses(data.warehouses);
         setProducts(data.products);
       } catch (cause) {
         if (active) {
-          setError(cause instanceof Error && !axios.isAxiosError(cause)
-            ? cause.message : describeError(cause));
+          setError(describePhase3Error(cause, "Cargar órdenes, almacenes y productos"));
         }
       } finally {
         if (active) setLoading(false);
       }
     };
-
-    load();
+    void load();
     return () => { active = false; };
-  }, []);
+  }, [token, companyId]);
 
   const selectedOrder = orders.find((order) => order.id === orderId);
   const orderLines = lines.filter((line) => line.purchase_order_id === orderId);
@@ -108,7 +100,7 @@ export default function PurchaseReceiptsPage() {
     try {
       setReceipts(await listPurchaseReceipts(token, companyId, id));
     } catch (cause) {
-      setError(describeError(cause));
+      setError(describePhase3Error(cause, "Consultar recepciones"));
     } finally {
       setLoading(false);
     }
@@ -118,10 +110,17 @@ export default function PurchaseReceiptsPage() {
     if (!companyId || !token || !orderId) return;
     setLoading(true);
     try {
-      setReceipts(await listPurchaseReceipts(token, companyId, orderId));
+      const updated = await listPurchaseReceipts(token, companyId, orderId);
+      setReceipts(updated);
+      if (pendingKey.current && updated.some((receipt) =>
+        receipt.idempotency_key === pendingKey.current)) {
+        pendingKey.current = null;
+        setQuantities({});
+        setSuccess("La recepción fue encontrada en el historial. No es necesario repetirla.");
+      }
       setError("");
     } catch (cause) {
-      setError(describeError(cause));
+      setError(describePhase3Error(cause, "Consultar recepciones"));
     } finally {
       setLoading(false);
     }
@@ -169,8 +168,12 @@ export default function PurchaseReceiptsPage() {
       setQuantities({});
       setSuccess(`Recepción #${posted.id} registrada con éxito en Kardex.`);
     } catch (cause) {
-      setError(describeError(cause) +
-        " Si el servidor perdió la conexión, verifique el historial antes de generar otra recepción.");
+      if (axios.isAxiosError(cause) && cause.response &&
+          [403, 404, 409, 422].includes(cause.response.status)) {
+        pendingKey.current = null;
+      }
+      setError(describePhase3Error(cause, "Registrar recepción") +
+        " Ante una pérdida de conexión, consulte el historial antes de intentar otra entrega.");
     } finally {
       setBusy(false);
     }
@@ -185,6 +188,16 @@ export default function PurchaseReceiptsPage() {
         </p>
       </div>
 
+      <Phase3CompanyPicker
+        globalUser={globalUser} companyId={companyId}
+        companies={companies} disabled={busy || loading || loadingCompany}
+        onChange={setCompanyId}
+      />
+      {loadingCompany && <p role="status">Comprobando sesión...</p>}
+      {companyError && <p role="alert" className="text-red-700">{companyError}</p>}
+      {globalUser && !companyId && (
+        <p className="text-sm text-amber-700">Seleccione una empresa para consultar sus órdenes.</p>
+      )}
       {error && <p role="alert" className="border border-red-300 bg-red-50 p-3 text-red-800 rounded">{error}</p>}
       {success && <p role="status" className="border border-green-300 bg-green-50 p-3 text-green-800 rounded">{success}</p>}
       {loading && <p role="status">Cargando datos...</p>}
