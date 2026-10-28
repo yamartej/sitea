@@ -163,10 +163,17 @@ export default function PurchaseReceiptsPage() {
           ({ purchase_order_product_id, quantity })),
       );
 
-      setReceipts(await listPurchaseReceipts(token, companyId, orderId));
+      // POST succeeded. A later history-read error must never report the
+      // receipt as failed, because retrying with a new key could duplicate it.
       pendingKey.current = null;
       setQuantities({});
       setSuccess(`Recepción #${posted.id} registrada con éxito en Kardex.`);
+      try {
+        setReceipts(await listPurchaseReceipts(token, companyId, orderId));
+      } catch (historyError) {
+        setError(describePhase3Error(historyError, "Actualizar historial") +
+          " La recepción ya se guardó; utilice «Actualizar historial» cuando la conexión vuelva.");
+      }
     } catch (cause) {
       if (axios.isAxiosError(cause) && cause.response &&
           [403, 404, 409, 422].includes(cause.response.status)) {
