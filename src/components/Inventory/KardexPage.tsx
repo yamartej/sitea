@@ -1,7 +1,9 @@
 "use client";
 
 import axios from "axios";
-import { getSession } from "next-auth/react";
+import {
+  Phase3CompanyPicker, describePhase3Error, usePhase3Company,
+} from "../PurchaseManagement/Phase3Company";
 import React, { useEffect, useState } from "react";
 
 type Movement = {
@@ -38,8 +40,9 @@ const types: Record<string, string> = {
 };
 
 export default function KardexPage() {
-  const [token, setToken] = useState("");
-  const [companyId, setCompanyId] = useState("");
+  const {
+    token, companyId, setCompanyId, globalUser, companies, loadingCompany, companyError,
+  } = usePhase3Company();
   const [rows, setRows] = useState<Movement[]>([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -51,24 +54,12 @@ export default function KardexPage() {
   const [busy, setBusy] = useState(true);
 
   useEffect(() => {
-    let active = true;
-    const init = async () => {
-      const session = await getSession();
-      if (!active) return;
-      if (!session?.user?.token || !session?.user?.company_id) {
-        setError("Es necesario iniciar sesión con una empresa asignada.");
-        setBusy(false);
-        return;
-      }
-      setToken(session.user.token);
-      setCompanyId(String(session.user.company_id));
-    };
-    void init();
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!token || !companyId) return;
+    if (!token || !companyId) {
+      setRows([]);
+      setTotal(0);
+      setBusy(false);
+      return;
+    }
     let active = true;
     const load = async () => {
       setBusy(true);
@@ -96,9 +87,7 @@ export default function KardexPage() {
         }
       } catch (cause) {
         if (active) {
-          setError(axios.isAxiosError(cause) && cause.response?.status === 403
-            ? "No tiene permiso para consultar el Kardex."
-            : "No se pudo consultar Kardex. Verifique la API.");
+          setError(describePhase3Error(cause, "Consultar Kardex"));
         }
       } finally {
         if (active) setBusy(false);
@@ -116,6 +105,17 @@ export default function KardexPage() {
           Movimientos inmutables por empresa, producto y almacén. Los saldos son históricos.
         </p>
       </div>
+      <Phase3CompanyPicker
+        globalUser={globalUser} companyId={companyId}
+        companies={companies}
+        disabled={busy || loadingCompany}
+        onChange={(next) => { setCompanyId(next); setPage(1); }}
+      />
+      {loadingCompany && <p role="status">Comprobando sesión...</p>}
+      {companyError && <p role="alert" className="text-red-700">{companyError}</p>}
+      {globalUser && !companyId && (
+        <p className="text-sm text-amber-700">Seleccione una empresa para consultar el Kardex.</p>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="text-sm">Producto (ID)
           <input type="number" min="1" value={productId}
