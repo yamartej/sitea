@@ -328,6 +328,11 @@ const PaymentCustomerDetailPage = () => {
 
   return (
     <>
+      <div className="mx-3 my-3">
+        <a href="/pages/financial-reconciliation" className="inline-block rounded border px-3 py-2 text-sm text-blue-700">
+          Ver abonos sin asignar y conciliación de cartera
+        </a>
+      </div>
       <div>
         {showSpinner && (
           <div className="spinner-container">

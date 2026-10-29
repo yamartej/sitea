@@ -310,6 +310,11 @@ const PaymentDetailPage = () => {
 
   return (
     <>
+      <div className="mx-3 my-3">
+        <a href="/pages/financial-reconciliation" className="inline-block rounded border px-3 py-2 text-sm text-blue-700">
+          Consultar conciliación de cartera (solo lectura)
+        </a>
+      </div>
       <div>
         {showSpinner && (
           <div className="spinner-container">
