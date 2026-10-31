@@ -39,33 +39,33 @@ const MenuPage = () => {
   const { companies } = useCompanyStore();
 
   const organizeMenu = (menuItems: MenuItem[]): MenuItem[] => {
+    // Build every node first. The API sorts by display order, so a child
+    // can arrive before its parent.
     const menuMap: MenuMap = menuItems.reduce((acc, item) => {
-      acc[item.id] = { ...item, children: [] };
+      acc[item.id] = {
+        ...item,
+        children: [],
+        isTopLevel: item.parent_id === null,
+      };
       return acc;
     }, {} as MenuMap);
 
+    // Link children only after all parent nodes exist. Never clear a
+    // parent's children while processing the parent later in the response.
     menuItems.forEach((item) => {
-      if (item.parent_id) {
-        // Verificar si el parent_id existe en menuMap
-        if (menuMap[item.parent_id]) {
-          menuMap[item.parent_id].children?.push(menuMap[item.id]);
+      if (item.parent_id !== null) {
+        const parent = menuMap[item.parent_id];
+        if (parent) {
+          parent.children?.push(menuMap[item.id]);
         } else {
           console.warn(
             `Parent ID ${item.parent_id} not found for item ID ${item.id}`
           );
         }
-      } else {
-        menuMap[item.id].isTopLevel = true; // Marcar como de nivel superior para renderizar
-        menuMap[item.id].children = []; // Inicializar array de hijos vacío
       }
     });
 
-    // Extraer los elementos de nivel superior del mapa
-    const organizedMenu = Object.values(menuMap).filter(
-      (item) => item.isTopLevel
-    );
-
-    return organizedMenu;
+    return Object.values(menuMap).filter((item) => item.isTopLevel);
   };
 
   const iconMap = {

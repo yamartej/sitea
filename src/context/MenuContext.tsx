@@ -6,7 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { getSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { fetchMenuItems } from "@/app/api/menu/api";
 import {
   MenuContextType,
@@ -23,66 +23,70 @@ export const MenuProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const { data: session, status } = useSession();
+  const token = session?.user?.token;
   const [menuItems, setMenuItems] =
     useState<MenuItem[]>([]);
   const [loading, setLoading] =
     useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Menus are authorization-sensitive and must not be restored
+    // from a shared, potentially stale browser cache.
+    localStorage.removeItem("menuItems");
+
     const loadMenuItems = async () => {
-      try {
-        const session = await getSession();
-        const token = session?.user.token;
+      if (status === "loading") {
+        if (!cancelled) setLoading(true);
+        return;
+      }
 
-        if (!token) {
+      if (!token) {
+        if (!cancelled) {
           setMenuItems([]);
-          return;
+          setLoading(false);
         }
+        return;
+      }
 
-        /*
-         * Phase 1C-1:
-         * The authenticated backend user determines roles.
-         * Never send client-controlled role IDs.
-         */
-        const items =
-          await fetchMenuItems(token);
+      if (!cancelled) setLoading(true);
 
-        setMenuItems(items);
+      try {
+        // Laravel derives roles from the authenticated Sanctum token.
+        const items = await fetchMenuItems(token);
 
-        localStorage.setItem(
-          "menuItems",
-          JSON.stringify(items)
-        );
+        if (!cancelled) {
+          setMenuItems(Array.isArray(items) ? items : []);
+        }
       } catch (error) {
-        console.error(
-          "Error loading menu:",
-          error
-        );
-        setMenuItems([]);
+        console.error("Error loading menu:", error);
+        if (!cancelled) setMenuItems([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    const storedMenuItems =
-      localStorage.getItem("menuItems");
+    void loadMenuItems();
 
-    if (storedMenuItems) {
-      try {
-        setMenuItems(
-          JSON.parse(storedMenuItems)
-        );
-        setLoading(false);
-      } catch {
-        localStorage.removeItem(
-          "menuItems"
-        );
-        void loadMenuItems();
-      }
-    } else {
+    const onPermissionsUpdated = () => {
       void loadMenuItems();
-    }
-  }, []);
+    };
+
+    window.addEventListener(
+      "totalplus:permissions-updated",
+      onPermissionsUpdated
+    );
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(
+        "totalplus:permissions-updated",
+        onPermissionsUpdated
+      );
+    };
+  }, [token, status]);
 
   return (
     <MenuContext.Provider

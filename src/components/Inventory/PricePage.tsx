@@ -11,6 +11,7 @@ import {
 } from "@/app/api/inventory/api";
 import Modal from "../Common/Modal/ModalPage";
 import { fetchCompaniesList } from "@/app/api/admin/api";
+import { fetchBatchesList } from "@/app/api/purchase/api";
 
 const PricePage = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -28,49 +29,46 @@ const PricePage = () => {
   const [editedCost, setEditedCost] = useState<string>("");
   const [whosaleEditedCost, setWhosaleEditedCost] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const PriceManegement = async () => {
+    const loadPrices = async () => {
       setShowSpinner(true);
-      const session = await getSession();
-      const token = session?.user.token as string;
-      const ownCompanyId = session?.user.company_id || null;
-
-      setCompanyId(ownCompanyId);
-
       try {
-        if (ownCompanyId) {
-          const dataProducts = await fetchProductsAvailable(token, ownCompanyId);
-          setProducts(dataProducts);
-          setProductsAux(dataProducts);
+        const session = await getSession();
+        const token = session?.user.token;
+        const ownCompanyId = session?.user.company_id || null;
+        setCompanyId(ownCompanyId);
 
-          const uniqueBatches = dataProducts.reduce(
-            (acc: Batch[], product: Product) => {
-              const batch = product.batches;
-              if (!acc.some((b: Batch) => b.id === batch.id)) {
-                acc.push(batch);
-              }
-              return acc;
-            },
-            []
-          );
-          setBatches(uniqueBatches);
+        if (!token) {
+          throw new Error("Sesión no disponible");
+        }
+
+        if (ownCompanyId) {
+          const [companyBatches, companyProducts] = await Promise.all([
+            fetchBatchesList(token, ownCompanyId),
+            fetchProductsAvailable(token, ownCompanyId),
+          ]);
+          setBatches(companyBatches as Batch[]);
+          setProductsAux(companyProducts as Product[]);
+          setProducts([]);
         } else {
           const companyData = await fetchCompaniesList(token);
           setCompanies(companyData);
-          setProducts([]);
-          setProductsAux([]);
           setBatches([]);
+          setProductsAux([]);
+          setProducts([]);
         }
       } catch (error) {
-        console.error("Error fetching:", error);
-        setErrorMessage("Error fetching");
+        console.error("Error al cargar precios:", error);
+        setTypeMessage("error");
+        setErrorMessage("No se pudieron cargar los lotes y sus productos");
         setShowNotification(true);
       } finally {
         setShowSpinner(false);
       }
     };
-    PriceManegement();
+    loadPrices();
   }, []);
 
   const activeCompanyId = companyId || selectedCompanyId || null;
@@ -81,49 +79,69 @@ const PricePage = () => {
     Boolean(activeCompanyId) &&
     String(recordCompanyId) === String(activeCompanyId);
 
-  const handleCompanyChange = async (    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
+  const handleCompanyChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextCompanyId = e.target.value;
     setSelectedCompanyId(nextCompanyId);
     setSelectedBatchId(null);
+    setSearchTerm("");
     setIsModalOpen(false);
+    setProducts([]);
+    gotoPage(0);
 
     if (!nextCompanyId) {
-      setProducts([]);
       setProductsAux([]);
       setBatches([]);
       return;
     }
 
-    const session = await getSession();
     try {
       setShowSpinner(true);
-      const dataProducts = await fetchProductsAvailable(
-        session?.user.token as string,
-        nextCompanyId
-      );
-      setProducts(dataProducts);
-      setProductsAux(dataProducts);
+      const session = await getSession();
+      const token = session?.user.token;
+      if (!token) {
+        throw new Error("Sesión no disponible");
+      }
 
-      const uniqueBatches = dataProducts.reduce(
-        (acc: Batch[], product: Product) => {
-          const batch = product.batches;
-          if (!acc.some((b: Batch) => b.id === batch.id)) {
-            acc.push(batch);
-          }
-          return acc;
-        },
-        []
-      );
-      setBatches(uniqueBatches);
+      const [companyBatches, companyProducts] = await Promise.all([
+        fetchBatchesList(token, nextCompanyId),
+        fetchProductsAvailable(token, nextCompanyId),
+      ]);
+      setBatches(companyBatches as Batch[]);
+      setProductsAux(companyProducts as Product[]);
     } catch (error) {
-      console.error("Error fetching company prices:", error);
-      setErrorMessage("Error cargando precios de la empresa");
+      console.error("Error cargando precios de la empresa:", error);
+      setBatches([]);
+      setProductsAux([]);
+      setErrorMessage("Error cargando lotes y productos de la empresa");
       setTypeMessage("error");
       setShowNotification(true);
     } finally {
       setShowSpinner(false);
     }
+  };
+
+  const selectedBatch = batches.find((batch) => batch.id === selectedBatchId);
+  const selectedCosts = selectedBatch?.costs ?? [];
+  const totalAdditionalCosts = selectedCosts.reduce(
+    (sum, cost) => sum + Number(cost.amount || 0),
+    0
+  );
+
+  const filterByBatchAndSearch = (batchId: number | null, term: string) =>
+    batchId === null
+      ? []
+      : productsAux.filter(
+          (product) =>
+            product.batches?.id === batchId &&
+            product.name.toLowerCase().includes(term.toLowerCase())
+        );
+
+  const handleBatchChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const batchId = event.target.value ? Number(event.target.value) : null;
+    setSelectedBatchId(batchId);
+    setSearchTerm("");
+    setProducts(filterByBatchAndSearch(batchId, ""));
+    gotoPage(0);
   };
 
   const columns = React.useMemo<Column<Product>[]>(    () => [
@@ -136,11 +154,11 @@ const PricePage = () => {
         accessor: "price",
       },
       {
-        Header: "Precio + Envío",
+        Header: "Compra + costos adicionales",
         accessor: "price_shipping",
       },
       {
-        Header: "Costo 35%",
+        Header: "Referencia (margen 35%)",
         Cell: ({ row }: { row: { original: Product } }) => {
           return (
             <div>{(Number(row.original.price_shipping) / 0.65).toFixed(2)}</div>
@@ -168,10 +186,9 @@ const PricePage = () => {
         Header: "Acciones",
         Cell: ({ row }: { row: { original: Product } }) => {
           const { id, final_cost, wholesale_final_cost } = row.original;
-          const isEditing = editRowId === id;
-          const isWritableProduct = isWritableCompanyRecord(
-            row.original.batches?.company_id
-          );
+          const isWritableProduct =
+            row.original.batches?.status === "received" &&
+            isWritableCompanyRecord(row.original.batches?.company_id);
 
           const handleClick = () =>
             handleEditClick(
@@ -189,7 +206,9 @@ const PricePage = () => {
                 title={
                   isWritableProduct
                     ? "Editar precio"
-                    : "Registro legacy de solo lectura"
+                    : row.original.batches?.status !== "received"
+                      ? "Recibe el lote antes de configurar precios de venta"
+                      : "Registro legacy de solo lectura"
                 }
               >
                 <svg
@@ -397,28 +416,16 @@ const PricePage = () => {
               <select
                 id="batch"
                 name="batch"
-                onChange={(e) => {
-                  setSelectedBatchId(Number(e.target.value));
-                  const selectedBatchId = e.target.value;
-                  if (selectedBatchId === "") {
-                    // Si no hay lote seleccionado, mostrar todos los productos
-                    setProducts(productsAux);
-                  } else {
-                    // Filtrar productos por lote seleccionado
-                    const filteredProducts = productsAux.filter(
-                      (product) =>
-                        product.batches.id === Number(selectedBatchId)
-                    );
-                    setProducts(filteredProducts);
-                  }
-                }}
+                value={selectedBatchId ?? ""}
+                onChange={handleBatchChange}
                 className="border rounded p-1"
                 required
+                disabled={!activeCompanyId}
               >
                 <option value="">Selecciona un Lote</option>
                 {batches.map((batch) => (
                   <option key={batch.id} value={batch.id}>
-                    {batch.name}
+                    {batch.name} ({batch.status === "received" ? "Recibido" : batch.status === "created" ? "Creado" : batch.status})
                   </option>
                 ))}
               </select>
@@ -426,28 +433,66 @@ const PricePage = () => {
           </div>
         </div>
       </div>
+      {selectedBatch && (
+        <section className="mt-4 rounded border p-4 text-sm text-primary-contrast">
+          <p className="font-semibold">
+            Lote: {selectedBatch.name} — {selectedBatch.status === "received" ? "Recibido" : "Creado"}
+          </p>
+          {selectedBatch.status !== "received" && (
+            <p className="mt-2">
+              Puedes consultar productos y costos. Para configurar precios de venta,
+              primero cambia el lote a Recibido en Compras → Lotes.
+            </p>
+          )}
+          <div className="mt-3">
+            <p className="font-semibold">Costos adicionales del lote</p>
+            {selectedCosts.length > 0 ? (
+              <ul className="mt-2 list-disc pl-5">
+                {selectedCosts.map((cost) => (
+                  <li key={cost.id}>
+                    {cost.description || "Costo adicional"}: {Number(cost.amount).toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1">
+                No hay costos adicionales registrados para este lote.
+              </p>
+            )}
+            <p className="mt-2 font-semibold">
+              Total de costos adicionales: {totalAdditionalCosts.toFixed(2)}
+            </p>
+            <p className="mt-1">
+              Registra envío, comisiones u otros gastos en Compras → Costos.
+              Se distribuyen entre las unidades del lote y se reflejan en
+              la columna Compra + costos adicionales.
+            </p>
+          </div>
+        </section>
+      )}
+      {activeCompanyId && batches.length === 0 && !showSpinner && (
+        <p className="mt-3 text-sm text-primary-contrast">
+          No hay lotes registrados para la empresa seleccionada.
+        </p>
+      )}
+      {selectedBatch && products.length === 0 && !showSpinner && (
+        <p className="mt-3 text-sm text-primary-contrast">
+          No hay productos que coincidan con el lote y la búsqueda.
+        </p>
+      )}
       <div>
         <div className="mt-4">
           <input
             type="text"
             placeholder="Buscar por Nombre del Producto"
             className="border rounded p-2 w-full"
+            value={searchTerm}
+            disabled={selectedBatchId === null}
             onChange={(e) => {
-              const searchTerm = e.target.value.toLowerCase();
-              const filteredProducts = productsAux.filter((product) =>
-                product.name.toLowerCase().includes(searchTerm)
-              );
-              if (selectedBatchId) {
-                // Si hay un lote seleccionado, filtrar también por lote
-                const batchFilteredProducts = filteredProducts.filter(
-                  (product) => product.batches.id === Number(selectedBatchId)
-                );
-                setProducts(batchFilteredProducts);
-              } else {
-                setProducts(filteredProducts);
-              }
-
-              gotoPage(0); // Regresar a la primera página después de buscar
+              const term = e.target.value;
+              setSearchTerm(term);
+              setProducts(filterByBatchAndSearch(selectedBatchId, term));
+              gotoPage(0);
             }}
           />
         </div>
@@ -559,7 +604,7 @@ const PricePage = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Actualizar Almacen"
+        title="Configurar precios de venta"
       >
         <form
           onSubmit={(e) => {
@@ -580,7 +625,10 @@ const PricePage = () => {
                 name="wholesale"
                 value={whosaleEditedCost}
                 onChange={(e) => setWhosaleEditedCost(e.target.value)}
-                type="text"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
                 className="block w-full rounded-md border py-1.5"
               />
             </div>
@@ -593,11 +641,14 @@ const PricePage = () => {
                 Precio al Detal
               </label>
               <input
-                id="wholesale"
-                name="wholesale"
+                id="retail"
+                name="retail"
                 value={editedCost}
                 onChange={(e) => setEditedCost(e.target.value)}
-                type="text"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
                 className="block w-full rounded-md border py-1.5"
               />
             </div>

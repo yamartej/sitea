@@ -184,6 +184,7 @@ export type Batch = {
   quantity: number;
   status: string;
   order_creation_date: string;
+  costs?: Cost[];
 }
 
 export type Cost = {
@@ -272,6 +273,17 @@ export type CustomerCreditNote = {
   credit_note_detail: string;
 }
 
+export type SaleReportDetail = {
+  id: number;
+  sale_id: number;
+  product_id: number | null;
+  product?: Product | null;
+  quantity: number;
+  unit_price?: number | string | null;
+  removed_at?: string | null;
+  removed_by?: number | null;
+};
+
 export type SaleReport = {
   id: number;
   quantity: number;
@@ -288,14 +300,9 @@ export type SaleReport = {
   type_of_sale: string;
   created_at: Date;
   product: Product;
-  details: {
-    length: number;
-    id: number;
-    sale_id: number;
-    product_id: number;
-    product_name: string;
-    quantity: number;
-    price: number;
-    total: number;
-  };
+  voided_at?: string | null;
+  voided_by?: number | null;
+  void_reason?: string | null;
+  details: SaleReportDetail[];
+  all_details?: SaleReportDetail[];
 }

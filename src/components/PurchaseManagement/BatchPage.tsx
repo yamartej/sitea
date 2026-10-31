@@ -21,6 +21,13 @@ import InfoCardGrid from "../Common/Card/InfoCardGrid";
 import { fetchCompaniesList } from "@/app/api/admin/api";
 
 const BatchPage = () => {
+  // This interactive react-table view depends on browser rendering.
+  // Render the same empty shell on the server and during initial hydration.
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const [showSpinner, setShowSpinner] = useState(false);
   const [batchs, setBatchs] = useState<Batch[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -366,6 +373,7 @@ const BatchPage = () => {
             ...prevBatch,
             {
               id: response.id,
+              company_id: response.company_id,
               name: formData.name,
               description: formData.description,
               quantity: parseInt(formData.quantity, 10),
@@ -429,6 +437,12 @@ const BatchPage = () => {
     setIsModalOpen(true);
     handleSetInputs(false); // Limpiar los campos del formulario
   };
+
+  // Avoid hydrating the react-table <thead> before client mount.
+  // Hooks above still run in the same order on every render.
+  if (!hasMounted) {
+    return null;
+  }
 
   return (
     <div>

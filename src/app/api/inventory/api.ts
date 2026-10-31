@@ -148,6 +148,23 @@ export const fetchWarehousesList = async (token: string) => {
       }
   };
 
+  // Sales catalog: received batches with configured sale prices and
+  // positive stock only. The regular inventory endpoint remains unchanged.
+  export const fetchSellableInventoriesList = async (token: string) => {
+    try {
+      const response = await axios.get(`${apiUrl}/inventory`, {
+        params: { sellable: 1 },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: unknown) {
+      handleApiError(error, "Error al consultar inventario disponible para ventas");
+      throw error;
+    }
+  };
+
   export const saveInventory = async (
     token: string,
     warehouse_id: string,
