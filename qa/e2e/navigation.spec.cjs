@@ -49,7 +49,7 @@ test("warehouse: transfers page uses real company-filtered API", async ({ page }
   await expect(page.getByRole("heading", { name: "Transferencias entre almacenes" })).toBeVisible();
   await expect(page.getByLabel("Almacén de origen")).toContainText("QA Alpha Principal");
   await expect(page.getByLabel("Almacén de origen")).not.toContainText("QA Beta Privado");
-  await expect(page.getByLabel("Producto", { exact: true })).toContainText("QA Synthetic Product");
+  await expect(page.getByLabel("Producto")).toContainText("QA Synthetic Product");
   await expect(page.getByRole("button", { name: "Registrar transferencia" })).toBeEnabled();
 });
 
