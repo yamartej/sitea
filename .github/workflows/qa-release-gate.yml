@@ -1,0 +1,36 @@
+name: TotalPlus QA release - frontend
+on:
+  push:
+    branches:
+      - qa/phase3-security-remediation-20261031
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-release:
+    if: github.event_name == 'push' || github.head_ref == 'qa/phase3-security-remediation-20261031'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_URL_API: 'http://127.0.0.1:8000/api'
+      NEXTAUTH_URL: 'http://localhost:3001'
+      NEXTAUTH_SECRET: 'ci-test-only-never-use-in-production'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact lockfile dependencies
+        run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build

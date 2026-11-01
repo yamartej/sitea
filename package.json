@@ -12,7 +12,7 @@
     "@heroicons/react": "^2.2.0",
     "axios": "^1.7.7",
     "date-fns": "^4.1.0",
-    "next": "14.2.15",
+    "next": "15.5.28",
     "next-auth": "^4.24.8",
     "react": "^18",
     "react-datepicker": "^8.3.0",
@@ -27,9 +27,15 @@
     "@types/react-dom": "^18",
     "@types/react-table": "^7.7.20",
     "eslint": "^8",
-    "eslint-config-next": "14.2.15",
-    "postcss": "^8",
+    "eslint-config-next": "15.5.28",
+    "postcss": "^8.5.23",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "$postcss",
+    "minimatch@3.1.5": {
+      "brace-expansion": "1.1.21"
+    }
   }
 }
