@@ -5,7 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useMenu } from "@/context/MenuContext";
 import Spinner from "../Spinner/SpinnerPage";
 import React, { useState } from "react";
-import { Item, MenuMap, MenuItem, DropdownState } from "@/types/type";
+import { MenuMap, MenuItem } from "@/types/type";
 import {
   ChartPieIcon,
   AdjustmentsHorizontalIcon,
@@ -90,8 +90,8 @@ const MenuPage = () => {
     });
   };
 
-  const toggleDropdown = (item: Item) => {
-    setDropdownStates((prevState: DropdownState) => ({
+  const toggleDropdown = (item: MenuItem) => {
+    setDropdownStates((prevState) => ({
       ...prevState,
       [item.id]: !prevState[item.id],
     }));
@@ -235,7 +235,7 @@ const MenuPage = () => {
                       {item.children && item.children?.length > 0 ? (
                         <div>
                           <button
-                            onClick={() => toggleDropdown(item as Item)}
+                            onClick={() => toggleDropdown(item)}
                             type="button"
                             className="w-full flex items-center p-2 rounded-full bg-btn-menu group"
                             aria-controls={`dropdown-${item.name} `}
