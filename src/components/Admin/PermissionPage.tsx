@@ -60,26 +60,21 @@ const PermissionPage = () => {
   }, []);
 
   const handlePermissionChange = (roleId: number, menuId: number, isParent: boolean) => {
-    setPermissions((prevPermissions) => {
-      const updatedPermissions = {
-        ...prevPermissions,
-        [roleId]: {
-          ...prevPermissions[roleId],
-          [menuId]: prevPermissions[roleId] ? !prevPermissions[roleId][menuId] : true,
-        },
-      };
+    setPermissions((previous) => {
+      const current = previous[roleId] ?? {};
+      const parent = isParent ? menus.find((menu) => menu.id === menuId) : undefined;
+      const enabled = parent?.children?.length
+        ? parent.children.every((child) => Boolean(current[child.id]))
+        : Boolean(current[menuId]);
+      const nextValue = !enabled;
+      const nextForRole = { ...current, [menuId]: nextValue };
 
-      if (isParent) {
-        menus.forEach((menu: MenuItem) => {
-          if (menu.children) {
-            menu.children.forEach((child: MenuItem) => {
-              updatedPermissions[roleId][child.id] = updatedPermissions[roleId][menuId];
-            });
-          }
-        });
-      }
+      // Only the selected module's children may change.
+      parent?.children?.forEach((child) => {
+        nextForRole[child.id] = nextValue;
+      });
 
-      return updatedPermissions;
+      return { ...previous, [roleId]: nextForRole };
     });
   };
 
@@ -158,15 +153,15 @@ const PermissionPage = () => {
                       <td className={`px-4 py-2 border border-gray-300 ${menu.parent_id !== null ? 'pl-8' : ''}`}>{menu.name}</td>
                       {roles.map((role) => (
                         <td key={role.id} className="px-4 py-2 border border-gray-300 text-center">
-                          {(isUnique || menu.parent_id !== null) ? (
-                            <input
-                              type="checkbox"
-                              checked={permissions[Number(role.id)]?.[Number(menu.id)] ?? false}
-                              onChange={() => handlePermissionChange(Number(role.id), Number(menu.id), Boolean(isParent))}
-                            />
-                          ) : (
-                            <></>
-                          )}
+                          <input
+                            type="checkbox"
+                            aria-label={`Permitir módulo ${menu.name} al rol ${role.name}`}
+                            checked={isParent
+                              ? Boolean(menu.children?.length) && menu.children!.every((child) =>
+                                  Boolean(permissions[Number(role.id)]?.[Number(child.id)]))
+                              : Boolean(permissions[Number(role.id)]?.[Number(menu.id)])}
+                            onChange={() => handlePermissionChange(Number(role.id), Number(menu.id), Boolean(isParent))}
+                          />
                         </td>
                       ))}
                     </tr>

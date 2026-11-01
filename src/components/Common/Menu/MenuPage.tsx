@@ -5,7 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useMenu } from "@/context/MenuContext";
 import Spinner from "../Spinner/SpinnerPage";
 import React, { useState } from "react";
-import { Item, MenuMap, MenuItem, DropdownState } from "@/types/type";
+import { MenuMap, MenuItem } from "@/types/type";
 import {
   ChartPieIcon,
   AdjustmentsHorizontalIcon,
@@ -21,22 +21,20 @@ import {
   QuestionMarkCircleIcon,
   NumberedListIcon,
   Bars3Icon,
+  TagIcon,
 } from "@heroicons/react/24/solid";
 
-import { useCompanyStore } from "@/store/companyStore";
 
 const MenuPage = () => {
   const { data: session, status } = useSession();
   const userImage = session?.user.image || "/default-avatar.png";
   const userName = session?.user.name || "";
-  const company_id = session?.user.company_id || "";
   const { menuItems, loading } = useMenu();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [dropdownStates, setDropdownStates] = useState<Record<number, boolean>>(
     {}
   );
 
-  const { companies } = useCompanyStore();
 
   const organizeMenu = (menuItems: MenuItem[]): MenuItem[] => {
     // Build every node first. The API sorts by display order, so a child
@@ -82,6 +80,7 @@ const MenuPage = () => {
     ReportsIcon: DocumentCurrencyDollarIcon,
     DefaultIcon: ChevronDoubleRightIcon,
     StockIcon: NumberedListIcon,
+    TagsIcon: TagIcon,
   };
 
   const handleSignOut = () => {
@@ -91,8 +90,8 @@ const MenuPage = () => {
     });
   };
 
-  const toggleDropdown = (item: Item) => {
-    setDropdownStates((prevState: DropdownState) => ({
+  const toggleDropdown = (item: MenuItem) => {
+    setDropdownStates((prevState) => ({
       ...prevState,
       [item.id]: !prevState[item.id],
     }));
@@ -139,28 +138,6 @@ const MenuPage = () => {
             <Bars3Icon className="w-6 h-6" />
           </button>
           <div className="flex items-center ml-auto">
-            {!company_id && companies.length > 0 && (
-              <div className="mb-6">
-                <label
-                  htmlFor="company_id"
-                  className="block mb-2 text-sm font-medium"
-                ></label>
-                <select
-                  id="company_id"
-                  name="company_id"
-                  className="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  required
-                >
-                  <option value="">Selecciona una empresa</option>
-                  {/* Puedes reemplazar este array por tu lista real de empresas */}
-                  {companies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
             <Image
               src={userImage}
               width={32}
@@ -257,10 +234,10 @@ const MenuPage = () => {
                     <li key={item.id}>
                       {item.children && item.children?.length > 0 ? (
                         <div>
-                          <a
-                            onClick={() => toggleDropdown(item as any)}
+                          <button
+                            onClick={() => toggleDropdown(item)}
                             type="button"
-                            className="flex items-center p-2 rounded-full bg-btn-menu group"
+                            className="w-full flex items-center p-2 rounded-full bg-btn-menu group"
                             aria-controls={`dropdown-${item.name} `}
                             data-collapse-toggle={`dropdown-${item.name} `}
                           >
@@ -288,7 +265,7 @@ const MenuPage = () => {
                                 d="m19.5 8.25-7.5 7.5-7.5-7.5"
                               />
                             </svg>
-                          </a>
+                          </button>
                           <ul
                             className={`${
                               dropdownStates[item.id] ? "" : "hidden"
