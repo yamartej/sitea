@@ -1,0 +1,142 @@
+name: TotalPlus QA - integrated Laravel 12 and Next.js navigation
+
+on:
+  push:
+    branches:
+      - feature/navigation-v2-20261101
+  pull_request:
+    branches:
+      - qa/phase3-security-remediation-20261031
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrated-navigation:
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/navigation-v2-20261101'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: totalplus_ci_navigation_e2e
+          MYSQL_USER: qa_runner
+          MYSQL_PASSWORD: qa_ephemeral_only
+          MYSQL_ROOT_PASSWORD: qa_root_ephemeral_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pqa_root_ephemeral_only"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'true'
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: totalplus_ci_navigation_e2e
+      DB_USERNAME: qa_runner
+      DB_PASSWORD: qa_ephemeral_only
+      CACHE_DRIVER: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_URL_API: http://127.0.0.1:8000/api
+      NEXTAUTH_URL: http://127.0.0.1:3001
+      NEXTAUTH_SECRET: ci-only-fake-nextauth-secret-not-for-production
+      NAV_QA_PASSWORD: CI-only-navigation-test-password-2026
+      GITHUB_ACTIONS: 'true'
+
+    steps:
+      - name: Checkout frontend navigation candidate
+        uses: actions/checkout@v4
+
+      - name: Checkout matching public backend candidate
+        run: |
+          git clone --depth 1 --branch feature/navigation-v2-20261101 \
+            https://github.com/yamartej/totalplus_api.git backend
+          echo "FRONTEND=$(git rev-parse HEAD)"
+          echo "BACKEND=$(git -C backend rev-parse HEAD)"
+          test -f backend/database/seeders/NavigationE2eSeeder.php
+          test -f backend/database/migrations/2026_11_01_000200_align_business_navigation.php
+
+      - name: Set up PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, dom, fileinfo, pdo_mysql, xml, curl, zip, bcmath
+          coverage: none
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install exact Laravel 12 dependencies
+        working-directory: backend
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          php artisan --version
+
+      - name: Verify disposable database and provision synthetic profiles
+        working-directory: backend
+        run: |
+          test "$GITHUB_ACTIONS" = "true"
+          test "$APP_ENV" = "testing"
+          test "$DB_DATABASE" = "totalplus_ci_navigation_e2e"
+          test "$DB_HOST" = "127.0.0.1"
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:clear
+          php artisan tinker --execute="if (DB::connection()->getDatabaseName() !== 'totalplus_ci_navigation_e2e') { throw new RuntimeException('Dangerous database target'); }"
+          php artisan migrate --force
+          php artisan db:seed --class=Database\\Seeders\\NavigationE2eSeeder --force
+          php artisan tinker --execute="if (DB::table('users')->count() !== 5) { throw new RuntimeException('E2E profiles were not seeded'); }"
+
+      - name: Install exact frontend dependencies and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install browser test runner in ephemeral CI only
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Start real backend and frontend applications
+        run: |
+          (cd backend; nohup php artisan serve --host=127.0.0.1 --port=8000 > "$GITHUB_WORKSPACE/qa/e2e/server-api.log" 2>&1 &)
+          nohup npm run start -- -p 3001 > "$GITHUB_WORKSPACE/qa/e2e/server-next.log" 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8000/api/companies >/dev/null \
+              && curl -fsS http://127.0.0.1:3001/ >/dev/null; then
+              echo "Both services are reachable on local ephemeral CI runner."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Application readiness timed out."
+          exit 1
+
+      - name: Browser acceptance for real roles, pages and tenants
+        run: npx playwright test --config=qa/e2e/playwright.config.cjs
+
+      - name: Upload browser traces and reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: navigation-integrated-qa-diagnostics
+          path: |
+            test-results/
+            qa/e2e/results.xml
+            qa/e2e/server-api.log
+            qa/e2e/server-next.log
+          retention-days: 7
+          if-no-files-found: ignore
