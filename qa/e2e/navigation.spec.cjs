@@ -50,7 +50,26 @@ test("warehouse: transfers page uses real company-filtered API", async ({ page }
   await expect(page.getByLabel("Almacén de origen")).toContainText("QA Alpha Principal");
   await expect(page.getByLabel("Almacén de origen")).not.toContainText("QA Beta Privado");
   await expect(page.getByLabel("Producto")).toContainText("QA Synthetic Product");
-  await expect(page.getByRole("button", { name: "Registrar transferencia" })).toBeEnabled();
+  await page.getByLabel("Almacén de origen").selectOption({ label: "QA Alpha Principal" });
+  await page.getByLabel("Almacén de destino").selectOption({ label: "QA Alpha Secundario" });
+  await page.getByLabel("Producto").selectOption({ label: "QA Synthetic Product" });
+  await page.getByLabel("Cantidad a transferir").fill("2");
+  const submit = page.getByRole("button", { name: "Registrar transferencia" });
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(page.getByText(/Transferencia registrada/)).toBeVisible();
+
+  // Confirm that the actual Laravel transaction created two Kardex entries.
+  const token = await apiLogin(page.request, "warehouse");
+  const response = await page.request.get(API + "/inventory/kardex", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  expect(response.status()).toBe(200);
+  const ledger = (await response.json()).data;
+  expect(ledger.filter((movement) => movement.type === "transfer_out" &&
+    movement.quantity_delta === -2)).toHaveLength(1);
+  expect(ledger.filter((movement) => movement.type === "transfer_in" &&
+    movement.quantity_delta === 2)).toHaveLength(1);
 });
 
 test("buyer: purchase orders and partial receipt page are reachable", async ({ page }) => {
